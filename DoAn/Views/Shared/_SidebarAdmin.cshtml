@@ -1,0 +1,87 @@
+﻿<style>
+    .nav-link {
+        font-size: 14px !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 10px 15px;
+    }
+
+    .nav-link-toggle {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+        .nav-link-toggle::after {
+            content: "\f107"; /* FontAwesome ▼ */
+            font-family: "Font Awesome 5 Free";
+            font-weight: 900;
+            font-size: 12px;
+        }
+
+    .submenu a {
+        padding-left: 30px !important;
+        font-size: 13px !important;
+    }
+</style>
+
+<div class="sidebar pe-4 pb-3 bg-light" style="min-height: 100vh;">
+    <nav class="navbar navbar-light">
+        <a href="/Admin/Index" class="navbar-brand mx-4 mb-3">
+            <img src="logo.png" alt="Logo" style="height: 40px;">
+        </a>
+
+        <!-- User info -->
+        <div class="d-flex align-items-center ms-4 mb-4">
+            <div class="position-relative">
+                <img class="rounded-circle" src="~/img/user.jpg" alt="User" style="width: 40px; height: 40px;">
+                <div class="bg-success rounded-circle border border-2 border-white position-absolute end-0 bottom-0 p-1"></div>
+            </div>
+            <div class="ms-3">
+                <h6 class="mb-0">Jhon Doe</h6>
+                <span>Admin</span>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="navbar-nav w-100">
+            <a href="/Admin/ThongKe" class="nav-item nav-link">
+                <i class="fa fa-chart-bar me-2"></i>Thống kê
+            </a>
+
+            <a href="/Admin/DonHang" class="nav-item nav-link">
+                <i class="fa fa-shopping-cart me-2"></i>Quản lý đơn hàng
+            </a>
+
+            <a href="/Admin/BanHangTaiQuay" class="nav-item nav-link">
+                <i class="fa fa-store me-2"></i>Bán hàng tại quầy
+            </a>
+
+            <!-- Dropdown - Quản lý tài khoản -->
+            <a class="nav-item nav-link nav-link-toggle" data-bs-toggle="collapse" href="#collapseTaiKhoan" role="button" aria-expanded="false">
+                <span><i class="fa fa-users me-2"></i> Quản lý tài khoản</span>
+            </a>
+            <div class="collapse submenu" id="collapseTaiKhoan">
+                <a href="/Admin/NhanVien" class="nav-link">Nhân viên</a>
+                <a href="/Admin/KhachHang" class="nav-link">Khách hàng</a>
+            </div>
+
+            <!-- Dropdown - Quản lý sản phẩm -->
+            <a class="nav-item nav-link nav-link-toggle" data-bs-toggle="collapse" href="#collapseSanPham" role="button" aria-expanded="false">
+                <span><i class="fa fa-box me-2"></i> Quản lý sản phẩm</span>
+            </a>
+            <div class="collapse submenu" id="collapseSanPham">
+                <a href="/Admin/SanPham" class="nav-link">Sản phẩm</a>
+                <a href="/Admin/ThuongHieu" class="nav-link">Thương hiệu</a>
+                <a href="/Admin/TheTich" class="nav-link">Dung tích</a>
+                <a href="/Admin/MuiHuong" class="nav-link">Mùi hương</a>
+                <a href="/Admin/GioiTinh" class="nav-link">Giới tính</a>
+            </div>
+
+            <a href="/Admin/KhuyenMai" class="nav-item nav-link">
+                <i class="fa fa-bullhorn me-2"></i>Khuyến mãi
+            </a>
+        </div>
+    </nav>
+</div>
