@@ -2,7 +2,7 @@
 
 namespace DoAn.Models
 {
-    public class TraHang
+    public class QuanLyTraHang
     {
         [Key]
         public Guid ID_TraHang { get; set; }

@@ -28,7 +28,7 @@ namespace DoAn.Models
         public Voucher Voucher { get; set; }
         
 
-        public ICollection<TraHang> TraHangs { get; set; }
+        public ICollection<QuanLyTraHang> TraHangs { get; set; }
         public ICollection<HoaDonChiTiet> HoaDonChiTiets { get; set; }
         public ICollection<TrangThaiDonHang> TrangThaiDonHangs { get; set; }
     }

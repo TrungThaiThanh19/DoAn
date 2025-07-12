@@ -13,6 +13,6 @@ namespace DoAn.Models
         public SanPhamChiTiet SanPhamChiTiet { get; set; }
 
         public Guid ID_TraHang { get; set; }
-        public TraHang TraHang { get; set; }
+        public QuanLyTraHang TraHang { get; set; }
     }
 }

@@ -20,7 +20,7 @@ namespace DoAn.Models
         public DbSet<Voucher> Vouchers { get; set; }
         public DbSet<HoaDon> HoaDons { get; set; }
         public DbSet<TrangThaiDonHang> TrangThaiDonHangs { get; set; }
-        public DbSet<TraHang> TraHangs { get; set; }
+        public DbSet<QuanLyTraHang> TraHangs { get; set; }
         public DbSet<HinhAnh> HinhAnhs { get; set; }
         public DbSet<MuiHuong> MuiHuongs { get; set; }
         public DbSet<ThuongHieu> ThuongHieus { get; set; }
@@ -91,7 +91,7 @@ namespace DoAn.Models
                 .HasForeignKey(h => h.ID_ChiTietSanPham);
 
             // TraHang
-            modelBuilder.Entity<TraHang>()
+            modelBuilder.Entity<QuanLyTraHang>()
                 .HasOne(t => t.HoaDon)
                 .WithMany(h => h.TraHangs)
                 .HasForeignKey(t => t.ID_HoaDon);
