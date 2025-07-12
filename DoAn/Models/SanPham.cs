@@ -1,21 +1,23 @@
-﻿using Microsoft.Extensions.Primitives;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace DoAn.Models
 {
     public class SanPham
     {
         [Key]
-        public Guid IdSp { get; set; } // Khóa chính
-        public string TenSp { get; set; }
-        public decimal DonGiaBan { get; set; }
-        public decimal DonGiaNhap { get; set; }
+        public Guid ID_SanPham { get; set; }
+        public string Ma_SanPham { get; set; }
+        public string Ten_SanPham { get; set; }
         public string HinhAnh { get; set; }
-        public DateTime NgayTao { get; set; } = DateTime.Now; // Ngày tạo, mặc định là ngày hiện tại
+        public string MoTa { get; set; }
+        public int TrangThai { get; set; }
 
-        public bool TrangThai { get; set; } // Trạng thái sản phẩm (còn bán hay không)
-        // Navigation properties
-        public virtual ICollection<SanPhamChiTiet> SanPhamChiTiets { get; set; }
-        public virtual ICollection<GioHangChiTiet> GioHangChiTiets { get; set; }
+        public Guid ID_ThuongHieu { get; set; }
+        public ThuongHieu ThuongHieu { get; set; }
+
+        public Guid ID_MuiHuong { get; set; }
+        public MuiHuong MuiHuong { get; set; }
+
+        public ICollection<SanPhamChiTiet> SanPhamChiTiets { get; set; }
     }
 }

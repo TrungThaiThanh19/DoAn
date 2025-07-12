@@ -5,14 +5,12 @@ namespace DoAn.Models
     public class TheTich
     {
         [Key]
-        public Guid IdTheTich { get; set; } // Khóa chính
-        public string TheTichs { get; set; } // Thể tích, ví dụ: "50ml", "100ml"
-        public DateTime NgayTao { get; set; }
-        public DateTime? NgayCapNhat { get; set; }
-        public bool TrangThai { get; set; }
+        public Guid ID_TheTich { get; set; }
+        public string Ma_TheTich { get; set; }
+        public string GiaTri { get; set; }
+        public string DonVi { get; set; }
+        public int TrangThai { get; set; }
 
-        // Navigation property
-        public virtual ICollection<SanPhamChiTiet> SanPhamChiTiets { get; set; }
+        public ICollection<SanPhamChiTiet> SanPhamChiTiets { get; set; }
     }
 }
-

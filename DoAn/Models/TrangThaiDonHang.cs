@@ -5,11 +5,13 @@ namespace DoAn.Models
     public class TrangThaiDonHang
     {
         [Key]
-        public Guid IdTrangThaiHd { get; set; } // PK (Tên vẫn là IdTrangThaiHd nhưng sẽ dùng cho cả HĐ & ĐĐH)
-        public string TenTrangThaiDh { get; set; }
-        public string MoTa { get; set; }
-        public DateTime NgayTao { get; set; }
+        public Guid ID_TrangThaiDonHang { get; set; }
+        public string TrangThai { get; set; }
+        public DateTime NgayChuyen { get; set; }
+        public string NhanVienDoi { get; set; }
+        public string NoiDungDoi { get; set; }
 
-        public virtual ICollection<DonDatHang> DonDatHangs { get; set; } // Chỉ Đơn Đặt Hàng mới dùng Trạng Thái Đơn Hàng chi tiết
+        public Guid ID_HoaDon { get; set; }
+        public HoaDon HoaDon { get; set; }
     }
 }

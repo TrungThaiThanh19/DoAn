@@ -5,25 +5,22 @@ namespace DoAn.Models
     public class SanPhamChiTiet
     {
         [Key]
-        public Guid IdCtsp { get; set; } // Khóa chính
-        public Guid? IdSp { get; set; } // Khóa ngoại tới SanPham
-        public Guid? IdThuongHieu { get; set; } // Khóa ngoại tới ThuongHieu
-        public Guid? IdMuiHuong { get; set; } // Khóa ngoại tới MuiHuong
-        public Guid? IdTheTich { get; set; } // Khóa ngoại tới TheTich
-        public Guid? IdGioTinh { get; set; } // FK tới GioTinh
-        public int SoLuongTon { get; set; }
-        public bool TrangThai { get; set; } // Trạng thái sản phẩm chi tiết (còn bán hay không)
-        public DateTime NgayTao { get; set; } = DateTime.Now; // Ngày tạo, mặc định là ngày hiện tại
+        public Guid ID_SanPhamChiTiet { get; set; }
+        public decimal GiaBan { get; set; }
+        public int SoLuong { get; set; }
+        public string TrangThai { get; set; }
+        public DateTime NgayTao { get; set; } = DateTime.Now;
+        public DateTime? NgayCapNhat { get; set; }
 
-        // Navigation properties
-        public virtual SanPham? SanPham { get; set; }
-        public virtual ThuongHieu? ThuongHieu { get; set; }
-        public virtual MuiHuong? MuiHuong { get; set; }
-        public virtual TheTich? TheTich { get; set; }
-        public virtual GioiTinh? GioTinh { get; set; }
+        public Guid ID_TheTich { get; set; }
+        public TheTich TheTich { get; set; }
 
-        public virtual ICollection<ChiTietHoaDon> ChiTietHoaDons { get; set; }
-        public virtual ICollection<ChiTietDonDatHang> ChiTietDonDatHangs { get; set; } // SPCT có trong ChiTietDonDatHang online
-        public virtual ICollection<GioHangChiTiet> GioHangChiTiets { get; set; }
+        public Guid ID_GioiTinh { get; set; }
+        public GioiTinh GioiTinh { get; set; }
+        public ICollection<ChiTietKhuyenMai> ChiTietKhuyenMais { get; set; }
+
+        public ICollection<HinhAnh> HinhAnhs { get; set; }
+        public ICollection<ChiTietTraHang> ChiTietTraHangs { get; set; }
+        public ICollection<HoaDonChiTiet> HoaDonChiTiets { get; set; }
     }
 }

@@ -5,16 +5,19 @@ namespace DoAn.Models
     public class NhanVien
     {
         [Key]
-        public Guid IdNv { get; set; } // Khóa chính
-        public Guid? IdTk { get; set; } // Khóa ngoại tới TaiKhoanNhanVien
-        public string TenNv { get; set; }
-        public string DiaChi { get; set; }
-        public string SoCccd { get; set; }
-        public bool TrangThai { get; set; }
+        public Guid ID_NhanVien { get; set; }
+        public string Ma_NhanVien { get; set; }
+        public string Ten_NhanVien { get; set; }
+        public DateTime NgaySinh { get; set; }
+        public string Email { get; set; }
+        public string DiaChiLienHe { get; set; }
+        public string GioiTinh { get; set; }
+        public string SoDienThoai { get; set; }
+        public DateTime NgayThamGia { get; set; }
+        public string TrangThai { get; set; }
 
-        // Navigation properties
-        public virtual TaiKhoan? TaiKhoan { get; set; } // Tên Navigation Property khớp với tên class
-        public virtual ICollection<HoaDon> HoaDons { get; set; }
-        
+        public Guid ID_TaiKhoan { get; set; }
+        public TaiKhoan TaiKhoan { get; set; }
+        public ICollection<HoaDon> HoaDons { get; set; }
     }
 }

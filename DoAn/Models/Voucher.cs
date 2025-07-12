@@ -5,18 +5,21 @@ namespace DoAn.Models
     public class Voucher
     {
         [Key]
-        public Guid IdVch { get; set; } // PK theo ERD
-        public string TenVoucher { get; set; }
-        public decimal PhanTramGiam { get; set; } // Giá trị giảm (0-100 cho phần trăm)
-        public int SoLuong { get; set; } // Số lượng voucher còn lại hoặc tổng số
-        public DateTime NgayBatDau { get; set; }
-        public DateTime NgayKetThuc { get; set; }
-        public DateTime NgayTao { get; set; } // Thêm trường Ngày Tạo
-        public bool TrangThai { get; set; } // Thêm trường Trạng Thái
+        public Guid ID_Voucher { get; set; }
+        public string Ma_Voucher { get; set; }
+        public string Ten_Voucher { get; set; }
+        public DateTime NgayTao { get; set; }
+        public DateTime NgayHetHan { get; set; }
+        public string KieuGiamGia { get; set; }
+        public decimal GiaTriGiam { get; set; }
+        public decimal GiaTriToiThieu { get; set; }
+        public decimal GiaTriToiDa { get; set; }
+        public int SoLuong { get; set; }
+        public string TrangThai { get; set; }
+        public string MoTa { get; set; }
 
-        public virtual ICollection<DonDatHang> DonDatHangs { get; set; } // Voucher có thể được áp dụng cho nhiều đơn hàng
-        public virtual ICollection<HoaDon> HoaDons { get; set; } // Voucher có thể được áp dụng cho nhiều giỏ hàng
+        public Guid ID_TaiKhoan { get; set; }
+        public TaiKhoan TaiKhoan { get; set; }
+        public ICollection<HoaDon> HoaDons { get; set; }
     }
-
 }
-

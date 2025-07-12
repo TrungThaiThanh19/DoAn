@@ -5,14 +5,11 @@ namespace DoAn.Models
     public class ThuongHieu
     {
         [Key]
-        public Guid IdThuongHieu { get; set; } // Khóa chính
-        public string TenTh { get; set; }
-        public string MoTa { get; set; }
-        public DateTime NgayTao { get; set; } = DateTime.Now; // Ngày tạo, mặc định là ngày hiện tại
-        public DateTime? NgayCapNhat { get; set; }
-        public bool TrangThai { get; set; }
+        public Guid ID_ThuongHieu { get; set; }
+        public string Ma_ThuongHieu { get; set; }
+        public string Ten_ThuongHieu { get; set; }
+        public int TrangThai { get; set; }
 
-        // Navigation property
-        public virtual ICollection<SanPhamChiTiet> SanPhamChiTiets { get; set; }
+        public ICollection<SanPham> SanPhams { get; set; }
     }
 }
