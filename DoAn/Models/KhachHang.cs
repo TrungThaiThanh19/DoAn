@@ -13,7 +13,7 @@ namespace DoAn.Models
         public DateTime NgaySinh { get; set; }
         public string Email { get; set; }
         public DateTime NgayTao { get; set; } = DateTime.Now;
-        public string TrangThai { get; set; }
+        public int TrangThai { get; set; }
 
         public Guid ID_TaiKhoan { get; set; }
         public TaiKhoan TaiKhoan { get; set; }

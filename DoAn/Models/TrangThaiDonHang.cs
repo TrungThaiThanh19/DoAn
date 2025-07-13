@@ -6,7 +6,7 @@ namespace DoAn.Models
     {
         [Key]
         public Guid ID_TrangThaiDonHang { get; set; }
-        public string TrangThai { get; set; }
+        public int TrangThai { get; set; }
         public DateTime NgayChuyen { get; set; }
         public string NhanVienDoi { get; set; }
         public string NoiDungDoi { get; set; }

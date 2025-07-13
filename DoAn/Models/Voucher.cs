@@ -15,7 +15,7 @@ namespace DoAn.Models
         public decimal GiaTriToiThieu { get; set; }
         public decimal GiaTriToiDa { get; set; }
         public int SoLuong { get; set; }
-        public string TrangThai { get; set; }
+        public int TrangThai { get; set; }
         public string MoTa { get; set; }
 
         public Guid ID_TaiKhoan { get; set; }

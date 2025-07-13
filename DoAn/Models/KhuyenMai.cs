@@ -14,7 +14,7 @@ namespace DoAn.Models
         public decimal GiaTriGiam { get; set; }
         public decimal GiaTriToiDa { get; set; }
         public string MoTa { get; set; }
-        public string TrangThaiTrangThai { get; set; }
+        public int TrangThai { get; set; }
 
         public ICollection<ChiTietKhuyenMai> ChiTietKhuyenMais { get; set; }
     }

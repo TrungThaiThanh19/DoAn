@@ -10,7 +10,7 @@ namespace DoAn.Models
         public string GhiChu { get; set; }
         public string NhanVienXuLy { get; set; }
         public DateTime NgayTao { get; set; }
-        public string TrangThai { get; set; }
+        public int TrangThai { get; set; }
         public decimal TongTienHoan { get; set; }
 
         public Guid ID_HoaDon { get; set; }

@@ -20,7 +20,7 @@ namespace DoAn.Models
         public string GhiChu { get; set; }
         public DateTime NgayTao { get; set; } = DateTime.Now;
         public DateTime? NgayCapNhat { get; set; }
-        public string TrangThai { get; set; }
+        public int TrangThai { get; set; }
 
 
 

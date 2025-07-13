@@ -14,7 +14,7 @@ namespace DoAn.Models
         public string GioiTinh { get; set; }
         public string SoDienThoai { get; set; }
         public DateTime NgayThamGia { get; set; }
-        public string TrangThai { get; set; }
+        public int TrangThai { get; set; }
 
         public Guid ID_TaiKhoan { get; set; }
         public TaiKhoan TaiKhoan { get; set; }
