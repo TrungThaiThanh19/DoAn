@@ -150,7 +150,7 @@ namespace DoAn.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Server=LAPTOP-8CVDJNS6;Database=DoAn;Trusted_Connection=True;MultipleActiveResultSets=true");
+                optionsBuilder.UseSqlServer("Server=DESKTOP-0O61DM6\\TRUNGTT;Database=DuAn;Trusted_Connection=True;TrustServerCertificate=True");
             }
         }
     }

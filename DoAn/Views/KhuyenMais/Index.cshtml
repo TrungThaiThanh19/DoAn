@@ -1,0 +1,76 @@
+﻿@model IEnumerable<DoAn.Models.KhuyenMai>
+
+@{
+    ViewData["Title"] = "Danh sách khuyến mãi";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<!-- Thông báo TempData -->
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<!-- Nút tạo mới -->
+<p>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Thêm khuyến mãi
+    </a>
+</p>
+
+<!-- Bảng hiển thị khuyến mãi -->
+<table class="table table-bordered table-striped">
+    <thead class="thead-dark">
+        <tr>
+            <th>Mã</th>
+            <th>Tên khuyến mãi</th>
+            <th>Kiểu</th>
+            <th>Giá trị</th>
+            <th>Tối đa</th>
+            <th>Bắt đầu</th>
+            <th>Hết hạn</th>
+            <th>Trạng thái</th>
+            <th style="width: 120px;">Thao tác</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (!Model.Any())
+        {
+            <tr>
+                <td colspan="9" class="text-center">Không có khuyến mãi nào.</td>
+            </tr>
+        }
+        else
+        {
+            foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Ma_KhuyenMai</td>
+                    <td>@item.Ten_KhuyenMai</td>
+                    <td>@item.KieuGiamGia</td>
+                    <td>
+                        @(item.KieuGiamGia == "Giảm theo %" ? $"{item.GiaTriGiam}%" : $"{item.GiaTriGiam:N0}đ")
+                    </td>
+                    <td>
+                        @(item.KieuGiamGia == "Giảm theo %" ? $"{item.GiaTriToiDa:N0}đ" : "-")
+                    </td>
+                    <td>@item.NgayBatDau.ToString("dd/MM/yyyy")</td>
+                    <td>@item.NgayHetHan.ToString("dd/MM/yyyy")</td>
+                    <td>
+                        @(item.TrangThai == 1 ? "Hoạt động" : "Ngưng")
+                    </td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@item.ID_KhuyenMai" class="btn btn-sm btn-warning">Sửa</a>
+                        <a asp-action="Delete" asp-route-id="@item.ID_KhuyenMai" class="btn btn-sm btn-danger"
+                           onclick="return confirm('Bạn có chắc muốn xóa khuyến mãi này?');">Xóa</a>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>

@@ -7,7 +7,7 @@ namespace DoAn.Models
     {
         [Key]
         public Guid ID_TaiKhoan { get; set; }
-        public string Uername { get; set; }
+        public string Username { get; set; }
         public string Password { get; set; }
 
         public Guid ID_Roles { get; set; }
