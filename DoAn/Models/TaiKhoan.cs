@@ -15,6 +15,5 @@ namespace DoAn.Models
 
         public ICollection<NhanVien> NhanViens { get; set; }
         public ICollection<KhachHang> KhachHangs { get; set; }
-        public ICollection<Voucher> Vouchers { get; set; }
     }
 }

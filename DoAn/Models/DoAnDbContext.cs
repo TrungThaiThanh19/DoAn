@@ -139,11 +139,31 @@ namespace DoAn.Models
                 .HasOne(k => k.TaiKhoan)
                 .WithMany(t => t.KhachHangs)
                 .HasForeignKey(k => k.ID_TaiKhoan);
+            // Seed Roles (phải seed trước Tài khoản vì Tài khoản phụ thuộc Roles)
+            var adminRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000003");
+            var nhanvienRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000002");
+            var khachhangRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000001");
 
-            modelBuilder.Entity<Voucher>()
-                .HasOne(v => v.TaiKhoan)
-                .WithMany(t => t.Vouchers)
-                .HasForeignKey(v => v.ID_TaiKhoan);
+            modelBuilder.Entity<Roles>().HasData(
+                new Roles { ID_Roles = khachhangRoleId, Ma_Roles = "KH", Ten_Roles = "khachhang" },
+                new Roles { ID_Roles = nhanvienRoleId, Ma_Roles = "NV", Ten_Roles = "nhanvien" },
+                new Roles { ID_Roles = adminRoleId, Ma_Roles = "AD", Ten_Roles = "admin" }
+            );
+
+            // Seed Admin Account
+            var adminAccountId = Guid.Parse("B0000000-0000-0000-0000-000000000001"); // GUID mới cho tài khoản admin
+
+            modelBuilder.Entity<TaiKhoan>().HasData(
+                new TaiKhoan
+                {
+                    ID_TaiKhoan = adminAccountId,
+                    Uername = "admin", // <-- ĐÃ SỬA: Tên đăng nhập phải là "Username"
+                    Password = "admin", // Mật khẩu (lưu ý: vẫn là plain text, nên hash trong thực tế)
+                    ID_Roles = adminRoleId, // Gán cho vai trò 'admin'
+                    // Thêm các thuộc tính khác nếu có và cần giá trị mặc định, ví dụ TrangThai = 1
+                }
+            );
+
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

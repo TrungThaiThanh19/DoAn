@@ -1,0 +1,93 @@
+﻿@{
+    ViewData["Title"] = "Chọn Chế độ làm việc";
+    var username = Context.Session.GetString("Username"); // Lấy Username để hiển thị lời chào
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+
+    .choice-container {
+        max-width: 800px;
+        margin: 80px auto;
+        padding: 50px;
+        border-radius: 12px;
+        background-color: #ffffff;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    .welcome-text {
+        color: #343a40;
+        margin-bottom: 30px;
+        font-weight: 600;
+    }
+
+    .choice-buttons .btn {
+        min-width: 250px;
+        padding: 20px 40px;
+        font-size: 1.3rem;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        margin: 15px;
+    }
+
+        .choice-buttons .btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+    .btn-pos {
+        background-color: #007bff;
+        border-color: #007bff;
+        color: white;
+    }
+
+        .btn-pos:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+
+    .btn-online {
+        background-color: #28a745;
+        border-color: #28a745;
+        color: white;
+    }
+
+        .btn-online:hover {
+            background-color: #1e7e34;
+            border-color: #1e7e34;
+        }
+
+    .logout-link {
+        margin-top: 40px;
+    }
+</style>
+
+<div class="container">
+    <div class="choice-container">
+        <h1 class="welcome-text">Xin chào, @username!</h1>
+        <p class="lead mb-5">Vui lòng chọn chế độ làm việc bạn muốn:</p>
+
+        <div class="choice-buttons d-flex justify-content-center flex-wrap">
+            <a asp-action="Index" asp-controller="Admin" class="btn btn-pos">
+                @* <-- ĐÃ SỬA: POS về Admin/Index *@
+                <i class="fas fa-cash-register me-2"></i> Chế độ POS
+            </a>
+            <a asp-action="Index" asp-controller="Home" class="btn btn-online">
+                @* <-- GIỮ NGUYÊN: Online về Home/Index *@
+                <i class="fas fa-globe me-2"></i> Chế độ Online
+            </a>
+        </div>
+
+        <div class="logout-link">
+            <a asp-action="Logout" asp-controller="TaiKhoan" class="btn btn-outline-secondary btn-sm">Đăng xuất</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://kit.fontawesome.com/your-font-awesome-kit-code.js" crossorigin="anonymous"></script>
+    }

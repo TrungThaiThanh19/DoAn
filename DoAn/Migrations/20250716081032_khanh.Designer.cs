@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DoAn.Migrations
 {
     [DbContext(typeof(DoAnDbContext))]
-    [Migration("20250713084134_khanh1")]
-    partial class khanh1
+    [Migration("20250716081032_khanh")]
+    partial class khanh
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -514,6 +514,26 @@ namespace DoAn.Migrations
                     b.HasKey("ID_Roles");
 
                     b.ToTable("Roles");
+
+                    b.HasData(
+                        new
+                        {
+                            ID_Roles = new Guid("a0000000-0000-0000-0000-000000000001"),
+                            Ma_Roles = "KH",
+                            Ten_Roles = "khachhang"
+                        },
+                        new
+                        {
+                            ID_Roles = new Guid("a0000000-0000-0000-0000-000000000002"),
+                            Ma_Roles = "NV",
+                            Ten_Roles = "nhanvien"
+                        },
+                        new
+                        {
+                            ID_Roles = new Guid("a0000000-0000-0000-0000-000000000003"),
+                            Ma_Roles = "AD",
+                            Ten_Roles = "admin"
+                        });
                 });
 
             modelBuilder.Entity("DoAn.Models.SanPham", b =>
@@ -619,6 +639,15 @@ namespace DoAn.Migrations
                     b.HasIndex("ID_Roles");
 
                     b.ToTable("TaiKhoans");
+
+                    b.HasData(
+                        new
+                        {
+                            ID_TaiKhoan = new Guid("b0000000-0000-0000-0000-000000000001"),
+                            ID_Roles = new Guid("a0000000-0000-0000-0000-000000000003"),
+                            Password = "admin",
+                            Uername = "admin"
+                        });
                 });
 
             modelBuilder.Entity("DoAn.Models.TheTich", b =>
@@ -738,6 +767,9 @@ namespace DoAn.Migrations
                     b.Property<int>("SoLuong")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("TaiKhoanID_TaiKhoan")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Ten_Voucher")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -747,7 +779,7 @@ namespace DoAn.Migrations
 
                     b.HasKey("ID_Voucher");
 
-                    b.HasIndex("ID_TaiKhoan");
+                    b.HasIndex("TaiKhoanID_TaiKhoan");
 
                     b.ToTable("Vouchers");
                 });
@@ -979,8 +1011,8 @@ namespace DoAn.Migrations
             modelBuilder.Entity("DoAn.Models.Voucher", b =>
                 {
                     b.HasOne("DoAn.Models.TaiKhoan", "TaiKhoan")
-                        .WithMany("Vouchers")
-                        .HasForeignKey("ID_TaiKhoan")
+                        .WithMany()
+                        .HasForeignKey("TaiKhoanID_TaiKhoan")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1052,8 +1084,6 @@ namespace DoAn.Migrations
                     b.Navigation("KhachHangs");
 
                     b.Navigation("NhanViens");
-
-                    b.Navigation("Vouchers");
                 });
 
             modelBuilder.Entity("DoAn.Models.TheTich", b =>

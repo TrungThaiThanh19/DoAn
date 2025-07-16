@@ -1,4 +1,5 @@
-﻿<style>
+﻿@using Microsoft.AspNetCore.Http
+<style>
     .nav-link {
         font-size: 14px !important;
         white-space: nowrap;
@@ -32,19 +33,29 @@
             <img src="logo.png" alt="Logo" style="height: 40px;">
         </a>
 
-        <!-- User info -->
         <div class="d-flex align-items-center ms-4 mb-4">
             <div class="position-relative">
                 <img class="rounded-circle" src="~/img/user.jpg" alt="User" style="width: 40px; height: 40px;">
                 <div class="bg-success rounded-circle border border-2 border-white position-absolute end-0 bottom-0 p-1"></div>
             </div>
             <div class="ms-3">
-                <h6 class="mb-0">Jhon Doe</h6>
-                <span>Admin</span>
+                <h6 class="mb-0">
+                    @{
+                        // Lấy Username từ Session để hiển thị ở đây
+                        var username = Context.Session.GetString("Username");
+                        @Html.Raw(string.IsNullOrEmpty(username) ? "Người dùng" : username)
+                    }
+                </h6>
+                <span>
+                    @{
+                        // Lấy RoleName từ Session để hiển thị ở đây
+                        var roleName = Context.Session.GetString("RoleName");
+                        @Html.Raw(string.IsNullOrEmpty(roleName) ? "Unknown" : roleName)
+                    }
+                </span>
             </div>
         </div>
 
-        <!-- Navigation -->
         <div class="navbar-nav w-100">
             <a href="/Admin/ThongKe" class="nav-item nav-link">
                 <i class="fa fa-chart-bar me-2"></i>Thống kê
@@ -58,7 +69,6 @@
                 <i class="fa fa-store me-2"></i>Bán hàng tại quầy
             </a>
 
-            <!-- Dropdown - Quản lý tài khoản -->
             <a class="nav-item nav-link nav-link-toggle" data-bs-toggle="collapse" href="#collapseTaiKhoan" role="button" aria-expanded="false">
                 <span><i class="fa fa-users me-2"></i> Quản lý tài khoản</span>
             </a>
@@ -67,7 +77,6 @@
                 <a href="/Admin/KhachHang" class="nav-link">Khách hàng</a>
             </div>
 
-            <!-- Dropdown - Quản lý sản phẩm -->
             <a class="nav-item nav-link nav-link-toggle" data-bs-toggle="collapse" href="#collapseSanPham" role="button" aria-expanded="false">
                 <span><i class="fa fa-box me-2"></i> Quản lý sản phẩm</span>
             </a>
