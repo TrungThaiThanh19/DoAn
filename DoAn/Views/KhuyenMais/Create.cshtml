@@ -1,0 +1,90 @@
+﻿@model DoAn.Models.KhuyenMai
+
+@{
+    ViewData["Title"] = "Tạo khuyến mãi mới";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<h4>Thông tin khuyến mãi</h4>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="Ma_KhuyenMai" class="control-label"></label>
+                <input asp-for="Ma_KhuyenMai" class="form-control" />
+                <span asp-validation-for="Ma_KhuyenMai" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Ten_KhuyenMai" class="control-label"></label>
+                <input asp-for="Ten_KhuyenMai" class="form-control" />
+                <span asp-validation-for="Ten_KhuyenMai" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="NgayBatDau" class="control-label"></label>
+                <input asp-for="NgayBatDau" type="date" class="form-control" />
+                <span asp-validation-for="NgayBatDau" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="NgayHetHan" class="control-label"></label>
+                <input asp-for="NgayHetHan" type="date" class="form-control" />
+                <span asp-validation-for="NgayHetHan" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="KieuGiamGia" class="control-label"></label>
+                <select asp-for="KieuGiamGia" class="form-control">
+                    <option value="">-- Chọn kiểu giảm giá --</option>
+                    <option value="Giảm theo %">Giảm theo %</option>
+                    <option value="Giảm theo số tiền">Giảm theo số tiền</option>
+                </select>
+                <span asp-validation-for="KieuGiamGia" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="GiaTriGiam" class="control-label"></label>
+                <input asp-for="GiaTriGiam" class="form-control" />
+                <span asp-validation-for="GiaTriGiam" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="GiaTriToiDa" class="control-label"></label>
+                <input asp-for="GiaTriToiDa" class="form-control" />
+                <span asp-validation-for="GiaTriToiDa" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="MoTa" class="control-label"></label>
+                <textarea asp-for="MoTa" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="MoTa" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="TrangThai" class="control-label"></label>
+                <select asp-for="TrangThai" class="form-control">
+                    <option value="1">Hoạt động</option>
+                    <option value="0">Ngưng</option>
+                </select>
+                <span asp-validation-for="TrangThai" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mt-3">
+                <input type="submit" value="Tạo mới" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

@@ -1,0 +1,95 @@
+﻿@model DoAn.Models.Voucher
+
+@{
+    ViewData["Title"] = "Thêm Voucher";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid pt-4 px-4">
+    <div class="bg-light rounded p-4">
+        <h4 class="mb-4">Thêm Voucher mới</h4>
+
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+
+            
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Ma_Voucher" class="form-label"></label>
+                    <input asp-for="Ma_Voucher" class="form-control" />
+                    <span asp-validation-for="Ma_Voucher" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Ten_Voucher" class="form-label"></label>
+                    <input asp-for="Ten_Voucher" class="form-control" />
+                    <span asp-validation-for="Ten_Voucher" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="NgayTao" class="form-label"></label>
+                    <input asp-for="NgayTao" type="date" class="form-control" />
+                    <span asp-validation-for="NgayTao" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="NgayHetHan" class="form-label"></label>
+                    <input asp-for="NgayHetHan" type="date" class="form-control" />
+                    <span asp-validation-for="NgayHetHan" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="KieuGiamGia" class="form-label"></label>
+                    <input asp-for="KieuGiamGia" class="form-control" />
+                    <span asp-validation-for="KieuGiamGia" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="GiaTriGiam" class="form-label"></label>
+                    <input asp-for="GiaTriGiam" class="form-control" />
+                    <span asp-validation-for="GiaTriGiam" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="GiaTriToiThieu" class="form-label"></label>
+                    <input asp-for="GiaTriToiThieu" class="form-control" />
+                    <span asp-validation-for="GiaTriToiThieu" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="GiaTriToiDa" class="form-label"></label>
+                    <input asp-for="GiaTriToiDa" class="form-control" />
+                    <span asp-validation-for="GiaTriToiDa" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="SoLuong" class="form-label"></label>
+                    <input asp-for="SoLuong" class="form-control" />
+                    <span asp-validation-for="SoLuong" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="TrangThai" class="form-label"></label>
+                    <select asp-for="TrangThai" class="form-control" asp-items="Html.GetEnumSelectList<DoAn.Models.Voucher.TrangThaiVoucher>()"></select>
+                    <span asp-validation-for="TrangThai" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ID_TaiKhoan" class="form-label"></label>
+                    <select asp-for="ID_TaiKhoan" class="form-control" asp-items="@(ViewData["ID_TaiKhoan"] as IEnumerable<SelectListItem>)"></select>
+                    <span asp-validation-for="ID_TaiKhoan" class="text-danger"></span>
+                </div>
+
+                <div class="col-12">
+                    <label asp-for="MoTa" class="form-label"></label>
+                    <textarea asp-for="MoTa" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="MoTa" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <input type="submit" value="Thêm mới" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary ms-2">Quay lại</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

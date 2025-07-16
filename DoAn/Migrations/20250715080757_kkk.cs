@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DoAn.Migrations
 {
     /// <inheritdoc />
-    public partial class khanh : Migration
+    public partial class kkk : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -28,15 +28,15 @@ namespace DoAn.Migrations
                 columns: table => new
                 {
                     ID_KhuyenMai = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Ma_KhuyenMai = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Ten_KhuyenMai = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Ma_KhuyenMai = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Ten_KhuyenMai = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     NgayBatDau = table.Column<DateTime>(type: "datetime2", nullable: false),
                     NgayHetHan = table.Column<DateTime>(type: "datetime2", nullable: false),
                     KieuGiamGia = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     GiaTriGiam = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     GiaTriToiDa = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     MoTa = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    TrangThaiTrangThai = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    TrangThai = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -104,7 +104,7 @@ namespace DoAn.Migrations
                 columns: table => new
                 {
                     ID_TaiKhoan = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Uername = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Username = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ID_Roles = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
@@ -161,7 +161,7 @@ namespace DoAn.Migrations
                     NgaySinh = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     NgayTao = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    TrangThai = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TrangThai = table.Column<int>(type: "int", nullable: false),
                     ID_TaiKhoan = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
@@ -188,7 +188,7 @@ namespace DoAn.Migrations
                     GioiTinh = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SoDienThoai = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     NgayThamGia = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    TrangThai = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TrangThai = table.Column<int>(type: "int", nullable: false),
                     ID_TaiKhoan = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
@@ -207,8 +207,8 @@ namespace DoAn.Migrations
                 columns: table => new
                 {
                     ID_Voucher = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Ma_Voucher = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Ten_Voucher = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Ma_Voucher = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Ten_Voucher = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     NgayTao = table.Column<DateTime>(type: "datetime2", nullable: false),
                     NgayHetHan = table.Column<DateTime>(type: "datetime2", nullable: false),
                     KieuGiamGia = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -216,7 +216,7 @@ namespace DoAn.Migrations
                     GiaTriToiThieu = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     GiaTriToiDa = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     SoLuong = table.Column<int>(type: "int", nullable: false),
-                    TrangThai = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TrangThai = table.Column<int>(type: "int", nullable: false),
                     MoTa = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ID_TaiKhoan = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
@@ -238,7 +238,7 @@ namespace DoAn.Migrations
                     ID_SanPhamChiTiet = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     GiaBan = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     SoLuong = table.Column<int>(type: "int", nullable: false),
-                    TrangThai = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TrangThai = table.Column<int>(type: "int", nullable: false),
                     NgayTao = table.Column<DateTime>(type: "datetime2", nullable: false),
                     NgayCapNhat = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ID_TheTich = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
@@ -328,7 +328,7 @@ namespace DoAn.Migrations
                     GhiChu = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     NgayTao = table.Column<DateTime>(type: "datetime2", nullable: false),
                     NgayCapNhat = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    TrangThai = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TrangThai = table.Column<int>(type: "int", nullable: false),
                     ID_Voucher = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     NhanVienID_NhanVien = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
@@ -461,7 +461,7 @@ namespace DoAn.Migrations
                     GhiChu = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     NhanVienXuLy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     NgayTao = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    TrangThai = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TrangThai = table.Column<int>(type: "int", nullable: false),
                     TongTienHoan = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     ID_HoaDon = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
@@ -481,7 +481,7 @@ namespace DoAn.Migrations
                 columns: table => new
                 {
                     ID_TrangThaiDonHang = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TrangThai = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TrangThai = table.Column<int>(type: "int", nullable: false),
                     NgayChuyen = table.Column<DateTime>(type: "datetime2", nullable: false),
                     NhanVienDoi = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     NoiDungDoi = table.Column<string>(type: "nvarchar(max)", nullable: false),

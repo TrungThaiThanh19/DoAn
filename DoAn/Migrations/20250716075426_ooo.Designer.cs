@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DoAn.Migrations
 {
     [DbContext(typeof(DoAnDbContext))]
-    [Migration("20250713084134_khanh1")]
-    partial class khanh1
+    [Migration("20250716075426_ooo")]
+    partial class ooo
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -365,7 +365,8 @@ namespace DoAn.Migrations
 
                     b.Property<string>("Ma_KhuyenMai")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("MoTa")
                         .IsRequired()
@@ -379,7 +380,8 @@ namespace DoAn.Migrations
 
                     b.Property<string>("Ten_KhuyenMai")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("TrangThai")
                         .HasColumnType("int");
@@ -610,7 +612,7 @@ namespace DoAn.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Uername")
+                    b.Property<string>("Username")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -723,7 +725,8 @@ namespace DoAn.Migrations
 
                     b.Property<string>("Ma_Voucher")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("MoTa")
                         .IsRequired()
@@ -740,7 +743,8 @@ namespace DoAn.Migrations
 
                     b.Property<string>("Ten_Voucher")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("TrangThai")
                         .HasColumnType("int");
