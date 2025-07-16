@@ -1,0 +1,63 @@
+﻿@model DoAn.Models.NhanVien
+
+@{
+    ViewData["Title"] = "Chi tiết nhân viên";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">Chi tiết nhân viên</h2>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <table class="table table-bordered table-hover">
+                <tbody>
+                    <tr>
+                        <th scope="row" style="width: 200px;">Mã nhân viên</th>
+                        <td>@Model.Ma_NhanVien</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Tên nhân viên</th>
+                        <td>@Model.Ten_NhanVien</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Ngày sinh</th>
+                        <td>@Model.NgaySinh.ToString("dd/MM/yyyy")</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Email</th>
+                        <td>@Model.Email</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Địa chỉ liên hệ</th>
+                        <td>@Model.DiaChiLienHe</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Giới tính</th>
+                        <td>@Model.GioiTinh</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Số điện thoại</th>
+                        <td>@Model.SoDienThoai</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Ngày tham gia</th>
+                        <td>@Html.DisplayFor(model => model.NgayThamGia)</td> 
+                    </tr>
+                    <tr>
+                        <th scope="row">Trạng thái</th>
+                        <td>@(Model.TrangThai == 1 ? "Hoạt động" : "Không hoạt động")</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">ID tài khoản</th>
+                        <td>@Model.TaiKhoan?.ID_TaiKhoan</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a asp-action="Edit" asp-route-id="@Model.ID_NhanVien" class="btn btn-primary">Chỉnh sửa</a>
+        <a asp-action="Index" class="btn btn-secondary">Quay lại danh sách</a>
+    </div>
+</div>

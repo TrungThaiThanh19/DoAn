@@ -4,6 +4,7 @@ using DoAn.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DoAn.Migrations
 {
     [DbContext(typeof(DoAnDbContext))]
-    partial class DoAnDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250713101122_hehehe")]
+    partial class hehehe
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -416,8 +419,7 @@ namespace DoAn.Migrations
 
                     b.Property<string>("DiaChiLienHe")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -432,13 +434,12 @@ namespace DoAn.Migrations
 
                     b.Property<string>("Ma_NhanVien")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("NgaySinh")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("NgayThamGia")
+                    b.Property<DateTime>("NgayThamGia")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("SoDienThoai")
@@ -447,8 +448,7 @@ namespace DoAn.Migrations
 
                     b.Property<string>("Ten_NhanVien")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("TrangThai")
                         .HasColumnType("int");
@@ -505,13 +505,11 @@ namespace DoAn.Migrations
 
                     b.Property<string>("Ma_Roles")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Ten_Roles")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("ID_Roles");
 

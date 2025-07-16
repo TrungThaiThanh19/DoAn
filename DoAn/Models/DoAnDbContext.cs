@@ -140,10 +140,7 @@ namespace DoAn.Models
                 .WithMany(t => t.KhachHangs)
                 .HasForeignKey(k => k.ID_TaiKhoan);
 
-            modelBuilder.Entity<Voucher>()
-                .HasOne(v => v.TaiKhoan)
-                .WithMany(t => t.Vouchers)
-                .HasForeignKey(v => v.ID_TaiKhoan);
+          
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
