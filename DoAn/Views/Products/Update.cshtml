@@ -1,0 +1,121 @@
+﻿@model DoAn.Models.SanPham
+@{
+    ViewData["Title"] = "Cập nhật sản phẩm";
+}
+
+<h2 class="mb-4 text-primary">✏️ Cập nhật sản phẩm</h2>
+
+<form method="post" enctype="multipart/form-data" asp-action="Update">
+    <input type="hidden" name="idSanPham" value="@Model.ID_SanPham" />
+
+    <div class="card mb-4 shadow rounded-4">
+        <div class="card-header bg-primary text-white">Thông tin sản phẩm</div>
+        <div class="card-body row g-3">
+
+            <div class="col-md-6">
+                <label class="form-label">Tên sản phẩm</label>
+                <input name="tenSanPham" class="form-control" value="@Model.TenSanPham" />
+                <span class="text-danger">@Html.ValidationMessage("TenSanPham")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Thời gian lưu hương (giờ)</label>
+                <input name="thoiGianLuuHuong" type="text" class="form-control" value="@Model.ThoiGianLuuHuong" />
+                <span class="text-danger">@Html.ValidationMessage("ThoiGianLuuHuong")</span>
+            </div>
+
+            <div class="col-md-12">
+                <label class="form-label">Mô tả</label>
+                <textarea name="moTa" class="form-control" rows="3">@Model.MoTa</textarea>
+                <span class="text-danger">@Html.ValidationMessage("MoTa")</span>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Hương đầu</label>
+                <input name="huongDau" class="form-control" value="@Model.HuongDau" />
+                <span class="text-danger">@Html.ValidationMessage("HuongDau")</span>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Hương giữa</label>
+                <input name="huongGiua" class="form-control" value="@Model.HuongGiua" />
+                <span class="text-danger">@Html.ValidationMessage("HuongGiua")</span>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Hương cuối</label>
+                <input name="huongCuoi" class="form-control" value="@Model.HuongCuoi" />
+                <span class="text-danger">@Html.ValidationMessage("HuongCuoi")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Hình ảnh hiện tại</label><br />
+                <img src="@Model.HinhAnh" class="img-thumbnail mb-2" style="max-width: 150px;" />
+                <input type="file" name="hinhAnh" class="form-control mt-2" />
+                <span class="text-danger">@Html.ValidationMessage("HinhAnh")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Thương hiệu</label>
+                @Html.DropDownList("idThuongHieu", (SelectList)ViewBag.ThuongHieuList, "-- Chọn --", new { @class = "form-select" })
+                <span class="text-danger">@Html.ValidationMessage("ID_ThuongHieu")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Quốc gia</label>
+                @Html.DropDownList("idQuocGia", (SelectList)ViewBag.QuocGiaList, "-- Chọn --", new { @class = "form-select" })
+                <span class="text-danger">@Html.ValidationMessage("ID_QuocGia")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Giới tính</label>
+                @Html.DropDownList("idGioiTinh", (SelectList)ViewBag.GioiTinhList, "-- Chọn --", new { @class = "form-select" })
+                <span class="text-danger">@Html.ValidationMessage("ID_GioiTinh")</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between mb-5">
+        <a asp-action="Details" asp-route-idSanPham="@Model.ID_SanPham" class="btn btn-outline-secondary rounded-pill px-4">← Quay lại</a>
+        <button type="submit" class="btn btn-primary rounded-pill px-4">Lưu thay đổi</button>
+    </div>
+</form>
+
+<hr />
+
+<h4 class="mb-3">📦 Danh sách biến thể</h4>
+
+@if (Model.SanPhamChiTiets != null && Model.SanPhamChiTiets.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover text-center align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Thể tích</th>
+                    <th>Giá nhập</th>
+                    <th>Giá bán</th>
+                    <th>Số lượng</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var ct in Model.SanPhamChiTiets)
+                {
+                    <tr>
+                        <td>@ct.TheTich?.TenTheTich</td>
+                        <td>@ct.GiaNhap.ToString("N0") VNĐ</td>
+                        <td>@ct.GiaBan.ToString("N0") VNĐ</td>
+                        <td>@ct.SoLuong</td>
+                        <td>
+                            <a asp-action="UpdateDetails" asp-route-id="@ct.ID_SanPhamChiTiet" class="btn btn-sm btn-outline-primary">✏️ Sửa</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-muted">Sản phẩm chưa có biến thể nào.</p>
+}

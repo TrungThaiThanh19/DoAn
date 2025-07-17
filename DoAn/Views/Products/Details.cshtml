@@ -1,0 +1,75 @@
+﻿@model DoAn.Models.SanPham
+
+@{
+    ViewData["Title"] = "Chi tiết sản phẩm";
+}
+
+<h2 class="mb-4">@Model.TenSanPham</h2>
+
+<div class="card mb-4 shadow-sm rounded-4 p-4">
+    <div class="row align-items-center">
+        <!-- Hình ảnh bên trái -->
+        <div class="col-md-4 text-center">
+            <img src="@Model.HinhAnh" class="img-thumbnail rounded-3 shadow-sm"
+                 style="max-width: 250px; height: auto;" alt="Ảnh sản phẩm" />
+        </div>
+
+        <!-- Thông tin bên phải -->
+        <div class="col-md-8 fs-5">
+            <p><strong>Mã sản phẩm:</strong> @Model.ID_SanPham</p>
+            <p><strong>Tên sản phẩm:</strong> @Model.TenSanPham</p>
+            <p><strong>Thời gian lưu hương:</strong> @Model.ThoiGianLuuHuong giờ</p>
+            <p><strong>Hương đầu:</strong> @Model.HuongDau</p>
+            <p><strong>Hương giữa:</strong> @Model.HuongGiua</p>
+            <p><strong>Hương cuối:</strong> @Model.HuongCuoi</p>
+            <p><strong>Mô tả:</strong> @Model.MoTa</p>
+            <p><strong>Thương hiệu:</strong> @Model.ThuongHieu?.TenThuongHieu</p>
+            <p><strong>Quốc gia:</strong> @Model.QuocGia?.TenQuocGia</p>
+            <p><strong>Giới tính:</strong> @Model.GioiTinh?.TenGioiTinh</p>
+        </div>
+    </div>
+</div>
+
+<h4 class="mt-5 mb-3">Các biến thể (chi tiết sản phẩm)</h4>
+
+@if (Model.SanPhamChiTiets != null && Model.SanPhamChiTiets.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover text-center align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Mã biến thể</th>
+                    <th>Thể tích</th>
+                    <th>Giá nhập</th>
+                    <th>Giá bán</th>
+                    <th>Số lượng</th>
+                    <th>Ngày tạo</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var ct in Model.SanPhamChiTiets)
+                {
+                    <tr>
+                        <td>@ct.ID_SanPhamChiTiet</td>
+                        <td>@ct.TheTich?.TenTheTich</td>
+                        <td>@ct.GiaNhap.ToString("N0") VNĐ</td>
+                        <td>@ct.GiaBan.ToString("N0") VNĐ</td>
+                        <td>@ct.SoLuong</td>
+                        <td>@ct.NgayTao.ToString("dd/MM/yyyy HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-muted">Sản phẩm chưa có biến thể nào.</p>
+}
+
+<div class="mt-4 d-flex justify-content-between">
+    <a asp-action="Index" class="btn btn-outline-primary rounded-pill px-4">← Quay lại</a>
+    <a asp-action="Update" asp-route-idSanPham="@Model.ID_SanPham" class="btn btn-primary rounded-pill px-4">
+        Cập nhật sản phẩm
+    </a>
+</div>
