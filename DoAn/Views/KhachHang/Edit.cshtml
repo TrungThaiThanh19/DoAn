@@ -1,0 +1,80 @@
+﻿@model DoAn.Models.KhachHang
+
+@{
+    ViewData["Title"] = "Chỉnh sửa khách hàng";
+}
+
+<h3>Chỉnh sửa khách hàng</h3>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="ID_KhachHang" />
+    <input type="hidden" asp-for="TaiKhoan.ID_TaiKhoan" />
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label asp-for="Ten_KhachHang" class="form-label"></label>
+            <input asp-for="Ten_KhachHang" class="form-control" />
+            <span asp-validation-for="Ten_KhachHang" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label asp-for="SoDienThoai" class="form-label"></label>
+            <input asp-for="SoDienThoai" class="form-control" />
+            <span asp-validation-for="SoDienThoai" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label asp-for="GioiTinh" class="form-label"></label>
+            <select asp-for="GioiTinh" class="form-select">
+                <option value="">--Chọn giới tính--</option>
+                <option value="Nam" selected="@(Model.GioiTinh == "Nam")">Nam</option>
+                <option value="Nữ" selected="@(Model.GioiTinh == "Nữ")">Nữ</option>
+            </select>
+            <span asp-validation-for="GioiTinh" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label asp-for="NgaySinh" class="form-label"></label>
+            <input asp-for="NgaySinh" type="date" class="form-control" />
+            <span asp-validation-for="NgaySinh" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label asp-for="TrangThai" class="form-label"></label>
+            <select asp-for="TrangThai" class="form-select">
+                <option value="1" selected="@(Model.TrangThai == 1)">Hoạt động</option>
+                <option value="0" selected="@(Model.TrangThai == 0)">Đã khóa</option>
+            </select>
+            <span asp-validation-for="TrangThai" class="text-danger"></span>
+        </div>
+    </div>
+
+    <hr />
+    <h5>Tài khoản</h5>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label asp-for="TaiKhoan.Uername" class="form-label">Tên đăng nhập</label>
+            <input asp-for="TaiKhoan.Uername" class="form-control" />
+            <span asp-validation-for="TaiKhoan.Uername" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Mật khẩu mới</label>
+            <input name="NewPassword" type="password" class="form-control" placeholder="Để trống nếu không đổi" />
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+    <a asp-action="Index" class="btn btn-secondary ms-2">Hủy</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
