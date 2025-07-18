@@ -34,6 +34,8 @@ namespace DoAn.Models
         public DbSet<DiaChiKhachHang> DiaChiKhachHangs { get; set; }
         public DbSet<NhanVien> NhanViens { get; set; }
 
+        public DbSet<QuocGia> QuocGias { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // ChiTietKhuyenMai
@@ -69,8 +71,6 @@ namespace DoAn.Models
                 .HasOne(h => h.SanPhamChiTiet)
                 .WithMany(s => s.HinhAnhs)
                 .HasForeignKey(h => h.ID_ChiTietSanPham);
-
-            // HoaDon
 
 
             modelBuilder.Entity<HoaDon>()
@@ -157,10 +157,9 @@ namespace DoAn.Models
                 new TaiKhoan
                 {
                     ID_TaiKhoan = adminAccountId,
-                    Uername = "admin", // <-- ĐÃ SỬA: Tên đăng nhập phải là "Username"
-                    Password = "admin", // Mật khẩu (lưu ý: vẫn là plain text, nên hash trong thực tế)
-                    ID_Roles = adminRoleId, // Gán cho vai trò 'admin'
-                    // Thêm các thuộc tính khác nếu có và cần giá trị mặc định, ví dụ TrangThai = 1
+                    Uername = "admin", 
+                    Password = "admin",
+                    ID_Roles = adminRoleId, 
                 }
             );
 
