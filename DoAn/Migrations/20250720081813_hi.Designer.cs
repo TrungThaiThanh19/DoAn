@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DoAn.Migrations
 {
     [DbContext(typeof(DoAnDbContext))]
-    [Migration("20250713084134_khanh1")]
-    partial class khanh1
+    [Migration("20250720081813_hi")]
+    partial class hi
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -166,33 +166,13 @@ namespace DoAn.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Ten_GioiTinh")
+                    b.Property<string>("TenGioiTinh")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("ID_GioiTinh");
 
                     b.ToTable("GioiTinhs");
-                });
-
-            modelBuilder.Entity("DoAn.Models.HinhAnh", b =>
-                {
-                    b.Property<Guid>("ID_HinhAnh")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("HinhAnhURL")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("ID_ChiTietSanPham")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("ID_HinhAnh");
-
-                    b.HasIndex("ID_ChiTietSanPham");
-
-                    b.ToTable("HinhAnhs");
                 });
 
             modelBuilder.Entity("DoAn.Models.HoaDon", b =>
@@ -206,14 +186,9 @@ namespace DoAn.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("GhiChu")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("HinhThucThanhToan")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -225,10 +200,6 @@ namespace DoAn.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("LoaiHoaDon")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Ma_HoaDon")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -248,6 +219,10 @@ namespace DoAn.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("PhuongThucThanhToan")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Sdt_NguoiNhan")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -258,8 +233,9 @@ namespace DoAn.Migrations
                     b.Property<decimal>("TongTienTruocGiam")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("TrangThai")
-                        .HasColumnType("int");
+                    b.Property<string>("TrangThai")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("ID_HoaDon");
 
@@ -276,16 +252,13 @@ namespace DoAn.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal>("DonGia")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid>("ID_ChiTietSanPham")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("DonGia")
+                        .HasColumnType("int");
 
                     b.Property<Guid>("ID_HoaDon")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("SanPhamChiTietID_SanPhamChiTiet")
+                    b.Property<Guid>("ID_SanPhamChiTiet")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("SoLuong")
@@ -293,11 +266,9 @@ namespace DoAn.Migrations
 
                     b.HasKey("ID_HoaDonChiTiet");
 
-                    b.HasIndex("ID_ChiTietSanPham");
-
                     b.HasIndex("ID_HoaDon");
 
-                    b.HasIndex("SanPhamChiTietID_SanPhamChiTiet");
+                    b.HasIndex("ID_SanPhamChiTiet");
 
                     b.ToTable("HoaDonChiTiets");
                 });
@@ -389,28 +360,6 @@ namespace DoAn.Migrations
                     b.ToTable("KhuyenMais");
                 });
 
-            modelBuilder.Entity("DoAn.Models.MuiHuong", b =>
-                {
-                    b.Property<Guid>("ID_MuiHuong")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Ma_MuiHuong")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Ten_MuiHuong")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TrangThai")
-                        .HasColumnType("int");
-
-                    b.HasKey("ID_MuiHuong");
-
-                    b.ToTable("MuiHuongs");
-                });
-
             modelBuilder.Entity("DoAn.Models.NhanVien", b =>
                 {
                     b.Property<Guid>("ID_NhanVien")
@@ -497,6 +446,21 @@ namespace DoAn.Migrations
                     b.ToTable("TraHangs");
                 });
 
+            modelBuilder.Entity("DoAn.Models.QuocGia", b =>
+                {
+                    b.Property<Guid>("ID_QuocGia")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TenQuocGia")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("ID_QuocGia");
+
+                    b.ToTable("QuocGia");
+                });
+
             modelBuilder.Entity("DoAn.Models.Roles", b =>
                 {
                     b.Property<Guid>("ID_Roles")
@@ -526,30 +490,49 @@ namespace DoAn.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("ID_MuiHuong")
+                    b.Property<string>("HuongCuoi")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HuongDau")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HuongGiua")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ID_GioiTinh")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ID_QuocGia")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("ID_ThuongHieu")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Ma_SanPham")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("MoTa")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Ten_SanPham")
+                    b.Property<DateTime?>("NgayCapNhat")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("NgayTao")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TenSanPham")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("TrangThai")
+                    b.Property<int>("ThoiGianLuuHuong")
                         .HasColumnType("int");
 
                     b.HasKey("ID_SanPham");
 
-                    b.HasIndex("ID_MuiHuong");
+                    b.HasIndex("ID_GioiTinh");
+
+                    b.HasIndex("ID_QuocGia");
 
                     b.HasIndex("ID_ThuongHieu");
 
@@ -562,10 +545,13 @@ namespace DoAn.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal>("GiaBan")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<int>("GiaBan")
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("ID_GioiTinh")
+                    b.Property<int>("GiaNhap")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ID_SanPham")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("ID_TheTich")
@@ -577,22 +563,14 @@ namespace DoAn.Migrations
                     b.Property<DateTime>("NgayTao")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("SanPhamID_SanPham")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<int>("SoLuong")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TrangThai")
                         .HasColumnType("int");
 
                     b.HasKey("ID_SanPhamChiTiet");
 
-                    b.HasIndex("ID_GioiTinh");
+                    b.HasIndex("ID_SanPham");
 
                     b.HasIndex("ID_TheTich");
-
-                    b.HasIndex("SanPhamID_SanPham");
 
                     b.ToTable("SanPhamChiTiets");
                 });
@@ -627,20 +605,9 @@ namespace DoAn.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("DonVi")
+                    b.Property<string>("TenTheTich")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("GiaTri")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Ma_TheTich")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TrangThai")
-                        .HasColumnType("int");
 
                     b.HasKey("ID_TheTich");
 
@@ -653,50 +620,13 @@ namespace DoAn.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Ma_ThuongHieu")
+                    b.Property<string>("TenThuongHieu")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Ten_ThuongHieu")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TrangThai")
-                        .HasColumnType("int");
 
                     b.HasKey("ID_ThuongHieu");
 
                     b.ToTable("ThuongHieus");
-                });
-
-            modelBuilder.Entity("DoAn.Models.TrangThaiDonHang", b =>
-                {
-                    b.Property<Guid>("ID_TrangThaiDonHang")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ID_HoaDon")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("NgayChuyen")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("NhanVienDoi")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("NoiDungDoi")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TrangThai")
-                        .HasColumnType("int");
-
-                    b.HasKey("ID_TrangThaiDonHang");
-
-                    b.HasIndex("ID_HoaDon");
-
-                    b.ToTable("TrangThaiDonHangs");
                 });
 
             modelBuilder.Entity("DoAn.Models.Voucher", b =>
@@ -831,17 +761,6 @@ namespace DoAn.Migrations
                     b.Navigation("KhachHang");
                 });
 
-            modelBuilder.Entity("DoAn.Models.HinhAnh", b =>
-                {
-                    b.HasOne("DoAn.Models.SanPhamChiTiet", "SanPhamChiTiet")
-                        .WithMany("HinhAnhs")
-                        .HasForeignKey("ID_ChiTietSanPham")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("SanPhamChiTiet");
-                });
-
             modelBuilder.Entity("DoAn.Models.HoaDon", b =>
                 {
                     b.HasOne("DoAn.Models.Voucher", "Voucher")
@@ -858,21 +777,17 @@ namespace DoAn.Migrations
 
             modelBuilder.Entity("DoAn.Models.HoaDonChiTiet", b =>
                 {
-                    b.HasOne("DoAn.Models.SanPhamChiTiet", "SanPhamChiTiet")
-                        .WithMany()
-                        .HasForeignKey("ID_ChiTietSanPham")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("DoAn.Models.HoaDon", "HoaDon")
                         .WithMany("HoaDonChiTiets")
                         .HasForeignKey("ID_HoaDon")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DoAn.Models.SanPhamChiTiet", null)
+                    b.HasOne("DoAn.Models.SanPhamChiTiet", "SanPhamChiTiet")
                         .WithMany("HoaDonChiTiets")
-                        .HasForeignKey("SanPhamChiTietID_SanPhamChiTiet");
+                        .HasForeignKey("ID_SanPhamChiTiet")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("HoaDon");
 
@@ -914,9 +829,15 @@ namespace DoAn.Migrations
 
             modelBuilder.Entity("DoAn.Models.SanPham", b =>
                 {
-                    b.HasOne("DoAn.Models.MuiHuong", "MuiHuong")
+                    b.HasOne("DoAn.Models.GioiTinh", "GioiTinh")
                         .WithMany("SanPhams")
-                        .HasForeignKey("ID_MuiHuong")
+                        .HasForeignKey("ID_GioiTinh")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DoAn.Models.QuocGia", "QuocGia")
+                        .WithMany("SanPhams")
+                        .HasForeignKey("ID_QuocGia")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -926,16 +847,18 @@ namespace DoAn.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("MuiHuong");
+                    b.Navigation("GioiTinh");
+
+                    b.Navigation("QuocGia");
 
                     b.Navigation("ThuongHieu");
                 });
 
             modelBuilder.Entity("DoAn.Models.SanPhamChiTiet", b =>
                 {
-                    b.HasOne("DoAn.Models.GioiTinh", "GioiTinh")
+                    b.HasOne("DoAn.Models.SanPham", "SanPham")
                         .WithMany("SanPhamChiTiets")
-                        .HasForeignKey("ID_GioiTinh")
+                        .HasForeignKey("ID_SanPham")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -945,11 +868,7 @@ namespace DoAn.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DoAn.Models.SanPham", null)
-                        .WithMany("SanPhamChiTiets")
-                        .HasForeignKey("SanPhamID_SanPham");
-
-                    b.Navigation("GioiTinh");
+                    b.Navigation("SanPham");
 
                     b.Navigation("TheTich");
                 });
@@ -963,17 +882,6 @@ namespace DoAn.Migrations
                         .IsRequired();
 
                     b.Navigation("Roles");
-                });
-
-            modelBuilder.Entity("DoAn.Models.TrangThaiDonHang", b =>
-                {
-                    b.HasOne("DoAn.Models.HoaDon", "HoaDon")
-                        .WithMany("TrangThaiDonHangs")
-                        .HasForeignKey("ID_HoaDon")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("HoaDon");
                 });
 
             modelBuilder.Entity("DoAn.Models.Voucher", b =>
@@ -994,7 +902,7 @@ namespace DoAn.Migrations
 
             modelBuilder.Entity("DoAn.Models.GioiTinh", b =>
                 {
-                    b.Navigation("SanPhamChiTiets");
+                    b.Navigation("SanPhams");
                 });
 
             modelBuilder.Entity("DoAn.Models.HoaDon", b =>
@@ -1002,18 +910,11 @@ namespace DoAn.Migrations
                     b.Navigation("HoaDonChiTiets");
 
                     b.Navigation("TraHangs");
-
-                    b.Navigation("TrangThaiDonHangs");
                 });
 
             modelBuilder.Entity("DoAn.Models.KhuyenMai", b =>
                 {
                     b.Navigation("ChiTietKhuyenMais");
-                });
-
-            modelBuilder.Entity("DoAn.Models.MuiHuong", b =>
-                {
-                    b.Navigation("SanPhams");
                 });
 
             modelBuilder.Entity("DoAn.Models.NhanVien", b =>
@@ -1024,6 +925,11 @@ namespace DoAn.Migrations
             modelBuilder.Entity("DoAn.Models.QuanLyTraHang", b =>
                 {
                     b.Navigation("ChiTietTraHangs");
+                });
+
+            modelBuilder.Entity("DoAn.Models.QuocGia", b =>
+                {
+                    b.Navigation("SanPhams");
                 });
 
             modelBuilder.Entity("DoAn.Models.Roles", b =>
@@ -1041,8 +947,6 @@ namespace DoAn.Migrations
                     b.Navigation("ChiTietKhuyenMais");
 
                     b.Navigation("ChiTietTraHangs");
-
-                    b.Navigation("HinhAnhs");
 
                     b.Navigation("HoaDonChiTiets");
                 });
