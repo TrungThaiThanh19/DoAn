@@ -8,6 +8,6 @@ namespace DoAn.Models
         public Guid ID_GioiTinh { get; set; }
         public string Ten_GioiTinh { get; set; }
 
-        public ICollection<SanPhamChiTiet> SanPhamChiTiets { get; set; }
+        public ICollection<SanPham> SanPhams { get; set; }
     }
 }

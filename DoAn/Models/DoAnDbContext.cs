@@ -21,8 +21,6 @@ namespace DoAn.Models
         public DbSet<HoaDon> HoaDons { get; set; }
         public DbSet<TrangThaiDonHang> TrangThaiDonHangs { get; set; }
         public DbSet<QuanLyTraHang> TraHangs { get; set; }
-        public DbSet<HinhAnh> HinhAnhs { get; set; }
-        public DbSet<MuiHuong> MuiHuongs { get; set; }
         public DbSet<ThuongHieu> ThuongHieus { get; set; }
         public DbSet<SanPham> SanPhams { get; set; }
         public DbSet<KhachHang> KhachHangs { get; set; }
@@ -66,13 +64,6 @@ namespace DoAn.Models
                 .WithMany()
                 .HasForeignKey(d => d.ID_KhachHang);
 
-            // HinhAnh
-            modelBuilder.Entity<HinhAnh>()
-                .HasOne(h => h.SanPhamChiTiet)
-                .WithMany(s => s.HinhAnhs)
-                .HasForeignKey(h => h.ID_ChiTietSanPham);
-
-
             modelBuilder.Entity<HoaDon>()
                 .HasOne(h => h.Voucher)
                 .WithMany(v => v.HoaDons)
@@ -85,10 +76,6 @@ namespace DoAn.Models
                 .WithMany(hd => hd.HoaDonChiTiets)
                 .HasForeignKey(h => h.ID_HoaDon);
 
-            modelBuilder.Entity<HoaDonChiTiet>()
-                .HasOne(h => h.SanPhamChiTiet)
-                .WithMany()
-                .HasForeignKey(h => h.ID_ChiTietSanPham);
 
             // TraHang
             modelBuilder.Entity<QuanLyTraHang>()
@@ -103,21 +90,17 @@ namespace DoAn.Models
                 .HasForeignKey(t => t.ID_HoaDon);
 
             // SanPhamChiTiet
-            modelBuilder.Entity<SanPhamChiTiet>()
+            modelBuilder.Entity<SanPham>()
                 .HasOne(s => s.GioiTinh)
-                .WithMany(g => g.SanPhamChiTiets)
+                .WithMany(g => g.SanPhams)
                 .HasForeignKey(s => s.ID_GioiTinh);
 
+            // SanPhamChiTiet
             modelBuilder.Entity<SanPhamChiTiet>()
                 .HasOne(s => s.TheTich)
                 .WithMany(t => t.SanPhamChiTiets)
                 .HasForeignKey(s => s.ID_TheTich);
 
-            // SanPham
-            modelBuilder.Entity<SanPham>()
-                .HasOne(s => s.MuiHuong)
-                .WithMany(m => m.SanPhams)
-                .HasForeignKey(s => s.ID_MuiHuong);
 
             modelBuilder.Entity<SanPham>()
                 .HasOne(s => s.ThuongHieu)

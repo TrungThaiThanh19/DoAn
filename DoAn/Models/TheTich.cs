@@ -7,7 +7,7 @@ namespace DoAn.Models
         [Key]
         public Guid ID_TheTich { get; set; }
         public string Ma_TheTich { get; set; }
-        public int GiaTri { get; set; }
+        public decimal GiaTri { get; set; }
         public string DonVi { get; set; }
         public int TrangThai { get; set; }
 
