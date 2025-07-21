@@ -44,7 +44,7 @@ namespace DoAn.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "QuocGia",
+                name: "QuocGias",
                 columns: table => new
                 {
                     ID_QuocGia = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
@@ -52,7 +52,7 @@ namespace DoAn.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_QuocGia", x => x.ID_QuocGia);
+                    table.PrimaryKey("PK_QuocGias", x => x.ID_QuocGia);
                 });
 
             migrationBuilder.CreateTable(
@@ -140,9 +140,9 @@ namespace DoAn.Migrations
                         principalColumn: "ID_GioiTinh",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_SanPhams_QuocGia_ID_QuocGia",
+                        name: "FK_SanPhams_QuocGias_ID_QuocGia",
                         column: x => x.ID_QuocGia,
-                        principalTable: "QuocGia",
+                        principalTable: "QuocGias",
                         principalColumn: "ID_QuocGia",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
@@ -640,7 +640,7 @@ namespace DoAn.Migrations
                 name: "GioiTinhs");
 
             migrationBuilder.DropTable(
-                name: "QuocGia");
+                name: "QuocGias");
 
             migrationBuilder.DropTable(
                 name: "ThuongHieus");

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DoAn.Migrations
 {
     [DbContext(typeof(DoAnDbContext))]
-    [Migration("20250720081813_hi")]
+    [Migration("20250721083257_hi")]
     partial class hi
     {
         /// <inheritdoc />
@@ -458,7 +458,7 @@ namespace DoAn.Migrations
 
                     b.HasKey("ID_QuocGia");
 
-                    b.ToTable("QuocGia");
+                    b.ToTable("QuocGias");
                 });
 
             modelBuilder.Entity("DoAn.Models.Roles", b =>

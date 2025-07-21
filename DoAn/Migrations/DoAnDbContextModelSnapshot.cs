@@ -455,7 +455,7 @@ namespace DoAn.Migrations
 
                     b.HasKey("ID_QuocGia");
 
-                    b.ToTable("QuocGia");
+                    b.ToTable("QuocGias");
                 });
 
             modelBuilder.Entity("DoAn.Models.Roles", b =>
