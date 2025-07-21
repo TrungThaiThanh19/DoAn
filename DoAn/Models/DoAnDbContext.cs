@@ -30,8 +30,9 @@ namespace DoAn.Models
         public DbSet<Roles> Roles { get; set; }
         public DbSet<DiaChiKhachHang> DiaChiKhachHangs { get; set; }
         public DbSet<NhanVien> NhanViens { get; set; }
+        public DbSet<QuocGia> QuocGias { get; set; }
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+		protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // ChiTietKhuyenMai
             modelBuilder.Entity<ChiTietKhuyenMai>()
