@@ -1,0 +1,65 @@
+﻿@model IEnumerable<DoAn.Models.SanPham>
+@{
+	ViewData["Title"] = "Danh sách sản phẩm";
+}
+<h2 class="mb-4 text-primary">📦 Danh sách sản phẩm</h2>
+<div class="row mb-4">
+    <!-- 🔍 Ô tìm kiếm -->
+    <div class="col-md-6">
+        <form method="get" asp-action="Search" class="input-group">
+            <input type="text" name="keyword" class="form-control" placeholder="🔍 Tìm kiếm sản phẩm theo tên, thương hiệu, quốc gia,..." value="@ViewBag.TuKhoa">
+            <button class="btn btn-primary rounded-end" type="submit">Tìm</button>
+        </form>
+    </div>
+
+    <!-- ➕ Nút thêm sản phẩm -->
+    <div class="col-md-6 text-end">
+        <a asp-action="Create" class="btn btn-success rounded-pill px-4">+ Thêm sản phẩm</a>
+    </div>
+</div>
+
+
+<div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle text-center">
+        <thead class="table-dark">
+            <tr>
+                <th>Ảnh</th>
+                <th>Tên sản phẩm</th>
+                <th>Thời gian lưu hương</th>
+                <th>Thương hiệu</th>
+                <th>Quốc gia</th>
+                <th>Giới tính</th>
+                <th>Mô tả</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model != null && Model.Any())
+            {
+                foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            <img src="@item.HinhAnh" alt="Ảnh sản phẩm" style="width: 80px; height: auto;" class="img-thumbnail" />
+                        </td>
+                        <td>@item.TenSanPham</td>
+                        <td>@item.ThoiGianLuuHuong giờ</td>
+                        <td>@item.ThuongHieu?.TenThuongHieu</td>
+                        <td>@item.QuocGia?.TenQuocGia</td>
+                        <td>@item.GioiTinh?.TenGioiTinh</td>
+                        <td>@item.MoTa</td>
+                        <td>
+                            <a asp-action="Details" asp-route-idSanPham="@item.ID_SanPham" class="btn btn-sm btn-outline-info rounded-pill">Chi tiết</a>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="8" class="text-muted">Không có sản phẩm nào.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
