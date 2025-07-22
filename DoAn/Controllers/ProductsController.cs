@@ -169,18 +169,18 @@ namespace DoAn.Controllers
 				.Include(sp => sp.ThuongHieu)
 				.Include(sp => sp.QuocGia)
 				.Include(sp => sp.GioiTinh)
-				.FirstOrDefaultAsync(sp => sp.TenSanPham == tenSanPham);
+				.FirstOrDefaultAsync(sp => sp.Ten_SanPham == tenSanPham);
 			// Nếu đã tồn tại, kiểm tra các thông tin chung, nếu khác thì báo lỗi
 			if (sanPham != null)
 			{
 				if (sanPham.ID_ThuongHieu != idThuongHieu)
-					ModelState.AddModelError("ID_ThuongHieu", $"Sản phẩm đã tồn tại với thông tin thương hiệu khác:{sanPham.ThuongHieu.TenThuongHieu}");
+					ModelState.AddModelError("ID_ThuongHieu", $"Sản phẩm đã tồn tại với thông tin thương hiệu khác:{sanPham.ThuongHieu.Ten_ThuongHieu}");
 
 				if (sanPham.ID_QuocGia != idQuocGia)
-					ModelState.AddModelError("ID_QuocGia", $"Sản phẩm đã tồn tại với thông tin quốc gia khác: {sanPham.QuocGia.TenQuocGia}");
+					ModelState.AddModelError("ID_QuocGia", $"Sản phẩm đã tồn tại với thông tin quốc gia khác: {sanPham.QuocGia.Ten_QuocGia}");
 
 				if (sanPham.ID_GioiTinh != idGioiTinh)
-					ModelState.AddModelError("ID_GioiTinh", $"Sản phẩm đã tồn tại với thông tin giới tính khác: {sanPham.GioiTinh.TenGioiTinh}");
+					ModelState.AddModelError("ID_GioiTinh", $"Sản phẩm đã tồn tại với thông tin giới tính khác: {sanPham.GioiTinh.Ten_GioiTinh}");
 
 				if (sanPham.ThoiGianLuuHuong != thoiGianLuuHuongParse)
 					ModelState.AddModelError("ThoiGianLuuHuong", $"Sản phẩm đã tồn tại với thời gian lưu hương khác: {sanPham.ThoiGianLuuHuong}");
@@ -242,7 +242,7 @@ namespace DoAn.Controllers
 				sanPham = new SanPham()
 				{
 					ID_SanPham = Guid.NewGuid(),
-					TenSanPham = tenSanPham,
+					Ten_SanPham = tenSanPham,
 					ThoiGianLuuHuong = thoiGianLuuHuongParse,
 					MoTa = moTa,
 					HuongDau = huongDau,

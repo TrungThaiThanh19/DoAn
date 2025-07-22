@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DoAn.Migrations
 {
     /// <inheritdoc />
-    public partial class DoAn : Migration
+    public partial class hi : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -149,13 +149,8 @@ namespace DoAn.Migrations
                         principalColumn: "ID_GioiTinh",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-<<<<<<<< HEAD:DoAn/Migrations/20250721083257_hi.cs
-                        name: "FK_SanPhams_QuocGias_ID_QuocGia",
-                        column: x => x.ID_QuocGia,
-========
                         name: "FK_SanPhams_QuocGias_QuocGiaID_QuocGia",
                         column: x => x.QuocGiaID_QuocGia,
->>>>>>>> 451d35d9f8bb00b88fbdde04b14bed1e8ed3f926:DoAn/Migrations/20250721184437_DoAn.cs
                         principalTable: "QuocGias",
                         principalColumn: "ID_QuocGia",
                         onDelete: ReferentialAction.Cascade);

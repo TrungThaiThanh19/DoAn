@@ -42,11 +42,11 @@
                         <td>
                             <img src="@item.HinhAnh" alt="Ảnh sản phẩm" style="width: 80px; height: auto;" class="img-thumbnail" />
                         </td>
-                        <td>@item.TenSanPham</td>
+                        <td>@item.Ten_SanPham</td>
                         <td>@item.ThoiGianLuuHuong giờ</td>
-                        <td>@item.ThuongHieu?.TenThuongHieu</td>
-                        <td>@item.QuocGia?.TenQuocGia</td>
-                        <td>@item.GioiTinh?.TenGioiTinh</td>
+                        <td>@item.ThuongHieu?.Ten_ThuongHieu</td>
+                        <td>@item.QuocGia?.Ten_QuocGia</td>
+                        <td>@item.GioiTinh?.Ten_GioiTinh</td>
                         <td>@item.MoTa</td>
                         <td>
                             <a asp-action="Details" asp-route-idSanPham="@item.ID_SanPham" class="btn btn-sm btn-outline-info rounded-pill">Chi tiết</a>

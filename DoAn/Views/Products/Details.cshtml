@@ -2,7 +2,7 @@
 @{
 	ViewData["Title"] = "Chi tiết sản phẩm";
 }
-<h2 class="mb-4">@Model.TenSanPham</h2>
+<h2 class="mb-4">@Model.Ten_SanPham</h2>
 
 <div class="card mb-4 shadow-sm rounded-4 p-4">
     <div class="row align-items-center">
@@ -15,15 +15,15 @@
         <!-- Thông tin bên phải -->
         <div class="col-md-8 fs-5">
             <p><strong>Mã sản phẩm:</strong> @Model.ID_SanPham</p>
-            <p><strong>Tên sản phẩm:</strong> @Model.TenSanPham</p>
+            <p><strong>Tên sản phẩm:</strong> @Model.Ten_SanPham</p>
             <p><strong>Thời gian lưu hương:</strong> @Model.ThoiGianLuuHuong giờ</p>
             <p><strong>Hương đầu:</strong> @Model.HuongDau</p>
             <p><strong>Hương giữa:</strong> @Model.HuongGiua</p>
             <p><strong>Hương cuối:</strong> @Model.HuongCuoi</p>
             <p><strong>Mô tả:</strong> @Model.MoTa</p>
-            <p><strong>Thương hiệu:</strong> @Model.ThuongHieu?.TenThuongHieu</p>
-            <p><strong>Quốc gia:</strong> @Model.QuocGia?.TenQuocGia</p>
-            <p><strong>Giới tính:</strong> @Model.GioiTinh?.TenGioiTinh</p>
+            <p><strong>Thương hiệu:</strong> @Model.ThuongHieu?.Ten_ThuongHieu</p>
+            <p><strong>Quốc gia:</strong> @Model.QuocGia?.Ten_QuocGia</p>
+            <p><strong>Giới tính:</strong> @Model.GioiTinh?.Ten_GioiTinh</p>
         </div>
     </div>
 </div>
@@ -49,7 +49,7 @@
                 {
                     <tr>
                         <td>@ct.ID_SanPhamChiTiet</td>
-                        <td>@ct.TheTich?.TenTheTich</td>
+                        <td>@ct.TheTich?.GiaTri</td>
                         <td>@ct.GiaNhap.ToString("N0") VNĐ</td>
                         <td>@ct.GiaBan.ToString("N0") VNĐ</td>
                         <td>@ct.SoLuong</td>
