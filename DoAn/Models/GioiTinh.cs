@@ -6,7 +6,8 @@ namespace DoAn.Models
     {
         [Key]
         public Guid ID_GioiTinh { get; set; }
-        public string TenGioiTinh { get; set; }
+        public string Ten_GioiTinh { get; set; }
+
         public ICollection<SanPham> SanPhams { get; set; }
     }
 }
