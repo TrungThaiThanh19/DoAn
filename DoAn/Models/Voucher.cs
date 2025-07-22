@@ -12,10 +12,10 @@ namespace DoAn.Models
         public DateTime NgayHetHan { get; set; }
         public string KieuGiamGia { get; set; }
         public decimal GiaTriGiam { get; set; }
-        public decimal GiaTriToiThieu { get; set; }
-        public decimal GiaTriToiDa { get; set; }
+        public decimal GiaTriToiThieu { get; set; }  
+        public decimal GiaTriToiDa { get; set; }  
         public int SoLuong { get; set; }
-        public int TrangThai { get; set; }
+        public int TrangThai { get; set; } 
         public string MoTa { get; set; }
 
         public Guid ID_TaiKhoan { get; set; }
