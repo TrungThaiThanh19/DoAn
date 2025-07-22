@@ -7,7 +7,6 @@ namespace DoAn.Models
         [Key]
         public Guid ID_QuocGia { get; set; }
         public string Ten_QuocGia { get; set; }
-
         public ICollection<SanPham> SanPhams { get; set; }
     }
 }
