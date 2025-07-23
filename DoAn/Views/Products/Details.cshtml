@@ -56,16 +56,18 @@
                         <td>@ct.NgayTao.ToString("dd/MM/yyyy HH:mm")</td>
                         <td>@(ct.NgayCapNhat?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
                         <td>
-                            @{
-                                var (text, badgeClass) = ct.TrangThai switch
-                                {
-                                    1 => ("Còn hàng", "success"),
-                                    0 => ("Hết hàng", "danger"),
-                                    2 => ("Tạm ngừng kinh doanh", "warning"),
-                                    _ => ("Không xác định", "secondary")
-                                };
+                            @if (ct.TrangThai == 1)
+                            {
+                                <span class="badge bg-success">Còn hàng</span>
                             }
-                            <span class="badge bg-@badgeClass">@text</span>
+                            else if (ct.TrangThai == 0)
+                            {
+                                <span class="badge bg-danger">Hết hàng</span>
+                            }
+                            else if (ct.TrangThai == 2)
+                            {
+                                <span class="badge bg-warning text-dark">Ngừng kinh doanh</span>
+                            }
                         </td>
                     </tr>
                 }

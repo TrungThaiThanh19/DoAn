@@ -98,7 +98,7 @@ namespace DoAn.Controllers
 		public async Task<IActionResult> Update(Guid idSanPham, string tenSanPham, string thoiGianLuuHuong, string moTa,
 			string huongDau, string huongGiua, string huongCuoi, Guid idThuongHieu, Guid idQuocGia, Guid idGioiTinh, IFormFile hinhAnh)
 		{
-			ClearModelErrors("TenSanPham", "MoTa", "ThoiGianLuuHuong", "SoLuong", "HuongDau", "HuongGiua", "HuongCuoi", "GiaBan", "GiaNhap");
+			ClearModelErrors("TenSanPham", "MoTa", "ThoiGianLuuHuong", "SoLuong", "HuongDau", "HuongGiua", "HuongCuoi", "GiaBan", "GiaNhap", "Trạng thái");
 
 			var sanPham = await _context.SanPhams
 				.Include(sp => sp.ThuongHieu)
