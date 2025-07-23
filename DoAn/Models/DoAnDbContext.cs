@@ -101,14 +101,26 @@ namespace DoAn.Models
                 .WithMany(t => t.SanPhamChiTiets)
                 .HasForeignKey(s => s.ID_TheTich);
 
+			// 1 SanPham - N SanPhamChiTiet
+			modelBuilder.Entity<SanPhamChiTiet>()
+				.HasOne(s => s.SanPham)
+				.WithMany(t => t.SanPhamChiTiets)
+				.HasForeignKey(s => s.ID_SanPham);
 
-            modelBuilder.Entity<SanPham>()
+
+			modelBuilder.Entity<SanPham>()
                 .HasOne(s => s.ThuongHieu)
                 .WithMany(t => t.SanPhams)
                 .HasForeignKey(s => s.ID_ThuongHieu);
 
-            // TaiKhoan
-            modelBuilder.Entity<TaiKhoan>()
+			// 1 QuocGia - N SanPham
+			modelBuilder.Entity<SanPham>()
+				.HasOne(s => s.QuocGia)
+				.WithMany(t => t.SanPhams)
+				.HasForeignKey(s => s.ID_QuocGia);
+
+			// TaiKhoan
+			modelBuilder.Entity<TaiKhoan>()
                 .HasOne(t => t.Roles)
                 .WithMany(r => r.TaiKhoans)
                 .HasForeignKey(t => t.ID_Roles);

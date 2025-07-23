@@ -547,9 +547,6 @@ namespace DoAn.Migrations
                     b.Property<DateTime>("NgayTao")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("QuocGiaID_QuocGia")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("Ten_SanPham")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -561,9 +558,9 @@ namespace DoAn.Migrations
 
                     b.HasIndex("ID_GioiTinh");
 
-                    b.HasIndex("ID_ThuongHieu");
+                    b.HasIndex("ID_QuocGia");
 
-                    b.HasIndex("QuocGiaID_QuocGia");
+                    b.HasIndex("ID_ThuongHieu");
 
                     b.ToTable("SanPhams");
                 });
@@ -592,9 +589,6 @@ namespace DoAn.Migrations
                     b.Property<DateTime>("NgayTao")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("SanPhamID_SanPham")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<int>("SoLuong")
                         .HasColumnType("int");
 
@@ -603,9 +597,9 @@ namespace DoAn.Migrations
 
                     b.HasKey("ID_SanPhamChiTiet");
 
-                    b.HasIndex("ID_TheTich");
+                    b.HasIndex("ID_SanPham");
 
-                    b.HasIndex("SanPhamID_SanPham");
+                    b.HasIndex("ID_TheTich");
 
                     b.ToTable("SanPhamChiTiets");
                 });
@@ -929,15 +923,15 @@ namespace DoAn.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DoAn.Models.ThuongHieu", "ThuongHieu")
+                    b.HasOne("DoAn.Models.QuocGia", "QuocGia")
                         .WithMany("SanPhams")
-                        .HasForeignKey("ID_ThuongHieu")
+                        .HasForeignKey("ID_QuocGia")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DoAn.Models.QuocGia", "QuocGia")
+                    b.HasOne("DoAn.Models.ThuongHieu", "ThuongHieu")
                         .WithMany("SanPhams")
-                        .HasForeignKey("QuocGiaID_QuocGia")
+                        .HasForeignKey("ID_ThuongHieu")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -950,15 +944,15 @@ namespace DoAn.Migrations
 
             modelBuilder.Entity("DoAn.Models.SanPhamChiTiet", b =>
                 {
-                    b.HasOne("DoAn.Models.TheTich", "TheTich")
+                    b.HasOne("DoAn.Models.SanPham", "SanPham")
                         .WithMany("SanPhamChiTiets")
-                        .HasForeignKey("ID_TheTich")
+                        .HasForeignKey("ID_SanPham")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DoAn.Models.SanPham", "SanPham")
+                    b.HasOne("DoAn.Models.TheTich", "TheTich")
                         .WithMany("SanPhamChiTiets")
-                        .HasForeignKey("SanPhamID_SanPham")
+                        .HasForeignKey("ID_TheTich")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

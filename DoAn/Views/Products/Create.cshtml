@@ -12,10 +12,16 @@
         <div class="card-header bg-primary text-white">Thông tin chung</div>
         <div class="card-body row g-3">
 
-            <div class="col-md-6">
+            <div class="col-md-12">
                 <label class="form-label">Tên sản phẩm</label>
                 <input name="tenSanPham" class="form-control" value="@ViewBag.TenSanPham" />
                 <span class="text-danger">@Html.ValidationMessage("TenSanPham")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Mã sản phẩm</label>
+                <input name="maSanPham" type="text" class="form-control" value="@ViewBag.MaSanPham" />
+                <span class="text-danger">@Html.ValidationMessage("MaSanPham")</span>
             </div>
 
             <div class="col-md-6">
@@ -91,15 +97,16 @@
             </div>
 
             <div class="col-md-6">
-                <label class="form-label">Giá bán</label>
-                <input name="giaBan" type="text" class="form-control" value="@ViewBag.GiaBan" />
-                <span class="text-danger">@Html.ValidationMessage("GiaBan")</span>
+                <label class="form-label">Thể tích</label>
+                @* @Html.DropDownList("idTheTich", (SelectList)ViewBag.TheTichList, "-- Chọn --", new { @class = "form-select" }) *@
+                @Html.DropDownList("idTheTich", (SelectList)ViewBag.TheTichList, "-- Chọn thể tích --", new { @class = "form-select" })
+                <span class="text-danger">@Html.ValidationMessage("ID_TheTich")</span>
             </div>
 
             <div class="col-md-6">
-                <label class="form-label">Thể tích</label>
-                @Html.DropDownList("idTheTich", (SelectList)ViewBag.TheTichList, "-- Chọn --", new { @class = "form-select" })
-                <span class="text-danger">@Html.ValidationMessage("ID_TheTich")</span>
+                <label class="form-label">Giá bán</label>
+                <input name="giaBan" type="text" class="form-control" value="@ViewBag.GiaBan" />
+                <span class="text-danger">@Html.ValidationMessage("GiaBan")</span>
             </div>
         </div>
     </div>

@@ -24,6 +24,31 @@ namespace DoAn.Controllers
 		}
 
 		[HttpGet]
+		public async Task<IActionResult> Search(string keyword)
+		{
+			if (string.IsNullOrWhiteSpace(keyword))
+				return RedirectToAction("Index");
+
+			keyword = keyword.ToLower();
+
+			var ketQua = await _context.SanPhams
+				.Include(sp => sp.ThuongHieu)
+				.Include(sp => sp.QuocGia)
+				.Include(sp => sp.GioiTinh)
+				.Where(sp =>
+					sp.Ten_SanPham.ToLower().Contains(keyword) ||
+					sp.Ma_SanPham.ToLower().Contains(keyword) ||
+					sp.ThuongHieu.Ten_ThuongHieu.ToLower().Contains(keyword) ||
+					sp.QuocGia.Ten_QuocGia.ToLower().Contains(keyword) ||
+					sp.GioiTinh.Ten_GioiTinh.ToLower().Contains(keyword)
+				)
+				.ToListAsync();
+
+			ViewBag.TuKhoa = keyword;
+			return View("Index", ketQua);
+		}
+
+		[HttpGet]
 		public async Task<IActionResult> Details(Guid idSanPham)
 		{
 			var sanPham = await _context.SanPhams
@@ -42,21 +67,308 @@ namespace DoAn.Controllers
 			return View(sanPham);
 		}
 
+		[HttpGet]
+		public async Task<IActionResult> Update(Guid idSanPham)
+		{
+			var sanPham = await _context.SanPhams
+				.Include(sp => sp.ThuongHieu)
+				.Include(sp => sp.QuocGia)
+				.Include(sp => sp.GioiTinh)
+				.Include(sp => sp.SanPhamChiTiets)
+				.ThenInclude(ct => ct.TheTich) // Lấy thông tin thể tích của từng biến thể sản phẩm
+				.FirstOrDefaultAsync(sp => sp.ID_SanPham == idSanPham);
+
+			if (sanPham == null)
+			{
+				return NotFound();
+			}
+			ViewBag.ThuongHieuList = new SelectList(_context.ThuongHieus, "ID_ThuongHieu", "Ten_ThuongHieu", sanPham.ID_ThuongHieu);
+			ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "Ten_QuocGia", sanPham.ID_QuocGia);
+			ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "Ten_GioiTinh", sanPham.ID_GioiTinh);
+			ViewBag.TheTichList = new SelectList(
+				_context.TheTichs.Select(t => new
+				{
+					t.ID_TheTich,
+					HienThi = t.GiaTri.ToString("0.#") + t.DonVi  // Ghép giá trị + đơn vị, ví dụ: 50ml
+				}), "ID_TheTich", "HienThi"
+			);
+			return View(sanPham);
+		}
+		[HttpPost]
+		public async Task<IActionResult> Update(Guid idSanPham, string tenSanPham, string thoiGianLuuHuong, string moTa,
+			string huongDau, string huongGiua, string huongCuoi, Guid idThuongHieu, Guid idQuocGia, Guid idGioiTinh, IFormFile hinhAnh)
+		{
+			ClearModelErrors("TenSanPham", "MoTa", "ThoiGianLuuHuong", "SoLuong", "HuongDau", "HuongGiua", "HuongCuoi", "GiaBan", "GiaNhap");
+
+			var sanPham = await _context.SanPhams
+				.Include(sp => sp.ThuongHieu)
+				.Include(sp => sp.QuocGia)
+				.Include(sp => sp.GioiTinh)
+				.Include(sp => sp.SanPhamChiTiets)
+				.ThenInclude(ct => ct.TheTich) // Lấy thông tin thể tích của từng biến thể sản phẩm
+				.FirstOrDefaultAsync(sp => sp.ID_SanPham == idSanPham);
+
+			if (sanPham == null)
+				return NotFound();
+			int thoiGianLuuHuongParse = 0;
+
+			if (string.IsNullOrWhiteSpace(tenSanPham) || tenSanPham.Length > 100)
+				ModelState.AddModelError("TenSanPham", "Tên sản phẩm không được để trống");
+
+			if (string.IsNullOrWhiteSpace(moTa) || moTa.Length > 1000)
+				ModelState.AddModelError("MoTa", "Mô tả không được để trống");
+
+			if (string.IsNullOrWhiteSpace(huongDau) || huongDau.Length > 100)
+				ModelState.AddModelError("HuongDau", "Hương đầu không được để trống");
+
+			if (string.IsNullOrWhiteSpace(huongGiua) || huongGiua.Length > 100)
+				ModelState.AddModelError("HuongGiua", "Hương giữa không được để trống");
+
+			if (string.IsNullOrWhiteSpace(huongCuoi) || huongCuoi.Length > 100)
+				ModelState.AddModelError("HuongCuoi", "Hương cuối không được để trống");
+
+			if (string.IsNullOrWhiteSpace(thoiGianLuuHuong))
+			{
+				ModelState.AddModelError("ThoiGianLuuHuong", "Vui lòng nhập thời gian lưu hương");
+			}
+			else if (!int.TryParse(thoiGianLuuHuong, out thoiGianLuuHuongParse))
+			{
+				ModelState.AddModelError("ThoiGianLuuHuong", "Thời gian lưu hương phải là số nguyên");
+			}
+			else if (thoiGianLuuHuongParse < 1)
+			{
+				ModelState.AddModelError("ThoiGianLuuHuong", "Thời gian lưu hương phải lớn hoặc = 1");
+			}
+
+			if (idThuongHieu == Guid.Empty)
+				ModelState.AddModelError("ID_ThuongHieu", "Vui lòng chọn thương hiệu");
+
+			if (idQuocGia == Guid.Empty)
+				ModelState.AddModelError("ID_QuocGia", "Vui lòng chọn quốc gia");
+
+			if (idGioiTinh == Guid.Empty)
+				ModelState.AddModelError("ID_GioiTinh", "Vui lòng chọn giới tính");
+
+			if (hinhAnh == null || hinhAnh.Length == 0)
+			{
+				ModelState.Remove("HinhAnh");
+			}
+
+			if (!ModelState.IsValid)
+			{
+				ViewBag.ThuongHieuList = new SelectList(_context.ThuongHieus, "ID_ThuongHieu", "Ten_ThuongHieu", idThuongHieu);
+				ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "Ten_QuocGia", idQuocGia);
+				ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "Ten_GioiTinh", idGioiTinh);
+
+				return View(sanPham);
+			}
+
+			// Nếu có ảnh mới thì thay thế
+			if (hinhAnh != null && hinhAnh.Length > 0)
+			{
+				var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+				var extension = Path.GetExtension(hinhAnh.FileName).ToLower();
+
+				if (!allowedExtensions.Contains(extension))
+				{
+					ModelState.AddModelError("HinhAnh", "Chỉ chấp nhận các định dạng ảnh: JPG, JPEG, PNG, WEBP.");
+				}
+				else
+				{
+					// Lưu ảnh mới
+					var uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(hinhAnh.FileName);
+					var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+					if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+					var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+					using (var stream = new FileStream(filePath, FileMode.Create))
+					{
+						await hinhAnh.CopyToAsync(stream);
+					}
+
+					// Cập nhật lại đường dẫn hình ảnh mới
+					sanPham.HinhAnh = "/images/" + uniqueFileName;
+				}
+			}
+
+			sanPham.Ten_SanPham = tenSanPham;
+			sanPham.ThoiGianLuuHuong = thoiGianLuuHuongParse;
+			sanPham.MoTa = moTa;
+			sanPham.HuongDau = huongDau;
+			sanPham.HuongGiua = huongGiua;
+			sanPham.HuongCuoi = huongCuoi;
+			sanPham.ID_ThuongHieu = idThuongHieu;
+			sanPham.ID_QuocGia = idQuocGia;
+			sanPham.ID_GioiTinh = idGioiTinh;
+			sanPham.NgayCapNhat = DateTime.Now;
+
+			_context.SanPhams.Update(sanPham);
+			await _context.SaveChangesAsync();
+
+			return RedirectToAction("Details", new { idSanPham = sanPham.ID_SanPham });
+		}
+
+		[HttpGet]
+		public async Task<IActionResult> UpdateDetails(Guid id)
+		{
+			var bienThe = await _context.SanPhamChiTiets
+				.Include(ct => ct.SanPham)
+				.Include(ct => ct.TheTich)
+				.FirstOrDefaultAsync(ct => ct.ID_SanPhamChiTiet == id);
+
+			if (bienThe == null)
+				return NotFound();
+
+			ViewBag.TheTichList = new SelectList(
+				_context.TheTichs.Select(t => new
+				{
+					t.ID_TheTich,
+					HienThi = t.GiaTri.ToString("0.#") + t.DonVi
+				}), "ID_TheTich", "HienThi", bienThe.ID_TheTich);
+
+			// Danh sách dropdown trạng thái
+			ViewBag.TrangThaiList = new SelectList(new[]
+			{
+				new { Value = 2, Text = "Tạm ngừng kinh doanh" },
+				new { Value = 1, Text = "Còn hàng" }
+			}, "Value", "Text", bienThe.TrangThai);
+
+			return View(bienThe);
+		}
+		[HttpPost]
+		public async Task<IActionResult> UpdateDetails(Guid id, string soLuong, string giaNhap, string giaBan, int trangThai, Guid idTheTich)
+		{
+			var bienThe = await _context.SanPhamChiTiets
+				.Include(ct => ct.SanPham)
+				.FirstOrDefaultAsync(ct => ct.ID_SanPhamChiTiet == id);
+
+			if (bienThe == null)
+				return NotFound();
+
+			ViewBag.TrangThaiList = new SelectList(new[]
+			{
+				// Tạm thời ngừng bán để chờ dịp sale
+				new { Value = 2, Text = "Tạm ngừng kinh doanh" },
+				new { Value = 1, Text = "Còn hàng" }
+			}, "Value", "Text", trangThai);
+
+			// Parse dữ liệu
+			int soLuongParse = 0;
+			decimal giaNhapParse = 0, giaBanParse = 0;
+
+			ClearModelErrors("SoLuong", "GiaNhap", "GiaBan", "ID_TheTich");
+
+			if (string.IsNullOrWhiteSpace(soLuong))
+			{
+				ModelState.AddModelError("SoLuong", "Số lượng không được để trống");
+			}
+			else if (!int.TryParse(soLuong, out soLuongParse))
+			{
+				ModelState.AddModelError("SoLuong", "Số lượng phải là số nguyên dương");
+			}
+			else if (soLuongParse < 1)
+			{
+				ModelState.AddModelError("SoLuong", "Số lượng phải ≥ 1");
+			}
+
+			if (string.IsNullOrWhiteSpace(giaNhap))
+			{
+				ModelState.AddModelError("GiaNhap", "Giá nhập không được để trống");
+			}
+			else if (!decimal.TryParse(giaNhap, out giaNhapParse))
+			{
+				ModelState.AddModelError("GiaNhap", "Giá nhập phải là số");
+			}
+			else if (giaNhapParse <= 0)
+			{
+				ModelState.AddModelError("GiaNhap", "Giá nhập phải > 0");
+			}
+
+			if (giaNhap.Contains('.'))
+				ModelState.AddModelError("GiaNhap", "Giá nhập phải sử dụng dấu phẩy (,) thay vì dấu chấm (.)");
+			if (giaBan.Contains('.'))
+				ModelState.AddModelError("GiaBan", "Giá bán phải sử dụng dấu phẩy (,) thay vì dấu chấm (.)");
+
+			if (string.IsNullOrWhiteSpace(giaBan))
+			{
+				ModelState.AddModelError("GiaBan", "Giá bán không được để trống");
+			}
+			else if (!decimal.TryParse(giaBan, out giaBanParse))
+			{
+				ModelState.AddModelError("GiaBan", "Giá bán phải là số");
+			}
+			else if (giaBanParse <= 0)
+			{
+				ModelState.AddModelError("GiaBan", "Giá bán phải > 0");
+			}
+			else if (giaNhapParse > 0 && giaBanParse <= giaNhapParse)
+			{
+				ModelState.AddModelError("GiaBan", "Giá bán phải lớn hơn giá nhập");
+			}
+
+			// Kiểm tra trùng thể tích
+			bool daCo = await _context.SanPhamChiTiets.AnyAsync(ct =>
+				ct.ID_SanPham == bienThe.ID_SanPham &&
+				ct.ID_TheTich == idTheTich &&
+				ct.ID_SanPhamChiTiet != bienThe.ID_SanPhamChiTiet);
+
+			if (daCo)
+				ModelState.AddModelError("ID_TheTich", "Sản phẩm đã có biến thể với thể tích này");
+
+			if (!ModelState.IsValid)
+			{
+				ViewBag.TheTichList = new SelectList(
+					_context.TheTichs.Select(t => new
+					{
+						t.ID_TheTich,
+						HienThi = t.GiaTri.ToString("0.#") + t.DonVi
+					}), "ID_TheTich", "HienThi", idTheTich);
+
+				ViewBag.TrangThaiList = new SelectList(new[]
+				{
+					new { Value = 2, Text = "Tạm ngừng kinh doanh" },
+					new { Value = 1, Text = "Còn hàng" }
+				}, "Value", "Text", trangThai);
+
+				return View(bienThe);
+			}
+
+			bienThe.SoLuong = soLuongParse;
+			bienThe.GiaNhap = giaNhapParse;
+			bienThe.GiaBan = giaBanParse;
+			bienThe.TrangThai = trangThai;
+			bienThe.ID_TheTich = idTheTich;
+			bienThe.NgayCapNhat = DateTime.Now;
+
+			_context.SanPhamChiTiets.Update(bienThe);
+			await _context.SaveChangesAsync();
+
+			return RedirectToAction("Update", new { idSanPham = bienThe.ID_SanPham });
+		}
+
+
 		public async Task<IActionResult> Create()
 		{
-			ViewBag.ThuongHieuList = new SelectList(_context.ThuongHieus, "ID_ThuongHieu", "TenThuongHieu");
-			ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "TenQuocGia");
-			ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "TenGioiTinh");
-			ViewBag.TheTichList = new SelectList(_context.TheTichs, "ID_TheTich", "TenTheTich");
+			ViewBag.ThuongHieuList = new SelectList(_context.ThuongHieus, "ID_ThuongHieu", "Ten_ThuongHieu");
+			ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "Ten_QuocGia");
+			ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "Ten_GioiTinh");
+			ViewBag.TheTichList = new SelectList(
+				_context.TheTichs.Select(t => new
+				{
+					t.ID_TheTich,
+					HienThi = t.GiaTri.ToString("0.#") + t.DonVi  // Ghép giá trị + đơn vị, ví dụ: 50ml
+				}),"ID_TheTich", "HienThi"
+			);
 			return View();
 		}
 		[HttpPost]
-		public async Task<IActionResult> Create(Guid idSanPham, Guid idSanPhamChiTiet, string tenSanPham, string moTa, string thoiGianLuuHuong,
-			string huongDau, string huongGiua, string huongCuoi, string soLuong, string giaNhap, string giaBan, IFormFile hinhAnh,
+		public async Task<IActionResult> Create(Guid idSanPham, Guid idSanPhamChiTiet, string tenSanPham, string maSanPham, string moTa, string thoiGianLuuHuong,
+			string huongDau, string huongGiua, string huongCuoi, string soLuong, int trangThai, string giaNhap, string giaBan, IFormFile hinhAnh,
 			Guid idTheTich, Guid idThuongHieu, Guid idQuocGia, Guid idGioiTinh)
 		{
-			int thoiGianLuuHuongParse = 0, soLuongParse = 0, giaNhapParse = 0, giaBanParse = 0;
-			ClearModelErrors("TenSanPham", "MoTa", "ThoiGianLuuHuong", "SoLuong", "HuongDau", "HuongGiua", "HuongCuoi", "GiaBan", "GiaNhap", "HinhAnh");
+			int thoiGianLuuHuongParse = 0, soLuongParse = 0;
+			decimal giaNhapParse = 0, giaBanParse = 0;
+			ClearModelErrors("TenSanPham", "MaSanPham", "MoTa", "ThoiGianLuuHuong", "SoLuong", "HuongDau", "HuongGiua", "HuongCuoi", "GiaBan", "GiaNhap", "HinhAnh");
 			
 			// Nếu thời gian lưu hương bỏ trống hoặc nhập toàn khoảng trắng thì báo lỗi
 			if (string.IsNullOrWhiteSpace(thoiGianLuuHuong))
@@ -80,7 +392,7 @@ namespace DoAn.Controllers
 			}
 			else if (!int.TryParse(soLuong, out soLuongParse))
 			{
-				ModelState.AddModelError("SoLuong", "Số lượng phải là số nguyên");
+				ModelState.AddModelError("SoLuong", "Số lượng phải là số nguyên dương");
 			}
 			else if (soLuongParse < 1)
 			{
@@ -91,13 +403,17 @@ namespace DoAn.Controllers
 			{
 				ModelState.AddModelError("GiaNhap", "Vui lòng nhập giá nhập");
 			}
-			else if (!int.TryParse(giaNhap, out giaNhapParse))
+			else if (giaNhap.Contains("."))
 			{
-				ModelState.AddModelError("GiaNhap", "Giá nhập phải là số nguyên");
+				ModelState.AddModelError("GiaNhap", "Giá nhập phải sử dụng dấu phẩy (,) thay vì dấu chấm (.)");
 			}
-			else if (giaNhapParse < 1)
+			else if (!decimal.TryParse(giaNhap, out giaNhapParse))
 			{
-				ModelState.AddModelError("GiaNhap", "Giá nhập phải lớn hơn 0");
+				ModelState.AddModelError("GiaNhap", "Giá nhập phải là số");
+			}
+			else if (giaNhapParse <= 0)
+			{
+				ModelState.AddModelError("GiaNhap", "Giá nhập phải > 0");
 			}
 
 
@@ -105,13 +421,17 @@ namespace DoAn.Controllers
 			{
 				ModelState.AddModelError("GiaBan", "Vui lòng nhập giá bán");
 			}
-			else if (!int.TryParse(giaBan, out giaBanParse))
+			else if (giaBan.Contains("."))
 			{
-				ModelState.AddModelError("GiaBan", "Giá bán phải là số nguyên");
+				ModelState.AddModelError("GiaBan", "Giá bán phải sử dụng dấu phẩy (,) thay vì dấu chấm (.)");
 			}
-			else if (giaBanParse < 1)
+			else if (!decimal.TryParse(giaBan, out giaBanParse))
 			{
-				ModelState.AddModelError("GiaBan", "Giá bán phải lớn hơn 0");
+				ModelState.AddModelError("GiaBan", "Giá bán phải là số");
+			}
+			else if (giaBanParse <= 0)
+			{
+				ModelState.AddModelError("GiaBan", "Giá bán phải > 0");
 			}
 			else if (giaBanParse <= giaNhapParse)
 			{
@@ -120,6 +440,7 @@ namespace DoAn.Controllers
 
 			if (string.IsNullOrEmpty(tenSanPham) || tenSanPham.Length > 100)
 				ModelState.AddModelError("TenSanPham", "Tên sản phẩm không được để trống và không được quá 100 ký tự");
+			
 			if (string.IsNullOrWhiteSpace(moTa) || moTa.Length > 1000)
 				ModelState.AddModelError("MoTa", "Mô tả không được để trống và không được quá 1000 ký tự");
 			
@@ -127,23 +448,17 @@ namespace DoAn.Controllers
 				ModelState.AddModelError("HuongDau", "Hương đầu không được để trống và không được quá 100 ký tự");
 			// Kiểm tra xem hương đầu có chứa số hay không
 			else if (Regex.IsMatch(huongDau, @"\d"))
-			{
 				ModelState.AddModelError("HuongDau", "Hương đầu không được chứa số");
-			}
 			
 			if (string.IsNullOrWhiteSpace(huongGiua) || huongGiua.Length > 100)
 				ModelState.AddModelError("HuongGiua", "Hương giữa không được để trống và không được quá 100 ký tự");
 			else if (Regex.IsMatch(huongGiua, @"\d"))
-			{
 				ModelState.AddModelError("HuongGiua", "Hương giữa không được chứa số");
-			}
 			
 			if (string.IsNullOrWhiteSpace(huongCuoi) || huongCuoi.Length > 100)
 				ModelState.AddModelError("HuongCuoi", "Hương cuối không được để trống và không được quá 100 ký tự");
 			else if (Regex.IsMatch(huongCuoi, @"\d"))
-			{
 				ModelState.AddModelError("HuongCuoi", "Hương cuối không được chứa số");
-			}
 
 			if (idTheTich == Guid.Empty)
 				ModelState.AddModelError("ID_TheTich", "Vui lòng chọn thể tích");
@@ -170,9 +485,25 @@ namespace DoAn.Controllers
 				.Include(sp => sp.QuocGia)
 				.Include(sp => sp.GioiTinh)
 				.FirstOrDefaultAsync(sp => sp.Ten_SanPham == tenSanPham);
+
+			if (string.IsNullOrWhiteSpace(maSanPham) || maSanPham.Length > 50)
+			{
+				ModelState.AddModelError("MaSanPham", "Mã sản phẩm không được để trống và không được quá 50 ký tự");
+			}
+			else if (sanPham == null) // chỉ kiểm tra mã trùng nếu là sản phẩm mới
+			{
+				var maTrung = await _context.SanPhams
+					.AnyAsync(sp => sp.Ma_SanPham == maSanPham);
+
+				if (maTrung)
+					ModelState.AddModelError("MaSanPham", "Mã sản phẩm này đã tồn tại.");
+			}
+
 			// Nếu đã tồn tại, kiểm tra các thông tin chung, nếu khác thì báo lỗi
 			if (sanPham != null)
 			{
+				if (sanPham.Ma_SanPham != maSanPham)
+					ModelState.AddModelError("MaSanPham", $"Sản phẩm đã tồn tại với mã khác: {sanPham.Ma_SanPham}");
 				if (sanPham.ID_ThuongHieu != idThuongHieu)
 					ModelState.AddModelError("ID_ThuongHieu", $"Sản phẩm đã tồn tại với thông tin thương hiệu khác:{sanPham.ThuongHieu.Ten_ThuongHieu}");
 
@@ -209,12 +540,19 @@ namespace DoAn.Controllers
 			// Nếu có lỗi thì trả về View với các thông tin đã nhập
 			if (!ModelState.IsValid)
 			{
-				ViewBag.ThuongHieuList = new SelectList(_context.ThuongHieus, "ID_ThuongHieu", "TenThuongHieu", idThuongHieu);
-				ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "TenQuocGia", idQuocGia);
-				ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "TenGioiTinh", idGioiTinh);
-				ViewBag.TheTichList = new SelectList(_context.TheTichs, "ID_TheTich", "TenTheTich", idTheTich);
+				ViewBag.ThuongHieuList = new SelectList(_context.ThuongHieus, "ID_ThuongHieu", "Ten_ThuongHieu", idThuongHieu);
+				ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "Ten_QuocGia", idQuocGia);
+				ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "Ten_GioiTinh", idGioiTinh);
+				ViewBag.TheTichList = new SelectList(
+					_context.TheTichs.Select(t => new
+					{
+						t.ID_TheTich,
+						HienThi = t.GiaTri.ToString("0.#") + t.DonVi  // Ghép giá trị + đơn vị, ví dụ: 50ml
+					}), "ID_TheTich", "HienThi"
+				);
 
 				ViewBag.TenSanPham = tenSanPham;
+				ViewBag.MaSanPham = maSanPham;
 				ViewBag.ThoiGianLuuHuong = thoiGianLuuHuong;
 				ViewBag.MoTa = moTa;
 				ViewBag.HuongDau = huongDau;
@@ -243,6 +581,7 @@ namespace DoAn.Controllers
 				{
 					ID_SanPham = Guid.NewGuid(),
 					Ten_SanPham = tenSanPham,
+					Ma_SanPham = maSanPham,
 					ThoiGianLuuHuong = thoiGianLuuHuongParse,
 					MoTa = moTa,
 					HuongDau = huongDau,
@@ -263,6 +602,7 @@ namespace DoAn.Controllers
 				GiaBan = giaBanParse,
 				GiaNhap = giaNhapParse,
 				NgayTao = DateTime.Now,
+				TrangThai = 1,
 				ID_SanPham = sanPham.ID_SanPham,
 				ID_TheTich = idTheTich
 			};

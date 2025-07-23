@@ -24,12 +24,12 @@
         <thead class="table-dark">
             <tr>
                 <th>Ảnh</th>
+                <th>Mã sản phẩm</th>
                 <th>Tên sản phẩm</th>
-                <th>Thời gian lưu hương</th>
                 <th>Thương hiệu</th>
                 <th>Quốc gia</th>
                 <th>Giới tính</th>
-                <th>Mô tả</th>
+                <th>Thời gian lưu hương</th>
                 <th>Thao tác</th>
             </tr>
         </thead>
@@ -42,14 +42,14 @@
                         <td>
                             <img src="@item.HinhAnh" alt="Ảnh sản phẩm" style="width: 80px; height: auto;" class="img-thumbnail" />
                         </td>
+						<td>@item.Ma_SanPham</td>
                         <td>@item.Ten_SanPham</td>
-                        <td>@item.ThoiGianLuuHuong giờ</td>
                         <td>@item.ThuongHieu?.Ten_ThuongHieu</td>
                         <td>@item.QuocGia?.Ten_QuocGia</td>
                         <td>@item.GioiTinh?.Ten_GioiTinh</td>
-                        <td>@item.MoTa</td>
+                        <td>@item.ThoiGianLuuHuong giờ</td>
                         <td>
-                            <a asp-action="Details" asp-route-idSanPham="@item.ID_SanPham" class="btn btn-sm btn-outline-info rounded-pill">Chi tiết</a>
+                            <a asp-action="Details" asp-route-idSanPham="@item.ID_SanPham" class="btn btn-sm btn-outline-info rounded-pill">Xem thêm</a>
                         </td>
                     </tr>
                 }

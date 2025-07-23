@@ -14,16 +14,16 @@
 
         <!-- Thông tin bên phải -->
         <div class="col-md-8 fs-5">
-            <p><strong>Mã sản phẩm:</strong> @Model.ID_SanPham</p>
+            <p><strong>Mã sản phẩm:</strong> @Model.Ma_SanPham</p>
             <p><strong>Tên sản phẩm:</strong> @Model.Ten_SanPham</p>
-            <p><strong>Thời gian lưu hương:</strong> @Model.ThoiGianLuuHuong giờ</p>
-            <p><strong>Hương đầu:</strong> @Model.HuongDau</p>
-            <p><strong>Hương giữa:</strong> @Model.HuongGiua</p>
-            <p><strong>Hương cuối:</strong> @Model.HuongCuoi</p>
-            <p><strong>Mô tả:</strong> @Model.MoTa</p>
             <p><strong>Thương hiệu:</strong> @Model.ThuongHieu?.Ten_ThuongHieu</p>
             <p><strong>Quốc gia:</strong> @Model.QuocGia?.Ten_QuocGia</p>
             <p><strong>Giới tính:</strong> @Model.GioiTinh?.Ten_GioiTinh</p>
+            <p><strong>Hương đầu:</strong> @Model.HuongDau</p>
+            <p><strong>Hương giữa:</strong> @Model.HuongGiua</p>
+            <p><strong>Hương cuối:</strong> @Model.HuongCuoi</p>
+            <p><strong>Thời gian lưu hương:</strong> @Model.ThoiGianLuuHuong giờ</p>
+            <p><strong>Mô tả:</strong> @Model.MoTa</p>
         </div>
     </div>
 </div>
@@ -36,27 +36,41 @@
         <table class="table table-bordered table-hover text-center align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>Mã biến thể</th>
                     <th>Thể tích</th>
                     <th>Giá nhập</th>
                     <th>Giá bán</th>
                     <th>Số lượng</th>
                     <th>Ngày tạo</th>
+					<th>Ngày cập nhật</th>
+					<th>Trạng thái</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var ct in Model.SanPhamChiTiets)
                 {
                     <tr>
-                        <td>@ct.ID_SanPhamChiTiet</td>
-                        <td>@ct.TheTich?.GiaTri</td>
-                        <td>@ct.GiaNhap.ToString("N0") VNĐ</td>
-                        <td>@ct.GiaBan.ToString("N0") VNĐ</td>
+                        <td>@(ct.TheTich?.GiaTri.ToString("0.#") + ct.TheTich?.DonVi)</td>
+                        <td>@ct.GiaNhap.ToString("0.##") VNĐ</td>
+                        <td>@ct.GiaBan.ToString("0.##") VNĐ</td>
                         <td>@ct.SoLuong</td>
                         <td>@ct.NgayTao.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@(ct.NgayCapNhat?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                        <td>
+                            @{
+                                var (text, badgeClass) = ct.TrangThai switch
+                                {
+                                    1 => ("Còn hàng", "success"),
+                                    0 => ("Hết hàng", "danger"),
+                                    2 => ("Tạm ngừng kinh doanh", "warning"),
+                                    _ => ("Không xác định", "secondary")
+                                };
+                            }
+                            <span class="badge bg-@badgeClass">@text</span>
+                        </td>
                     </tr>
                 }
             </tbody>
+
         </table>
     </div>
 }
