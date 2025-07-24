@@ -13,16 +13,95 @@ namespace DoAn.Controllers
 		{
 			_context = context;
 		}
-		public async Task<IActionResult> Index()
+		//public async Task<IActionResult> Index()
+		//{
+		//	var danhSachSanPham = await _context.SanPhams
+		//		.Include(sp => sp.ThuongHieu)
+		//		.Include(sp => sp.GioiTinh)
+		//		.Include(sp => sp.QuocGia)
+		//		.ToListAsync();
+		//	return View(danhSachSanPham);
+		//}
+
+		//[HttpGet]
+		//public async Task<IActionResult> Search(string keyword)
+		//{
+		//	if (string.IsNullOrWhiteSpace(keyword))
+		//		return RedirectToAction("Index");
+
+		public async Task<IActionResult> Index(string[] thuongHieuFilters, string[] quocGiaFilters, string[] gioiTinhFilters)
 		{
-			var danhSachSanPham = await _context.SanPhams
+			var query = _context.SanPhams
 				.Include(sp => sp.ThuongHieu)
-				.Include(sp => sp.GioiTinh)
 				.Include(sp => sp.QuocGia)
+				.Include(sp => sp.GioiTinh)
+				.AsQueryable();
+
+			// Lọc theo Thương hiệu
+			if (thuongHieuFilters != null && thuongHieuFilters.Any())
+			{
+				query = query.Where(sp => thuongHieuFilters.Contains(sp.ID_ThuongHieu.ToString()));
+			}
+
+			// Lọc theo Quốc gia
+			if (quocGiaFilters != null && quocGiaFilters.Any())
+			{
+				query = query.Where(sp => quocGiaFilters.Contains(sp.ID_QuocGia.ToString()));
+			}
+
+			// Lọc theo Giới tính
+			if (gioiTinhFilters != null && gioiTinhFilters.Any())
+			{
+				query = query.Where(sp => gioiTinhFilters.Contains(sp.ID_GioiTinh.ToString()));
+			}
+
+			// Chỉ select các trường cần thiết để tiết kiệm bộ nhớ
+			var danhSachSanPham = await query
+				.Select(sp => new SanPham
+				{
+					ID_SanPham = sp.ID_SanPham,
+					Ma_SanPham = sp.Ma_SanPham,
+					Ten_SanPham = sp.Ten_SanPham,
+					ThoiGianLuuHuong = sp.ThoiGianLuuHuong,
+					HinhAnh = sp.HinhAnh,
+					ThuongHieu = sp.ThuongHieu,
+					QuocGia = sp.QuocGia,
+					GioiTinh = sp.GioiTinh
+				})
 				.ToListAsync();
+
+			// Truyền danh sách các bộ lọc vào ViewBag
+			ViewBag.ThuongHieuList = new SelectList(await _context.ThuongHieus.ToListAsync(), "ID_ThuongHieu", "Ten_ThuongHieu");
+			ViewBag.QuocGiaList = new SelectList(await _context.QuocGias.ToListAsync(), "ID_QuocGia", "Ten_QuocGia");
+			ViewBag.GioiTinhList = new SelectList(await _context.GioiTinhs.ToListAsync(), "ID_GioiTinh", "Ten_GioiTinh");
+
+			// Truyền lại các giá trị đã chọn để giữ trạng thái checkbox
+			ViewBag.SelectedThuongHieu = thuongHieuFilters;
+			ViewBag.SelectedQuocGia = quocGiaFilters;
+			ViewBag.SelectedGioiTinh = gioiTinhFilters;
+
 			return View(danhSachSanPham);
 		}
 
+
+		//	keyword = keyword.ToLower();
+
+		//	var ketQua = await _context.SanPhams
+		//		.Include(sp => sp.ThuongHieu)
+		//		.Include(sp => sp.QuocGia)
+		//		.Include(sp => sp.GioiTinh)
+		//		.Where(sp =>
+		//			sp.Ten_SanPham.ToLower().Contains(keyword) ||
+		//			sp.Ma_SanPham.ToLower().Contains(keyword) ||
+		//			sp.ThuongHieu.Ten_ThuongHieu.ToLower().Contains(keyword) ||
+		//			sp.QuocGia.Ten_QuocGia.ToLower().Contains(keyword) ||
+		//			sp.GioiTinh.Ten_GioiTinh.ToLower().Contains(keyword)
+		//		)
+		//		.ToListAsync();
+
+		//	ViewBag.TuKhoa = keyword;
+		//	return View("Index", ketQua);
+		//}
 		[HttpGet]
 		public async Task<IActionResult> Search(string keyword)
 		{
@@ -35,18 +114,30 @@ namespace DoAn.Controllers
 				.Include(sp => sp.ThuongHieu)
 				.Include(sp => sp.QuocGia)
 				.Include(sp => sp.GioiTinh)
-				.Where(sp =>
-					sp.Ten_SanPham.ToLower().Contains(keyword) ||
-					sp.Ma_SanPham.ToLower().Contains(keyword) ||
-					sp.ThuongHieu.Ten_ThuongHieu.ToLower().Contains(keyword) ||
-					sp.QuocGia.Ten_QuocGia.ToLower().Contains(keyword) ||
-					sp.GioiTinh.Ten_GioiTinh.ToLower().Contains(keyword)
+				.Where(sp => sp.Ten_SanPham.ToLower().Contains(keyword) ||
+							 sp.Ma_SanPham.ToLower().Contains(keyword) ||
+							 sp.ThuongHieu.Ten_ThuongHieu.ToLower().Contains(keyword) ||
+							 sp.QuocGia.Ten_QuocGia.ToLower().Contains(keyword) ||
+							 sp.GioiTinh.Ten_GioiTinh.ToLower().Contains(keyword)
 				)
 				.ToListAsync();
 
+			// Truyền ViewBag cho các bộ lọc
+			ViewBag.ThuongHieuList = new SelectList(await _context.ThuongHieus.ToListAsync(), "ID_ThuongHieu", "Ten_ThuongHieu");
+			ViewBag.QuocGiaList = new SelectList(await _context.QuocGias.ToListAsync(), "ID_QuocGia", "Ten_QuocGia");
+			ViewBag.GioiTinhList = new SelectList(await _context.GioiTinhs.ToListAsync(), "ID_GioiTinh", "Ten_GioiTinh");
+
+			// Clear bộ lọc để tránh gây hiểu nhầm khi tìm kiếm
+			ViewBag.SelectedThuongHieu = Array.Empty<string>();
+			ViewBag.SelectedQuocGia = Array.Empty<string>();
+			ViewBag.SelectedGioiTinh = Array.Empty<string>();
+
+			// Truyền từ khóa tìm kiếm để hiển thị lại
 			ViewBag.TuKhoa = keyword;
+
 			return View("Index", ketQua);
 		}
+
 
 		[HttpGet]
 		public async Task<IActionResult> Details(Guid idSanPham)
