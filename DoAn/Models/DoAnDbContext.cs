@@ -122,8 +122,49 @@ namespace DoAn.Models
                 .HasOne(k => k.TaiKhoan)
                 .WithMany(t => t.KhachHangs)
                 .HasForeignKey(k => k.ID_TaiKhoan);
-            // Seed Roles (phải seed trước Tài khoản vì Tài khoản phụ thuộc Roles)
-            var adminRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000003");
+
+
+
+
+
+
+
+			// 1 SPCT - N HDCT
+			modelBuilder.Entity<SanPhamChiTiet>()
+				.HasMany(s => s.HoaDonChiTiets)
+				.WithOne(h => h.SanPhamChiTiet)
+				.HasForeignKey(h => h.ID_SanPhamChiTiet);
+
+			// 1 NV - N HD
+			modelBuilder.Entity<NhanVien>()
+				.HasMany(n => n.HoaDons)
+				.WithOne(h => h.NhanVien)
+				.HasForeignKey(h => h.ID_NhanVien);
+
+			// 1 KH - N HD
+			modelBuilder.Entity<KhachHang>()
+				.HasMany(k => k.HoaDons)
+				.WithOne(h => h.KhachHang)
+				.HasForeignKey(h => h.ID_KhachHang);
+
+			// 1 SP - N SPCT
+			modelBuilder.Entity<SanPhamChiTiet>()
+				.HasOne(s => s.SanPham)
+				.WithMany(t => t.SanPhamChiTiets)
+				.HasForeignKey(s => s.ID_SanPham);
+
+			// 1 QG - N SP
+			modelBuilder.Entity<SanPham>()
+				.HasOne(s => s.QuocGia)
+				.WithMany(t => t.SanPhams)
+				.HasForeignKey(s => s.ID_QuocGia);
+
+
+
+
+
+			// Seed Roles (phải seed trước Tài khoản vì Tài khoản phụ thuộc Roles)
+			var adminRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000003");
             var nhanvienRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000002");
             var khachhangRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000001");
 
