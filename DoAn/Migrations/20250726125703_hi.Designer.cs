@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DoAn.Migrations
 {
     [DbContext(typeof(DoAnDbContext))]
-    [Migration("20250724142719_hi")]
+    [Migration("20250726125703_hi")]
     partial class hi
     {
         /// <inheritdoc />
@@ -182,7 +182,6 @@ namespace DoAn.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("DiaChi")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
@@ -196,8 +195,13 @@ namespace DoAn.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("HoTen")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("ID_KhachHang")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ID_NhanVien")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("ID_Voucher")
                         .HasColumnType("uniqueidentifier");
@@ -216,9 +220,6 @@ namespace DoAn.Migrations
                     b.Property<DateTime>("NgayTao")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("NhanVienID_NhanVien")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<decimal?>("PhuThu")
                         .HasColumnType("decimal(18,2)");
 
@@ -227,7 +228,6 @@ namespace DoAn.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Sdt_NguoiNhan")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("TongTienSauGiam")
@@ -241,9 +241,11 @@ namespace DoAn.Migrations
 
                     b.HasKey("ID_HoaDon");
 
-                    b.HasIndex("ID_Voucher");
+                    b.HasIndex("ID_KhachHang");
 
-                    b.HasIndex("NhanVienID_NhanVien");
+                    b.HasIndex("ID_NhanVien");
+
+                    b.HasIndex("ID_Voucher");
 
                     b.ToTable("HoaDons");
                 });
@@ -263,9 +265,6 @@ namespace DoAn.Migrations
                     b.Property<Guid>("ID_SanPhamChiTiet")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("SanPhamChiTietID_SanPhamChiTiet")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<int>("SoLuong")
                         .HasColumnType("int");
 
@@ -273,7 +272,7 @@ namespace DoAn.Migrations
 
                     b.HasIndex("ID_HoaDon");
 
-                    b.HasIndex("SanPhamChiTietID_SanPhamChiTiet");
+                    b.HasIndex("ID_SanPhamChiTiet");
 
                     b.ToTable("HoaDonChiTiets");
                 });
@@ -854,14 +853,22 @@ namespace DoAn.Migrations
 
             modelBuilder.Entity("DoAn.Models.HoaDon", b =>
                 {
+                    b.HasOne("DoAn.Models.KhachHang", "KhachHang")
+                        .WithMany("HoaDons")
+                        .HasForeignKey("ID_KhachHang");
+
+                    b.HasOne("DoAn.Models.NhanVien", "NhanVien")
+                        .WithMany("HoaDons")
+                        .HasForeignKey("ID_NhanVien");
+
                     b.HasOne("DoAn.Models.Voucher", "Voucher")
                         .WithMany("HoaDons")
                         .HasForeignKey("ID_Voucher")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("DoAn.Models.NhanVien", null)
-                        .WithMany("HoaDons")
-                        .HasForeignKey("NhanVienID_NhanVien");
+                    b.Navigation("KhachHang");
+
+                    b.Navigation("NhanVien");
 
                     b.Navigation("Voucher");
                 });
@@ -876,7 +883,7 @@ namespace DoAn.Migrations
 
                     b.HasOne("DoAn.Models.SanPhamChiTiet", "SanPhamChiTiet")
                         .WithMany("HoaDonChiTiets")
-                        .HasForeignKey("SanPhamChiTietID_SanPhamChiTiet")
+                        .HasForeignKey("ID_SanPhamChiTiet")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1014,6 +1021,11 @@ namespace DoAn.Migrations
                     b.Navigation("TraHangs");
 
                     b.Navigation("TrangThaiDonHangs");
+                });
+
+            modelBuilder.Entity("DoAn.Models.KhachHang", b =>
+                {
+                    b.Navigation("HoaDons");
                 });
 
             modelBuilder.Entity("DoAn.Models.KhuyenMai", b =>

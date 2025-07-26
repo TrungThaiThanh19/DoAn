@@ -323,10 +323,10 @@ namespace DoAn.Migrations
                 {
                     ID_HoaDon = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Ma_HoaDon = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    HoTen = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    HoTen = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Sdt_NguoiNhan = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    DiaChi = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Sdt_NguoiNhan = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    DiaChi = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     HinhThucThanhToan = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     PhuongThucNhanHang = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     TongTienTruocGiam = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
@@ -338,14 +338,20 @@ namespace DoAn.Migrations
                     NgayCapNhat = table.Column<DateTime>(type: "datetime2", nullable: true),
                     TrangThai = table.Column<int>(type: "int", nullable: false),
                     ID_Voucher = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    NhanVienID_NhanVien = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
+                    ID_NhanVien = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ID_KhachHang = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_HoaDons", x => x.ID_HoaDon);
                     table.ForeignKey(
-                        name: "FK_HoaDons_NhanViens_NhanVienID_NhanVien",
-                        column: x => x.NhanVienID_NhanVien,
+                        name: "FK_HoaDons_KhachHangs_ID_KhachHang",
+                        column: x => x.ID_KhachHang,
+                        principalTable: "KhachHangs",
+                        principalColumn: "ID_KhachHang");
+                    table.ForeignKey(
+                        name: "FK_HoaDons_NhanViens_ID_NhanVien",
+                        column: x => x.ID_NhanVien,
                         principalTable: "NhanViens",
                         principalColumn: "ID_NhanVien");
                     table.ForeignKey(
@@ -416,8 +422,7 @@ namespace DoAn.Migrations
                     SoLuong = table.Column<int>(type: "int", nullable: false),
                     DonGia = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     ID_HoaDon = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ID_SanPhamChiTiet = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SanPhamChiTietID_SanPhamChiTiet = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    ID_SanPhamChiTiet = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -429,8 +434,8 @@ namespace DoAn.Migrations
                         principalColumn: "ID_HoaDon",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_HoaDonChiTiets_SanPhamChiTiets_SanPhamChiTietID_SanPhamChiTiet",
-                        column: x => x.SanPhamChiTietID_SanPhamChiTiet,
+                        name: "FK_HoaDonChiTiets_SanPhamChiTiets_ID_SanPhamChiTiet",
+                        column: x => x.ID_SanPhamChiTiet,
                         principalTable: "SanPhamChiTiets",
                         principalColumn: "ID_SanPhamChiTiet",
                         onDelete: ReferentialAction.Cascade);
@@ -572,19 +577,24 @@ namespace DoAn.Migrations
                 column: "ID_HoaDon");
 
             migrationBuilder.CreateIndex(
-                name: "IX_HoaDonChiTiets_SanPhamChiTietID_SanPhamChiTiet",
+                name: "IX_HoaDonChiTiets_ID_SanPhamChiTiet",
                 table: "HoaDonChiTiets",
-                column: "SanPhamChiTietID_SanPhamChiTiet");
+                column: "ID_SanPhamChiTiet");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_HoaDons_ID_KhachHang",
+                table: "HoaDons",
+                column: "ID_KhachHang");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_HoaDons_ID_NhanVien",
+                table: "HoaDons",
+                column: "ID_NhanVien");
 
             migrationBuilder.CreateIndex(
                 name: "IX_HoaDons_ID_Voucher",
                 table: "HoaDons",
                 column: "ID_Voucher");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_HoaDons_NhanVienID_NhanVien",
-                table: "HoaDons",
-                column: "NhanVienID_NhanVien");
 
             migrationBuilder.CreateIndex(
                 name: "IX_KhachHangs_ID_TaiKhoan",
@@ -676,9 +686,6 @@ namespace DoAn.Migrations
                 name: "SanPhamChiTiets");
 
             migrationBuilder.DropTable(
-                name: "KhachHangs");
-
-            migrationBuilder.DropTable(
                 name: "HoaDons");
 
             migrationBuilder.DropTable(
@@ -686,6 +693,9 @@ namespace DoAn.Migrations
 
             migrationBuilder.DropTable(
                 name: "TheTichs");
+
+            migrationBuilder.DropTable(
+                name: "KhachHangs");
 
             migrationBuilder.DropTable(
                 name: "NhanViens");

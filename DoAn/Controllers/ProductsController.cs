@@ -13,21 +13,6 @@ namespace DoAn.Controllers
 		{
 			_context = context;
 		}
-		//public async Task<IActionResult> Index()
-		//{
-		//	var danhSachSanPham = await _context.SanPhams
-		//		.Include(sp => sp.ThuongHieu)
-		//		.Include(sp => sp.GioiTinh)
-		//		.Include(sp => sp.QuocGia)
-		//		.ToListAsync();
-		//	return View(danhSachSanPham);
-		//}
-
-		//[HttpGet]
-		//public async Task<IActionResult> Search(string keyword)
-		//{
-		//	if (string.IsNullOrWhiteSpace(keyword))
-		//		return RedirectToAction("Index");
 
 		public async Task<IActionResult> Index(string[] thuongHieuFilters, string[] quocGiaFilters, string[] gioiTinhFilters)
 		{
@@ -83,25 +68,6 @@ namespace DoAn.Controllers
 			return View(danhSachSanPham);
 		}
 
-
-		//	keyword = keyword.ToLower();
-
-		//	var ketQua = await _context.SanPhams
-		//		.Include(sp => sp.ThuongHieu)
-		//		.Include(sp => sp.QuocGia)
-		//		.Include(sp => sp.GioiTinh)
-		//		.Where(sp =>
-		//			sp.Ten_SanPham.ToLower().Contains(keyword) ||
-		//			sp.Ma_SanPham.ToLower().Contains(keyword) ||
-		//			sp.ThuongHieu.Ten_ThuongHieu.ToLower().Contains(keyword) ||
-		//			sp.QuocGia.Ten_QuocGia.ToLower().Contains(keyword) ||
-		//			sp.GioiTinh.Ten_GioiTinh.ToLower().Contains(keyword)
-		//		)
-		//		.ToListAsync();
-
-		//	ViewBag.TuKhoa = keyword;
-		//	return View("Index", ketQua);
-		//}
 		[HttpGet]
 		public async Task<IActionResult> Search(string keyword)
 		{
@@ -173,7 +139,13 @@ namespace DoAn.Controllers
 			{
 				return NotFound();
 			}
-			ViewBag.ThuongHieuList = new SelectList(_context.ThuongHieus, "ID_ThuongHieu", "Ten_ThuongHieu", sanPham.ID_ThuongHieu);
+			ViewBag.ThuongHieuList = new SelectList(
+				await _context.ThuongHieus
+				.Where(th => th.TrangThai == 1)
+				.OrderBy(th => th.Ten_ThuongHieu)
+				.ToListAsync(),
+				"ID_ThuongHieu", "Ten_ThuongHieu", sanPham.ID_ThuongHieu
+				);
 			ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "Ten_QuocGia", sanPham.ID_QuocGia);
 			ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "Ten_GioiTinh", sanPham.ID_GioiTinh);
 			ViewBag.TheTichList = new SelectList(
@@ -247,7 +219,14 @@ namespace DoAn.Controllers
 
 			if (!ModelState.IsValid)
 			{
-				ViewBag.ThuongHieuList = new SelectList(_context.ThuongHieus, "ID_ThuongHieu", "Ten_ThuongHieu", idThuongHieu);
+				ViewBag.ThuongHieuList = new SelectList(
+					await _context.ThuongHieus
+					.Where(th => th.TrangThai == 1)
+					.OrderBy(th => th.Ten_ThuongHieu)
+					.ToListAsync(),
+					"ID_ThuongHieu", "Ten_ThuongHieu", idThuongHieu
+					);
+
 				ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "Ten_QuocGia", idQuocGia);
 				ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "Ten_GioiTinh", idGioiTinh);
 
@@ -311,11 +290,17 @@ namespace DoAn.Controllers
 				return NotFound();
 
 			ViewBag.TheTichList = new SelectList(
-				_context.TheTichs.Select(t => new
-				{
-					t.ID_TheTich,
-					HienThi = t.GiaTri.ToString("0.#") + t.DonVi
-				}), "ID_TheTich", "HienThi", bienThe.ID_TheTich);
+					await _context.TheTichs
+					.Where(t => t.TrangThai == 1)
+					.OrderBy(t => t.GiaTri)
+					.Select(t => new
+					{
+						t.ID_TheTich,
+						HienThi = t.GiaTri.ToString("0.#") + t.DonVi
+					})
+					.ToListAsync(),
+					"ID_TheTich", "HienThi"
+					);
 
 			// Danh sách dropdown trạng thái
 			ViewBag.TrangThaiList = new SelectList(new[]
@@ -409,11 +394,17 @@ namespace DoAn.Controllers
 			if (!ModelState.IsValid)
 			{
 				ViewBag.TheTichList = new SelectList(
-					_context.TheTichs.Select(t => new
+					await _context.TheTichs
+					.Where(t => t.TrangThai == 1)
+					.OrderBy(t => t.GiaTri)
+					.Select(t => new
 					{
 						t.ID_TheTich,
 						HienThi = t.GiaTri.ToString("0.#") + t.DonVi
-					}), "ID_TheTich", "HienThi", idTheTich);
+					})
+					.ToListAsync(),
+					"ID_TheTich", "HienThi"
+					);
 
 				ViewBag.TrangThaiList = new SelectList(new[]
 				{
@@ -440,16 +431,27 @@ namespace DoAn.Controllers
 
 		public async Task<IActionResult> Create()
 		{
-			ViewBag.ThuongHieuList = new SelectList(_context.ThuongHieus, "ID_ThuongHieu", "Ten_ThuongHieu");
+			ViewBag.ThuongHieuList = new SelectList(
+				await _context.ThuongHieus
+				.Where(th => th.TrangThai == 1)
+				.OrderBy(th => th.Ten_ThuongHieu)
+				.ToListAsync(),
+				"ID_ThuongHieu", "Ten_ThuongHieu"
+			);
 			ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "Ten_QuocGia");
 			ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "Ten_GioiTinh");
 			ViewBag.TheTichList = new SelectList(
-				_context.TheTichs.Select(t => new
+				await _context.TheTichs
+				.Where(t => t.TrangThai == 1)
+				.OrderBy(t => t.GiaTri)
+				.Select(t => new
 				{
 					t.ID_TheTich,
-					HienThi = t.GiaTri.ToString("0.#") + t.DonVi  // Ghép giá trị + đơn vị, ví dụ: 50ml
-				}),"ID_TheTich", "HienThi"
-			);
+					HienThi = t.GiaTri.ToString("0.#") + t.DonVi
+				})
+				.ToListAsync(),
+				"ID_TheTich", "HienThi"
+				);
 			return View();
 		}
 		[HttpPost]
@@ -631,16 +633,27 @@ namespace DoAn.Controllers
 			// Nếu có lỗi thì trả về View với các thông tin đã nhập
 			if (!ModelState.IsValid)
 			{
-				ViewBag.ThuongHieuList = new SelectList(_context.ThuongHieus, "ID_ThuongHieu", "Ten_ThuongHieu", idThuongHieu);
+				ViewBag.ThuongHieuList = new SelectList(
+					_context.ThuongHieus
+					.Where(th => th.TrangThai == 1)
+					.OrderBy(th => th.Ten_ThuongHieu)
+					.ToList(),
+					"ID_ThuongHieu", "Ten_ThuongHieu", idThuongHieu
+);
 				ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "Ten_QuocGia", idQuocGia);
 				ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "Ten_GioiTinh", idGioiTinh);
 				ViewBag.TheTichList = new SelectList(
-					_context.TheTichs.Select(t => new
+					await _context.TheTichs
+					.Where(t => t.TrangThai == 1)
+					.OrderBy(t => t.GiaTri)
+					.Select(t => new
 					{
 						t.ID_TheTich,
-						HienThi = t.GiaTri.ToString("0.#") + t.DonVi  // Ghép giá trị + đơn vị, ví dụ: 50ml
-					}), "ID_TheTich", "HienThi"
-				);
+						HienThi = t.GiaTri.ToString("0.#") + t.DonVi
+					})
+					.ToListAsync(),
+					"ID_TheTich", "HienThi"
+					);
 
 				ViewBag.TenSanPham = tenSanPham;
 				ViewBag.MaSanPham = maSanPham;
