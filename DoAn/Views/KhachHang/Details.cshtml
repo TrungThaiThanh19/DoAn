@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Chi tiết khách hàng";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
 <h3 class="mb-4">Thông tin chi tiết khách hàng</h3>
@@ -29,7 +30,7 @@
         </div>
         <div class="row mb-2">
             <div class="col-sm-4"><strong>Ngày sinh:</strong></div>
-            <div class="col-sm-8">@Model.NgaySinh.ToString("dd/MM/yyyy")</div>
+            <div class="col-sm-8">@Model.NgaySinh?.ToString("dd/MM/yyyy")</div>
         </div>
         <div class="row mb-2">
             <div class="col-sm-4"><strong>Ngày tạo:</strong></div>

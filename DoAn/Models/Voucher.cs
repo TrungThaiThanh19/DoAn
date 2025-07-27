@@ -21,5 +21,11 @@ namespace DoAn.Models
         public Guid ID_TaiKhoan { get; set; }
         public TaiKhoan TaiKhoan { get; set; }
         public ICollection<HoaDon> HoaDons { get; set; }
+        public enum TrangThaiVoucher
+        {
+            ConHan = 0,
+            HetHan = 1,
+            DaSuDung = 2
+        }
     }
 }

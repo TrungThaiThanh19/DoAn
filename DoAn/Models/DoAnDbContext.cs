@@ -1,17 +1,16 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace DoAn.Models
 {
     public class DoAnDbContext : DbContext
     {
-        public DoAnDbContext()
-        {
+        public DoAnDbContext() { }
 
-        }
-        public DoAnDbContext(DbContextOptions<DoAnDbContext> options) : base(options)
-        {
-        }
-        public DbSet<TheTich> TheTichs { get; set; }
+        public DoAnDbContext(DbContextOptions<DoAnDbContext> options) : base(options) { }
+
+        // DbSets
+        public DbSet<TheTich> TheTiches { get; set; }
         public DbSet<GioiTinh> GioiTinhs { get; set; }
         public DbSet<SanPhamChiTiet> SanPhamChiTiets { get; set; }
         public DbSet<KhuyenMai> KhuyenMais { get; set; }
@@ -31,12 +30,13 @@ namespace DoAn.Models
         public DbSet<Roles> Roles { get; set; }
         public DbSet<DiaChiKhachHang> DiaChiKhachHangs { get; set; }
         public DbSet<NhanVien> NhanViens { get; set; }
-
         public DbSet<QuocGia> QuocGias { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // ChiTietKhuyenMai
+            base.OnModelCreating(modelBuilder);
+
+            // Quan hệ ChiTietKhuyenMai
             modelBuilder.Entity<ChiTietKhuyenMai>()
                 .HasOne(c => c.SanPhamChiTiet)
                 .WithMany(s => s.ChiTietKhuyenMais)
@@ -64,6 +64,7 @@ namespace DoAn.Models
                 .WithMany()
                 .HasForeignKey(d => d.ID_KhachHang);
 
+            // HoaDon
             modelBuilder.Entity<HoaDon>()
                 .HasOne(h => h.Voucher)
                 .WithMany(v => v.HoaDons)
@@ -76,38 +77,49 @@ namespace DoAn.Models
                 .WithMany(hd => hd.HoaDonChiTiets)
                 .HasForeignKey(h => h.ID_HoaDon);
 
+            modelBuilder.Entity<HoaDonChiTiet>()
+                .HasOne(h => h.SanPhamChiTiet)
+                .WithMany(sp => sp.HoaDonChiTiets)
+                .HasForeignKey(h => h.ID_SanPhamChiTiet);
 
-            // TraHang
+            // TraHang & TrangThaiDonHang
             modelBuilder.Entity<QuanLyTraHang>()
                 .HasOne(t => t.HoaDon)
                 .WithMany(h => h.TraHangs)
                 .HasForeignKey(t => t.ID_HoaDon);
 
-            // TrangThaiDonHang
             modelBuilder.Entity<TrangThaiDonHang>()
                 .HasOne(t => t.HoaDon)
                 .WithMany(h => h.TrangThaiDonHangs)
                 .HasForeignKey(t => t.ID_HoaDon);
 
-            // SanPhamChiTiet
+            // SanPham
             modelBuilder.Entity<SanPham>()
                 .HasOne(s => s.GioiTinh)
                 .WithMany(g => g.SanPhams)
                 .HasForeignKey(s => s.ID_GioiTinh);
-
-            // SanPhamChiTiet
-            modelBuilder.Entity<SanPhamChiTiet>()
-                .HasOne(s => s.TheTich)
-                .WithMany(t => t.SanPhamChiTiets)
-                .HasForeignKey(s => s.ID_TheTich);
-
 
             modelBuilder.Entity<SanPham>()
                 .HasOne(s => s.ThuongHieu)
                 .WithMany(t => t.SanPhams)
                 .HasForeignKey(s => s.ID_ThuongHieu);
 
-            // TaiKhoan
+            modelBuilder.Entity<SanPham>()
+                .HasOne(s => s.QuocGia)
+                .WithMany(q => q.SanPhams)
+                .HasForeignKey(s => s.ID_QuocGia);
+
+            modelBuilder.Entity<SanPhamChiTiet>()
+                .HasOne(s => s.TheTich)
+                .WithMany(t => t.SanPhamChiTiets)
+                .HasForeignKey(s => s.ID_TheTich);
+
+            modelBuilder.Entity<SanPhamChiTiet>()
+                .HasOne(s => s.SanPham)
+                .WithMany(t => t.SanPhamChiTiets)
+                .HasForeignKey(s => s.ID_SanPham);
+
+            // TaiKhoan & Roles
             modelBuilder.Entity<TaiKhoan>()
                 .HasOne(t => t.Roles)
                 .WithMany(r => r.TaiKhoans)
@@ -122,7 +134,18 @@ namespace DoAn.Models
                 .HasOne(k => k.TaiKhoan)
                 .WithMany(t => t.KhachHangs)
                 .HasForeignKey(k => k.ID_TaiKhoan);
-            // Seed Roles (phải seed trước Tài khoản vì Tài khoản phụ thuộc Roles)
+
+            modelBuilder.Entity<NhanVien>()
+                .HasMany(n => n.HoaDons)
+                .WithOne(h => h.NhanVien)
+                .HasForeignKey(h => h.ID_NhanVien);
+
+            modelBuilder.Entity<KhachHang>()
+                .HasMany(k => k.HoaDons)
+                .WithOne(h => h.KhachHang)
+                .HasForeignKey(h => h.ID_KhachHang);
+
+            // ======================= SEED DATA ========================
             var adminRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000003");
             var nhanvienRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000002");
             var khachhangRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000001");
@@ -133,26 +156,24 @@ namespace DoAn.Models
                 new Roles { ID_Roles = adminRoleId, Ma_Roles = "AD", Ten_Roles = "admin" }
             );
 
-            // Seed Admin Account
-            var adminAccountId = Guid.Parse("B0000000-0000-0000-0000-000000000001"); // GUID mới cho tài khoản admin
+            var adminAccountId = Guid.Parse("B0000000-0000-0000-0000-000000000001");
 
             modelBuilder.Entity<TaiKhoan>().HasData(
                 new TaiKhoan
                 {
                     ID_TaiKhoan = adminAccountId,
                     Uername = "admin",
-                    Password = "admin",
+                    Password = "admin", // ⚠ Bạn nên mã hóa sau khi có đăng nhập thực
                     ID_Roles = adminRoleId,
                 }
             );
-
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Server=LAPTOP-8CVDJNS6;Database=DoAn;Trusted_Connection=True;MultipleActiveResultSets=true");
+                optionsBuilder.UseSqlServer("Server=DESKTOP-0O61DM6\\TRUNGTT;Database=DoAn;Trusted_Connection=True;MultipleActiveResultSets=true");
             }
         }
     }

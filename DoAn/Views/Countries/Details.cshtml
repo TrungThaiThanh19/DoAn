@@ -1,0 +1,20 @@
+﻿@model DoAn.Models.QuocGia
+@{
+    ViewData["Title"] = "Chi tiết quốc gia";
+}
+
+<h2 class="mb-4 text-primary">🌍 Chi tiết quốc gia</h2>
+
+<div class="card shadow-sm rounded-4 p-4 mb-4">
+    <div class="row fs-5">
+        <div class="col-md-6">
+            <p><strong>Mã quốc gia:</strong> @Model.ID_QuocGia</p>
+            <p><strong>Tên quốc gia:</strong> @Model.Ten_QuocGia</p>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between">
+    <a asp-action="Index" class="btn btn-outline-primary rounded-pill px-4">← Quay lại</a>
+    <a asp-action="Update" asp-route-idQuocGia="@Model.ID_QuocGia" class="btn btn-primary rounded-pill px-4">✏️ Cập nhật</a>
+</div>
