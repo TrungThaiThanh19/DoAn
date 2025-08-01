@@ -299,7 +299,7 @@ namespace DoAn.Controllers
 						HienThi = t.GiaTri.ToString("0.#") + t.DonVi
 					})
 					.ToListAsync(),
-					"ID_TheTich", "HienThi"
+					"ID_TheTich", "HienThi", bienThe.ID_TheTich
 					);
 
 			// Danh sách dropdown trạng thái
