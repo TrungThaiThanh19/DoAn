@@ -42,15 +42,15 @@
                 <h6 class="mb-0">
                     @{
                         // Lấy Username từ Session để hiển thị ở đây
-                        var username = Context.Session.GetString("Username");
-                        @Html.Raw(string.IsNullOrEmpty(username) ? "Người dùng" : username)
+                        var username = Context?.Session?.GetString("Username") ?? "Người dùng";
+                        @Html.Raw(username)
                     }
                 </h6>
                 <span>
                     @{
                         // Lấy RoleName từ Session để hiển thị ở đây
-                        var roleName = Context.Session.GetString("RoleName");
-                        @Html.Raw(string.IsNullOrEmpty(roleName) ? "Unknown" : roleName)
+                        var roleName = Context?.Session?.GetString("RoleName") ?? "Unknown";
+                        @Html.Raw(roleName)
                     }
                 </span>
             </div>
@@ -63,7 +63,7 @@
 
             <a href="/Admin/DonHang" class="nav-item nav-link">
                 <i class="fa fa-shopping-cart me-2"></i>Quản lý đơn hàng
-            </a>
+            </a>   
 
             <a href="/Admin/BanHangTaiQuay" class="nav-item nav-link">
                 <i class="fa fa-store me-2"></i>Bán hàng tại quầy
@@ -92,7 +92,7 @@
             </a>
             <div class="collapse submenu" id="collapseKhuyenMai">
                 <a href="/Admin/KhuyenMai" class="nav-link">Quản lý khuyến mãi</a>
-                <a href="/Voucher" class="nav-link">Quản lý voucher</a>
+                <a href="/Voucher/Index" class="nav-link">Quản lý voucher</a>
             </div>
         </div>
     </nav>

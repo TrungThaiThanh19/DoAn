@@ -8,11 +8,11 @@ using System.Threading.Tasks;
 
 namespace DoAn.Controllers
 {
-    public class VouchersController : Controller
+    public class VoucherController : Controller
     {
         private readonly DoAnDbContext _context;
 
-        public VouchersController(DoAnDbContext context)
+        public VoucherController(DoAnDbContext context)
         {
             _context = context;
         }
@@ -154,7 +154,7 @@ namespace DoAn.Controllers
         private void LoadTaiKhoanDropdown(Guid? selectedId = null)
         {
             var taiKhoans = _context.TaiKhoans
-                .Select(t => new { t.ID_TaiKhoan, t.Uername })
+                .Select(t => new { t.ID_TaiKhoan, Username = t.Uername }) // 👈 không cần đổi DB
                 .ToList();
 
             ViewData["ID_TaiKhoan"] = new SelectList(taiKhoans, "ID_TaiKhoan", "Username", selectedId);
