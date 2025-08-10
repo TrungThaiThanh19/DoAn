@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DoAn.Migrations
 {
     /// <inheritdoc />
-    public partial class hi : Migration
+    public partial class DoAn : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -62,8 +62,8 @@ namespace DoAn.Migrations
                 columns: table => new
                 {
                     ID_Roles = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Ma_Roles = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Ten_Roles = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Ma_Roles = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Ten_Roles = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -71,7 +71,7 @@ namespace DoAn.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "TheTichs",
+                name: "TheTiches",
                 columns: table => new
                 {
                     ID_TheTich = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
@@ -82,7 +82,7 @@ namespace DoAn.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TheTichs", x => x.ID_TheTich);
+                    table.PrimaryKey("PK_TheTiches", x => x.ID_TheTich);
                 });
 
             migrationBuilder.CreateTable(
@@ -170,7 +170,7 @@ namespace DoAn.Migrations
                     Ten_KhachHang = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     GioiTinh = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SoDienThoai = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    NgaySinh = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    NgaySinh = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     NgayTao = table.Column<DateTime>(type: "datetime2", nullable: false),
                     TrangThai = table.Column<int>(type: "int", nullable: false),
@@ -192,14 +192,14 @@ namespace DoAn.Migrations
                 columns: table => new
                 {
                     ID_NhanVien = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Ma_NhanVien = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Ten_NhanVien = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Ma_NhanVien = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Ten_NhanVien = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     NgaySinh = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    DiaChiLienHe = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DiaChiLienHe = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     GioiTinh = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SoDienThoai = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    NgayThamGia = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    NgayThamGia = table.Column<DateTime>(type: "datetime2", nullable: true),
                     TrangThai = table.Column<int>(type: "int", nullable: false),
                     ID_TaiKhoan = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
@@ -268,9 +268,9 @@ namespace DoAn.Migrations
                         principalColumn: "ID_SanPham",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_SanPhamChiTiets_TheTichs_ID_TheTich",
+                        name: "FK_SanPhamChiTiets_TheTiches_ID_TheTich",
                         column: x => x.ID_TheTich,
-                        principalTable: "TheTichs",
+                        principalTable: "TheTiches",
                         principalColumn: "ID_TheTich",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -692,7 +692,7 @@ namespace DoAn.Migrations
                 name: "SanPhams");
 
             migrationBuilder.DropTable(
-                name: "TheTichs");
+                name: "TheTiches");
 
             migrationBuilder.DropTable(
                 name: "KhachHangs");

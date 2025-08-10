@@ -163,7 +163,7 @@ namespace DoAn.Controllers
             switch (roleName)
             {
                 case "khachhang":
-                    return RedirectToAction("Index", "Home");
+                    return RedirectToAction("Index", "Shop");
                 case "nhanvien":
                     return RedirectToAction("Dashboard", "Employee");
                 case "admin":

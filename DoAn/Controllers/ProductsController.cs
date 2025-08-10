@@ -42,21 +42,29 @@ namespace DoAn.Controllers
 			return View(sanPham);
 		}
 
-		public async Task<IActionResult> Create()
-		{
-			ViewBag.ThuongHieuList = new SelectList(_context.ThuongHieus, "ID_ThuongHieu", "TenThuongHieu");
-			ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "TenQuocGia");
-			ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "TenGioiTinh");
-            ViewBag.TheTichList = new SelectList(_context.TheTiches, "ID_TheTich", "TenTheTich");
-			return View();
-		}
-		[HttpPost]
+        public async Task<IActionResult> Create()
+        {
+            ViewBag.ThuongHieuList = new SelectList(_context.ThuongHieus, "ID_ThuongHieu", "Ten_ThuongHieu");
+            ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "Ten_QuocGia");
+            ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "Ten_GioiTinh");
+            ViewBag.TheTichList = new SelectList(
+                _context.TheTiches.Select(t => new
+                {
+                    t.ID_TheTich,
+                    TenHienThi = t.GiaTri + " " + t.DonVi
+                }),
+                "ID_TheTich",
+                "TenHienThi"
+            );
+            return View();
+        }
+        [HttpPost]
 		public async Task<IActionResult> Create(Guid idSanPham, Guid idSanPhamChiTiet, string tenSanPham, string moTa, string thoiGianLuuHuong,
 			string huongDau, string huongGiua, string huongCuoi, string soLuong, string giaNhap, string giaBan, IFormFile hinhAnh,
 			Guid idTheTich, Guid idThuongHieu, Guid idQuocGia, Guid idGioiTinh)
 		{
 			int thoiGianLuuHuongParse = 0, soLuongParse = 0, giaNhapParse = 0, giaBanParse = 0;
-			ClearModelErrors("TenSanPham", "MoTa", "ThoiGianLuuHuong", "SoLuong", "HuongDau", "HuongGiua", "HuongCuoi", "GiaBan", "GiaNhap", "HinhAnh");
+			ClearModelErrors("Ten_SanPham", "MoTa", "ThoiGianLuuHuong", "SoLuong", "HuongDau", "HuongGiua", "HuongCuoi", "GiaBan", "GiaNhap", "HinhAnh");
 			
 			// Nếu thời gian lưu hương bỏ trống hoặc nhập toàn khoảng trắng thì báo lỗi
 			if (string.IsNullOrWhiteSpace(thoiGianLuuHuong))
@@ -119,7 +127,7 @@ namespace DoAn.Controllers
 			}
 
 			if (string.IsNullOrEmpty(tenSanPham) || tenSanPham.Length > 100)
-				ModelState.AddModelError("TenSanPham", "Tên sản phẩm không được để trống và không được quá 100 ký tự");
+				ModelState.AddModelError("Ten_SanPham", "Tên sản phẩm không được để trống và không được quá 100 ký tự");
 			if (string.IsNullOrWhiteSpace(moTa) || moTa.Length > 1000)
 				ModelState.AddModelError("MoTa", "Mô tả không được để trống và không được quá 1000 ký tự");
 			
@@ -209,12 +217,24 @@ namespace DoAn.Controllers
 			// Nếu có lỗi thì trả về View với các thông tin đã nhập
 			if (!ModelState.IsValid)
 			{
-				ViewBag.ThuongHieuList = new SelectList(_context.ThuongHieus, "ID_ThuongHieu", "TenThuongHieu", idThuongHieu);
-				ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "TenQuocGia", idQuocGia);
-				ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "TenGioiTinh", idGioiTinh);
-                ViewBag.TheTichList = new SelectList(_context.TheTiches, "ID_TheTich", "TenTheTich", idTheTich);
+				ViewBag.ThuongHieuList = new SelectList(_context.ThuongHieus, "ID_ThuongHieu", "Ten_ThuongHieu", idThuongHieu);
+				ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "Ten_QuocGia", idQuocGia);
+				ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "Ten_GioiTinh", idGioiTinh);
+                ViewBag.TheTichList = new SelectList(_context.TheTiches, "ID_TheTich", "Ten_TheTich", idTheTich);
+                ViewBag.TheTichList = new SelectList(
+					 _context.TheTiches
+						 .Select(t => new
+						 {
+							 t.ID_TheTich,
+							 TenHienThi = t.GiaTri + " " + t.DonVi  // ví dụ: "50 ml", "100 ml"
+						 })
+						 .ToList(),
+					 "ID_TheTich",
+					 "TenHienThi",
+					 idTheTich
+				 );
 
-				ViewBag.TenSanPham = tenSanPham;
+                ViewBag.TenSanPham = tenSanPham;
 				ViewBag.ThoiGianLuuHuong = thoiGianLuuHuong;
 				ViewBag.MoTa = moTa;
 				ViewBag.HuongDau = huongDau;
@@ -242,7 +262,8 @@ namespace DoAn.Controllers
 				sanPham = new SanPham()
 				{
 					ID_SanPham = Guid.NewGuid(),
-					Ten_SanPham = tenSanPham,
+                    Ma_SanPham = "SP" + DateTime.Now.Ticks,
+                    Ten_SanPham = tenSanPham,
 					ThoiGianLuuHuong = thoiGianLuuHuongParse,
 					MoTa = moTa,
 					HuongDau = huongDau,
