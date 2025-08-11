@@ -15,10 +15,10 @@ namespace DoAn.Models
         public DateTime NgayTao { get; set; } = DateTime.Now;
         public DateTime? NgayCapNhat { get; set; }
 
-        [ForeignKey("ID_TheTich")]
+        
         public Guid ID_TheTich { get; set; }
         public TheTich TheTich { get; set; }
-        [ForeignKey("ID_SanPham")]
+        
         public Guid ID_SanPham { get; set; }
         public SanPham SanPham { get; set; }
         public ICollection<ChiTietKhuyenMai> ChiTietKhuyenMais { get; set; }

@@ -1,66 +1,134 @@
 ﻿@model IEnumerable<DoAn.Models.SanPham>
 @{
-	ViewData["Title"] = "Danh sách sản phẩm";
-    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Danh sách sản phẩm";
+    var selectedThuongHieu = ViewBag.SelectedThuongHieu as string[] ?? Array.Empty<string>();
+    var selectedQuocGia = ViewBag.SelectedQuocGia as string[] ?? Array.Empty<string>();
+    var selectedGioiTinh = ViewBag.SelectedGioiTinh as string[] ?? Array.Empty<string>();
 }
+
 <h2 class="mb-4 text-primary">📦 Danh sách sản phẩm</h2>
-<div class="row mb-4">
-    <!-- 🔍 Ô tìm kiếm -->
+
+<div class="row mb-3">
+    <!-- Ô tìm kiếm và nút thêm -->
     <div class="col-md-6">
         <form method="get" asp-action="Search" class="input-group">
-            <input type="text" name="keyword" class="form-control" placeholder="🔍 Tìm kiếm sản phẩm theo tên, thương hiệu, quốc gia,..." value="@ViewBag.TuKhoa">
-            <button class="btn btn-primary rounded-end" type="submit">Tìm</button>
+            <input type="text" name="keyword" class="form-control" placeholder="🔍 Tìm kiếm theo mã, tên, thương hiệu, quốc gia" value="@ViewBag.TuKhoa" />
+            <button type="submit" class="btn btn-primary">Tìm</button>
         </form>
     </div>
-
-    <!-- ➕ Nút thêm sản phẩm -->
     <div class="col-md-6 text-end">
         <a asp-action="Create" class="btn btn-success rounded-pill px-4">+ Thêm sản phẩm</a>
     </div>
 </div>
 
-
-<div class="table-responsive">
-    <table class="table table-bordered table-hover align-middle text-center">
-        <thead class="table-dark">
-            <tr>
-                <th>Ảnh</th>
-                <th>Tên sản phẩm</th>
-                <th>Thời gian lưu hương</th>
-                <th>Thương hiệu</th>
-                <th>Quốc gia</th>
-                <th>Giới tính</th>
-                <th>Mô tả</th>
-                <th>Thao tác</th>
-            </tr>
-        </thead>
-        <tbody>
-            @if (Model != null && Model.Any())
-            {
-                foreach (var item in Model)
-                {
+<div class="row">
+    <!-- Bảng danh sách sản phẩm -->
+    <div class="col-md-9">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle text-center">
+                <thead class="table-dark">
                     <tr>
-                        <td>
-                            <img src="@item.HinhAnh" alt="Ảnh sản phẩm" style="width: 80px; height: auto;" class="img-thumbnail" />
-                        </td>
-                        <td>@item.Ten_SanPham</td>
-                        <td>@item.ThoiGianLuuHuong giờ</td>
-                        <td>@item.ThuongHieu?.Ten_ThuongHieu</td>
-                        <td>@item.QuocGia?.Ten_QuocGia</td>
-                        <td>@item.GioiTinh?.Ten_GioiTinh</td>
-                        <td>@item.MoTa</td>
-                        <td>
-                            <a asp-action="Details" asp-route-idSanPham="@item.ID_SanPham" class="btn btn-sm btn-outline-info rounded-pill">Chi tiết</a>
-                        </td>
+                        <th>Ảnh</th>
+                        <th>Mã sản phẩm</th>
+                        <th>Tên sản phẩm</th>
+                        <th>Thương hiệu</th>
+                        <th>Quốc gia</th>
+                        <th>Giới tính</th>
+                        <th>Thời gian lưu hương</th>
+                        <th>Thao tác</th>
                     </tr>
-                }
-            }
-            else
-            {
-                <tr>
-                    <td colspan="8" class="text-muted">Không có sản phẩm nào.</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <img src="@item.HinhAnh" style="width: 80px;" class="img-thumbnail" alt="Ảnh" />
+                                </td>
+                                <td>@item.Ma_SanPham</td>
+                                <td>@item.Ten_SanPham</td>
+                                <td>@item.ThuongHieu?.Ten_ThuongHieu</td>
+                                <td>@item.QuocGia?.Ten_QuocGia</td>
+                                <td>@item.GioiTinh?.Ten_GioiTinh</td>
+                                <td>@item.ThoiGianLuuHuong giờ</td>
+                                <td>
+                                    <a asp-action="Details" asp-route-idSanPham="@item.ID_SanPham" class="btn btn-sm btn-outline-info rounded-pill">Xem</a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="8" class="text-muted">Không có sản phẩm nào.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Bộ lọc -->
+    <div class="col-md-3">
+        <form method="get" asp-action="Index">
+            <div class="card shadow-sm border-0 mb-3">
+                <div class="card-header bg-light fw-bold">🔎 Bộ lọc</div>
+                <div class="card-body">
+
+                    <!-- Thương hiệu -->
+                    <div class="mb-3">
+                        <label class="fw-semibold">Thương hiệu</label>
+                        @foreach (var item in (SelectList)ViewBag.ThuongHieuList)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="thuongHieuFilters" value="@item.Value"
+                                @(selectedThuongHieu.Contains(item.Value) ? "checked" : "") />
+                                <label class="form-check-label">@item.Text</label>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Quốc gia -->
+                    <div class="mb-3">
+                        <label class="fw-semibold">Quốc gia</label>
+                        @foreach (var item in (SelectList)ViewBag.QuocGiaList)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="quocGiaFilters" value="@item.Value"
+                                @(selectedQuocGia.Contains(item.Value) ? "checked" : "") />
+                                <label class="form-check-label">@item.Text</label>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Giới tính -->
+                    <div class="mb-3">
+                        <label class="fw-semibold">Giới tính</label>
+                        @foreach (var item in (SelectList)ViewBag.GioiTinhList)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="gioiTinhFilters" value="@item.Value"
+                                @(selectedGioiTinh.Contains(item.Value) ? "checked" : "") />
+                                <label class="form-check-label">@item.Text</label>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="d-flex justify-content-between gap-2">
+                        <button type="submit" class="btn btn-primary w-100 py-1 rounded">Áp dụng</button>
+                        <button type="button" class="btn btn-outline-secondary w-100 py-1 rounded" onclick="clearFilters()">Xóa tất cả</button>
+                    </div>
+
+                    <script>
+                        function clearFilters() {
+                            const form = event.target.closest("form");
+                            const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+                            checkboxes.forEach(cb => cb.checked = false);
+                        }
+                    </script>
+
+                </div>
+            </div>
+        </form>
+    </div>
 </div>

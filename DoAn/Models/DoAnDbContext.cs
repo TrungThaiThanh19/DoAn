@@ -10,7 +10,7 @@ namespace DoAn.Models
         public DoAnDbContext(DbContextOptions<DoAnDbContext> options) : base(options) { }
 
         // DbSets
-        public DbSet<TheTich> TheTiches { get; set; }
+        public DbSet<TheTich> TheTichs { get; set; }
         public DbSet<GioiTinh> GioiTinhs { get; set; }
         public DbSet<SanPhamChiTiet> SanPhamChiTiets { get; set; }
         public DbSet<KhuyenMai> KhuyenMais { get; set; }
@@ -75,12 +75,14 @@ namespace DoAn.Models
             modelBuilder.Entity<HoaDonChiTiet>()
                 .HasOne(h => h.HoaDon)
                 .WithMany(hd => hd.HoaDonChiTiets)
-                .HasForeignKey(h => h.ID_HoaDon);
+                .HasForeignKey(h => h.ID_HoaDon)
+                .HasConstraintName("FK_HoaDonChiTiets_HoaDons_ID_HoaDon");
 
             modelBuilder.Entity<HoaDonChiTiet>()
                 .HasOne(h => h.SanPhamChiTiet)
                 .WithMany(sp => sp.HoaDonChiTiets)
-                .HasForeignKey(h => h.ID_SanPhamChiTiet);
+                .HasForeignKey(h => h.ID_SanPhamChiTiet)
+                .HasConstraintName("FK_HoaDonChiTiets_SanPhamChiTiets_ID_SanPhamChiTiet");
 
             // TraHang & TrangThaiDonHang
             modelBuilder.Entity<QuanLyTraHang>()
@@ -173,7 +175,7 @@ namespace DoAn.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Server=DESKTOP-0O61DM6\\TRUNGTT;Database=DoAn;Trusted_Connection=True;MultipleActiveResultSets=true");
+                optionsBuilder.UseSqlServer("Server=DESKTOP-0O61DM6\\TRUNGTT;Database=DoAn1;Trusted_Connection=True;MultipleActiveResultSets=true");
             }
         }
     }

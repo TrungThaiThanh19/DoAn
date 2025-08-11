@@ -663,7 +663,7 @@ namespace DoAn.Migrations
 
                     b.HasKey("ID_TheTich");
 
-                    b.ToTable("TheTiches");
+                    b.ToTable("TheTichs");
                 });
 
             modelBuilder.Entity("DoAn.Models.ThuongHieu", b =>
@@ -881,13 +881,15 @@ namespace DoAn.Migrations
                         .WithMany("HoaDonChiTiets")
                         .HasForeignKey("ID_HoaDon")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_HoaDonChiTiets_HoaDons_ID_HoaDon");
 
                     b.HasOne("DoAn.Models.SanPhamChiTiet", "SanPhamChiTiet")
                         .WithMany("HoaDonChiTiets")
                         .HasForeignKey("ID_SanPhamChiTiet")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_HoaDonChiTiets_SanPhamChiTiets_ID_SanPhamChiTiet");
 
                     b.Navigation("HoaDon");
 

@@ -16,7 +16,7 @@ namespace DoAn.Controllers
         [HttpGet]
         public async Task<IActionResult> Index(string keyword)
         {
-            var query = _context.TheTiches.AsQueryable();
+            var query = _context.TheTichs.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(keyword))
             {
@@ -41,7 +41,7 @@ namespace DoAn.Controllers
         [HttpGet]
         public async Task<IActionResult> Details(Guid id)
         {
-            var theTich = await _context.TheTiches.FindAsync(id);
+            var theTich = await _context.TheTichs.FindAsync(id);
             if (theTich == null) return NotFound();
             return View(theTich);
         }
@@ -50,7 +50,7 @@ namespace DoAn.Controllers
         [HttpGet]
         public async Task<IActionResult> Update(Guid id)
         {
-            var theTich = await _context.TheTiches.FindAsync(id);
+            var theTich = await _context.TheTichs.FindAsync(id);
             if (theTich == null) return NotFound();
             return View(theTich);
         }
@@ -58,7 +58,7 @@ namespace DoAn.Controllers
         [HttpPost]
         public async Task<IActionResult> Update(Guid id, string maTheTich, string giaTri, string donVi, int trangThai)
         {
-            var theTich = await _context.TheTiches.FindAsync(id);
+            var theTich = await _context.TheTichs.FindAsync(id);
             if (theTich == null) return NotFound();
 
             ModelState.Clear();
@@ -67,7 +67,7 @@ namespace DoAn.Controllers
             if (string.IsNullOrWhiteSpace(maTheTich))
                 ModelState.AddModelError("MaTheTich", "Mã thể tích không được để trống");
 
-            else if (_context.TheTiches.Any(t => t.Ma_TheTich == maTheTich && t.ID_TheTich != id))
+            else if (_context.TheTichs.Any(t => t.Ma_TheTich == maTheTich && t.ID_TheTich != id))
                 ModelState.AddModelError("MaTheTich", "Mã thể tích đã tồn tại");
 
             if (string.IsNullOrWhiteSpace(giaTri))
@@ -85,7 +85,7 @@ namespace DoAn.Controllers
             if (string.IsNullOrWhiteSpace(donVi))
                 ModelState.AddModelError("DonVi", "Đơn vị không được để trống");
 
-            if (ModelState.IsValid && _context.TheTiches.Any(t =>
+            if (ModelState.IsValid && _context.TheTichs.Any(t =>
                 t.GiaTri == giaTriParse &&
                 t.DonVi.ToLower() == donVi.ToLower() &&
                 t.ID_TheTich != id))
@@ -128,7 +128,7 @@ namespace DoAn.Controllers
             if (string.IsNullOrWhiteSpace(maTheTich))
                 ModelState.AddModelError("MaTheTich", "Mã thể tích không được để trống");
 
-            if (_context.TheTiches.Any(t => t.Ma_TheTich == maTheTich))
+            if (_context.TheTichs.Any(t => t.Ma_TheTich == maTheTich))
                 ModelState.AddModelError("MaTheTich", "Mã thể tích đã tồn tại");
 
             if (string.IsNullOrWhiteSpace(giaTri))
@@ -146,7 +146,7 @@ namespace DoAn.Controllers
             if (string.IsNullOrWhiteSpace(donVi))
                 ModelState.AddModelError("DonVi", "Đơn vị không được để trống");
 
-            if (ModelState.IsValid && _context.TheTiches.Any(t =>
+            if (ModelState.IsValid && _context.TheTichs.Any(t =>
                 t.GiaTri == giaTriParse &&
                 t.DonVi.ToLower() == donVi.ToLower()))
             {
@@ -170,7 +170,7 @@ namespace DoAn.Controllers
                 TrangThai = 1
             };
 
-            _context.TheTiches.Add(newItem);
+            _context.TheTichs.Add(newItem);
             await _context.SaveChangesAsync();
 
             return RedirectToAction("Index");
