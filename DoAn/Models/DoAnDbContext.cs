@@ -146,6 +146,16 @@ namespace DoAn.Models
                 .HasMany(k => k.HoaDons)
                 .WithOne(h => h.KhachHang)
                 .HasForeignKey(h => h.ID_KhachHang);
+            modelBuilder.Entity<GioHang>()
+                .HasOne(g => g.KhachHang)
+                .WithMany() // không cần navigation ở KhachHang
+                .HasForeignKey(g => g.ID_KhachHang)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+            // Mỗi khách hàng chỉ có 1 giỏ
+            modelBuilder.Entity<GioHang>()
+                .HasIndex(g => g.ID_KhachHang)
+                .IsUnique();
 
             // ======================= SEED DATA ========================
             var adminRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000003");

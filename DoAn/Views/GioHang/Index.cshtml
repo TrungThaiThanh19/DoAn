@@ -1,0 +1,158 @@
+﻿@model DoAn.ViewModel.GioHangVMD
+@{
+    ViewData["Title"] = "Giỏ hàng";
+}
+
+<h2 class="mb-3">Giỏ hàng của bạn</h2>
+
+@if (!Model.Items.Any())
+{
+    <div class="alert alert-info">Giỏ hàng trống.</div>
+}
+else
+{
+    <!-- form ẩn chỉ để lấy AntiForgeryToken cho AJAX -->
+    <form id="af">@Html.AntiForgeryToken()</form>
+
+    <table class="table align-middle">
+        <thead>
+            <tr>
+                <th>Sản phẩm</th>
+                <th>Biến thể</th>
+                <th>Đơn giá</th>
+                <th style="width:180px">Số lượng</th>
+                <th>Thành tiền</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="cart-body">
+            @foreach (var i in Model.Items)
+            {
+                <tr id="row-@i.ChiTietGioHangId">
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            <img src="~/images/@i.HinhAnh" alt="@i.TenSanPham"
+                                 style="width:64px;height:64px;object-fit:cover;border-radius:8px" />
+                            <div class="fw-semibold">@i.TenSanPham</div>
+                        </div>
+                    </td>
+                    <td>@i.TheTich</td>
+                    <td>@i.DonGia.ToString("N0") ₫</td>
+
+                    <td>
+                        <div class="d-flex gap-2">
+                            <input type="number"
+                                   class="form-control qty-input"
+                                   data-id="@i.ChiTietGioHangId"
+                                   value="@i.SoLuong" min="0" />
+
+                            <!-- Fallback nút cập nhật thủ công -->
+                            <form method="post" asp-action="Update" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="chiTietGioHangId" value="@i.ChiTietGioHangId" />
+                                <input type="hidden" name="soLuong"
+                                       class="soLuong-hidden"
+                                       data-id="@i.ChiTietGioHangId"
+                                       value="@i.SoLuong" />
+                                <button class="btn btn-sm btn-primary">Cập nhật</button>
+                            </form>
+                        </div>
+                    </td>
+
+                    <td class="fw-semibold">
+                        <span id="lt-@i.ChiTietGioHangId">@i.ThanhTien.ToString("N0") ₫</span>
+                    </td>
+
+                    <td>
+                        <form method="post" asp-action="Remove">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="chiTietGioHangId" value="@i.ChiTietGioHangId" />
+                            <button class="btn btn-sm btn-outline-danger">Xóa</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+
+        <tfoot>
+            <tr>
+                <td colspan="4" class="text-end fw-semibold">Tạm tính:</td>
+                <td class="fw-bold fs-5">
+                    <span id="cart-subtotal">@Model.Subtotal.ToString("N0") ₫</span>
+                </td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="d-flex justify-content-between">
+        <form method="post" asp-action="Clear">
+            @Html.AntiForgeryToken()
+            <button class="btn btn-outline-secondary">Xóa toàn bộ</button>
+        </form>
+        <a class="btn btn-success" asp-controller="Checkout" asp-action="Index">Tiến hành đặt hàng</a>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        (() => {
+          const tokenInput = document.querySelector('#af input[name="__RequestVerificationToken"]');
+          if (!tokenInput) return;
+          const token = tokenInput.value;
+          const fmt = n => (n || 0).toLocaleString('vi-VN') + ' ₫';
+
+          // Debounce để tránh spam request khi giữ phím
+          const debounce = (fn, ms) => {
+            let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+          };
+
+          const sendUpdate = debounce((id, qty) => {
+            const body = new URLSearchParams();
+            body.append('__RequestVerificationToken', token);
+            body.append('chiTietGioHangId', id);
+            body.append('soLuong', qty);
+
+            fetch('/GioHang/UpdateAjax', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: body.toString()
+            })
+            .then(r => r.ok ? r.json() : Promise.reject(r.status))
+            .then(data => {
+              if (!data || !data.ok) return;
+
+              // nếu qty <= 0 server đã xóa item -> remove row
+              if (qty <= 0) {
+                const row = document.getElementById('row-' + id);
+                if (row) row.remove();
+                if (!document.querySelector('#cart-body tr')) location.reload();
+                return;
+              }
+
+              // cập nhật thành tiền dòng
+              const lt = document.getElementById('lt-' + id);
+              if (lt) lt.textContent = fmt(data.lineTotal);
+
+              // cập nhật tạm tính
+              const st = document.getElementById('cart-subtotal');
+              if (st) st.textContent = fmt(data.subtotal);
+            })
+            .catch(err => console.error('UpdateAjax error:', err));
+          }, 300);
+
+          document.querySelectorAll('.qty-input').forEach(inp => {
+            inp.addEventListener('input', e => {
+              const id = inp.dataset.id;
+              const qty = parseInt(inp.value || '0', 10) || 0;
+
+              // đồng bộ giá trị vào input hidden của form fallback
+              const hidden = document.querySelector(`.soLuong-hidden[data-id="${id}"]`);
+              if (hidden) hidden.value = qty;
+
+              sendUpdate(id, qty);
+            });
+          });
+        })();
+    </script>
+}

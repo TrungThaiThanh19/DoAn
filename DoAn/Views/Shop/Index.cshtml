@@ -1,0 +1,139 @@
+﻿@model IEnumerable<DoAn.Models.SanPham>
+@{
+    ViewData["Title"] = "Danh sách sản phẩm";
+}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+<!-- giữ nguyên phần CSS bạn đã viết ở trên -->
+
+<div class="shop-wrap">
+    <div class="container my-4">
+        <div class="shop-hero p-4 p-md-5">
+            <h2 class="mb-1">Bộ sưu tập mới</h2>
+            <p>Chọn mùi hương bạn thích – ưu đãi đang diễn ra 🔥</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Bộ lọc -->
+        <form method="get" class="row g-2 mb-4">
+            <div class="col-md-4 col-lg-3">
+                <input type="text" name="search" value="@ViewBag.Search" class="form-control" placeholder="Tìm kiếm sản phẩm..." />
+            </div>
+            <div class="col-md-4 col-lg-3">
+                <select name="thuongHieuId" class="form-select" asp-items="ViewBag.ThuongHieuList">
+                    <option value="">-- Thương hiệu --</option>
+                </select>
+            </div>
+            <div class="col-md-4 col-lg-3">
+                <select name="gioiTinhId" class="form-select" asp-items="ViewBag.GioiTinhList">
+                    <option value="">-- Giới tính --</option>
+                </select>
+            </div>
+            <div class="col-md-12 col-lg-3 d-grid">
+                <button type="submit" class="btn btn-primary">Lọc</button>
+            </div>
+        </form>
+
+        <!-- Lưới 3 cột -->
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            @foreach (var sp in Model)
+            {
+                var ctBan = sp.SanPhamChiTiets
+                .Where(c => c.SoLuong > 0)
+                .OrderBy(c => c.GiaBan)
+                .FirstOrDefault()
+                ?? sp.SanPhamChiTiets.OrderBy(c => c.GiaBan).FirstOrDefault();
+
+                decimal giaGoc = ctBan?.GiaBan ?? 0M;
+                decimal giaHienThi = giaGoc;
+                int giamPhanTram = 0;
+
+                if (ctBan != null && ctBan.ChiTietKhuyenMais != null)
+                {
+                    var now = DateTime.Now;
+                    var km = ctBan.ChiTietKhuyenMais
+                    .Where(x => x.KhuyenMai != null
+                    && x.KhuyenMai.TrangThai == 1
+                    && x.KhuyenMai.NgayBatDau <= now
+                    && x.KhuyenMai.NgayHetHan >= now
+                    && x.GiaSauGiam > 0)
+                    .OrderBy(x => x.GiaSauGiam)
+                    .FirstOrDefault();
+
+                    if (km != null && km.GiaSauGiam < giaGoc)
+                    {
+                        giaHienThi = km.GiaSauGiam;
+                        giamPhanTram = (int)Math.Round((1 - (giaHienThi / giaGoc)) * 100M);
+                        giamPhanTram = Math.Clamp(giamPhanTram, 0, 100);
+                    }
+                }
+
+                bool hetHang = !sp.SanPhamChiTiets.Any(c => c.SoLuong > 0);
+
+                <div class="col">
+                    <div class="card product-card h-100 border-0">
+                        <div class="product-img">
+                            <img src="@sp.HinhAnh" alt="@sp.Ten_SanPham" />
+                            <a class="stretched-image-link" asp-action="Details" asp-route-id="@sp.ID_SanPham"></a>
+
+                            @if (hetHang)
+                            {
+                                <span class="badge-flag badge-oos">Hết hàng</span>
+                            }
+                            else if (giamPhanTram > 0)
+                            {
+                                <span class="badge-flag badge-discount">-@giamPhanTram%</span>
+                            }
+
+                            @if (hetHang || ctBan == null || ctBan.SoLuong <= 0)
+                            {
+                                <button class="cart-fab disabled" type="button" title="Hết hàng">
+                                    <i class="fa-solid fa-cart-plus"></i>
+                                </button>
+                            }
+                            else
+                            {
+                                <form asp-controller="GioHang" asp-action="Add" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="sanPhamChiTietId" value="@ctBan.ID_SanPhamChiTiet" />
+                                    <input type="hidden" name="soLuong" value="1" />
+                                    <button type="submit" class="cart-fab" title="Thêm vào giỏ hàng">
+                                        <i class="fa-solid fa-cart-plus"></i>
+                                    </button>
+                                </form>
+                            }
+                        </div>
+
+                        <div class="card-body text-center">
+                            <h6 class="card-title mb-2 text-truncate" title="@sp.Ten_SanPham">@sp.Ten_SanPham</h6>
+                            <div class="d-flex justify-content-center align-items-center gap-2">
+                                <span class="price">@string.Format("{0:N0} ₫", giaHienThi)</span>
+                                @if (giamPhanTram > 0)
+                                {
+                                    <span class="old-price">@string.Format("{0:N0} ₫", giaGoc)</span>
+                                }
+                            </div>
+                            <a asp-action="Details" asp-route-id="@sp.ID_SanPham" class="btn btn-link p-0 mt-2">Xem chi tiết</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (ViewBag.TotalPages > 1)
+        {
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                            <a class="page-link"
+                               href="@Url.Action("Index", new { search = ViewBag.Search, thuongHieuId = ViewBag.ThuongHieuId, gioiTinhId = ViewBag.GioiTinhId, page = i })">@i</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        }
+    </div>
+</div>

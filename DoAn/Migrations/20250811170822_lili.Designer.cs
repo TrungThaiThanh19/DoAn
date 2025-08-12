@@ -4,6 +4,7 @@ using DoAn.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DoAn.Migrations
 {
     [DbContext(typeof(DoAnDbContext))]
-    partial class DoAnDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250811170822_lili")]
+    partial class lili
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -147,10 +150,12 @@ namespace DoAn.Migrations
                     b.Property<Guid>("ID_KhachHang")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("KhachHangID_KhachHang")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("ID_GioHang");
 
-                    b.HasIndex("ID_KhachHang")
-                        .IsUnique();
+                    b.HasIndex("KhachHangID_KhachHang");
 
                     b.ToTable("GioHangs");
                 });
@@ -844,7 +849,7 @@ namespace DoAn.Migrations
                 {
                     b.HasOne("DoAn.Models.KhachHang", "KhachHang")
                         .WithMany()
-                        .HasForeignKey("ID_KhachHang")
+                        .HasForeignKey("KhachHangID_KhachHang")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

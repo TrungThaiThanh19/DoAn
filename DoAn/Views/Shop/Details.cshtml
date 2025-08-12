@@ -1,0 +1,116 @@
+﻿@model DoAn.Models.SanPham
+@{
+    ViewData["Title"] = Model.Ten_SanPham;
+    var anyInStock = Model.SanPhamChiTiets.Any(ct => ct.SoLuong > 0);
+    var totalQty = Model.SanPhamChiTiets.Sum(ct => ct.SoLuong);
+}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+<!-- giữ nguyên phần CSS bạn đã viết -->
+
+<div class="detail-wrap">
+    <div class="container">
+        <div class="row g-4">
+            <!-- Ảnh -->
+            <div class="col-md-5">
+                <div class="thumb position-relative p-3">
+                    <img src="@Model.HinhAnh" class="img-fluid" alt="@Model.Ten_SanPham" />
+                    @if (!anyInStock)
+                    {
+                        <span class="badge-flag badge-oos position-absolute" style="left:14px;top:14px">Hết hàng</span>
+                    }
+                </div>
+            </div>
+
+            <!-- Thông tin -->
+            <div class="col-md-7">
+                <h3 class="mb-2">@Model.Ten_SanPham</h3>
+                <div class="text-muted mb-3">
+                    @Model.ThuongHieu?.Ten_ThuongHieu • @Model.GioiTinh?.Ten_GioiTinh • @Model.QuocGia?.Ten_QuocGia
+                </div>
+
+                <div class="mb-2">
+                    <span class="chip">Hương đầu: @Model.HuongDau</span>
+                    <span class="chip">Hương giữa: @Model.HuongGiua</span>
+                    <span class="chip">Hương cuối: @Model.HuongCuoi</span>
+                    <span class="chip">Lưu hương: @Model.ThoiGianLuuHuong giờ</span>
+                    <span class="chip">Tồn kho: @totalQty</span>
+                </div>
+
+                <!-- MÔ TẢ -->
+                <div class="desc-card p-3 mb-3">
+                    <div class="desc-title mb-2">Mô tả</div>
+                    <div class="text-muted">@Model.MoTa</div>
+                </div>
+
+                <!-- Bảng biến thể -->
+                <div class="table-responsive">
+                    <table class="table table-sm table-variants">
+                        <thead>
+                            <tr>
+                                <th>Thể tích</th>
+                                <th class="text-end">Giá gốc</th>
+                                <th class="text-end">Giá sau KM</th>
+                                <th class="text-center">% Giảm</th>
+                                <th class="text-center">Tồn</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ct in Model.SanPhamChiTiets.OrderBy(c => c.GiaBan))
+                            {
+                                var now = DateTime.Now;
+                                decimal giaGoc = ct.GiaBan;
+                                decimal giaHienThi = giaGoc;
+                                int giamPhanTram = 0;
+
+                                var km = ct.ChiTietKhuyenMais?
+                                .Where(x => x.KhuyenMai != null
+                                && x.KhuyenMai.TrangThai == 1
+                                && x.KhuyenMai.NgayBatDau <= now
+                                && x.KhuyenMai.NgayHetHan >= now
+                                && x.GiaSauGiam > 0)
+                                .OrderBy(x => x.GiaSauGiam)
+                                .FirstOrDefault();
+
+                                if (km != null && km.GiaSauGiam < giaGoc)
+                                {
+                                    giaHienThi = km.GiaSauGiam;
+                                    giamPhanTram = (int)Math.Round((1 - (giaHienThi / giaGoc)) * 100M);
+                                    giamPhanTram = Math.Clamp(giamPhanTram, 0, 100);
+                                }
+
+                                <tr>
+                                    <td>@(ct.TheTich != null ? $"{ct.TheTich.GiaTri:0.##} {ct.TheTich.DonVi}" : "—")</td>
+                                    <td class="text-end">@string.Format("{0:N0} ₫", giaGoc)</td>
+                                    <td class="text-end">@string.Format("{0:N0} ₫", giaHienThi)</td>
+                                    <td class="text-center">@giamPhanTram%</td>
+                                    <td class="text-center">@ct.SoLuong</td>
+                                    <td class="text-end">
+                                        @if (ct.SoLuong <= 0)
+                                        {
+                                            <button class="btn btn-secondary btn-sm" disabled>Hết hàng</button>
+                                        }
+                                        else
+                                        {
+                                            <form asp-controller="GioHang" asp-action="Add" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="sanPhamChiTietId" value="@ct.ID_SanPhamChiTiet" />
+                                                <input type="hidden" name="soLuong" value="1" />
+                                                <button type="submit" class="btn btn-primary btn-sm">
+                                                    <i class="fa-solid fa-cart-plus me-1"></i>Thêm giỏ
+                                                </button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <a asp-action="Index" class="btn btn-outline-secondary mt-2">← Quay lại cửa hàng</a>
+            </div>
+        </div>
+    </div>
+</div>

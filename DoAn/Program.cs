@@ -1,4 +1,5 @@
 ﻿using DoAn.Models;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +17,21 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
+builder.Services.AddDistributedMemoryCache(); // <— THÊM
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+builder.Services.AddScoped<IGioHangService, GioHangService>();
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(o =>
+    {
+        o.LoginPath = "/TaiKhoan/Login";     // <— Đổi từ /Auth/Login
+        o.AccessDeniedPath = "/TaiKhoan/Denied";
+    });
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -33,7 +49,7 @@ app.UseRouting();
 
 // Thêm middleware session
 app.UseSession();
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(
