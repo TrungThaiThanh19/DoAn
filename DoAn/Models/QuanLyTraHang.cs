@@ -12,7 +12,6 @@ namespace DoAn.Models
         public DateTime NgayTao { get; set; }
         public int TrangThai { get; set; }
         public decimal TongTienHoan { get; set; }
-
         public Guid ID_HoaDon { get; set; }
         public HoaDon HoaDon { get; set; }
 
