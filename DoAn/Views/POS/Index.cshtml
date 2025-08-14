@@ -1,5 +1,6 @@
 ﻿@{
     ViewData["Title"] = "Bán hàng tại quầy";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
     var sanPhamList = ViewBag.SanPhamList as List<DoAn.Models.SanPham>;
 }
 
@@ -189,9 +190,22 @@
 
         const toNumber = (v) => {
             if (typeof v === 'number') return v;
-            return parseFloat(String(v).replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.')) || 0;
+            let s = String(v).trim();
+
+            // Giữ lại chữ số, dấu '.', ',', '-' ; loại ký tự khác
+            s = s.replace(/[^0-9.,-]/g, '');
+
+            // Chỉ cho phép dấu '-' ở đầu: xóa mọi '-' không ở đầu
+            s = s.replace(/(?!^)-/g, '');
+
+            // Bỏ tất cả dấu chấm (coi là phân tách nghìn), dùng dấu phẩy làm thập phân
+            s = s.replace(/\./g, '').replace(',', '.');
+
+            const n = parseFloat(s);
+            return isNaN(n) ? 0 : n;
         };
         const toVn = (n) => n.toLocaleString('vi-VN') + ' đ';
+
 
         function showError(message) {
             Swal.fire({
@@ -203,6 +217,7 @@
             });
         }
 
+        // Load biến thể theo sản phẩm
         function loadBienThe(idSanPham) {
             fetch(`/POS/GetVariantsByProductId?idSanPham=${idSanPham}`)
                 .then(res => res.json())
@@ -259,10 +274,11 @@
                     maxSoLuong: bienThe.soLuong
                 });
             }
-
+            resetMaGiamGia();
             capNhatBangHoaDon();
         }
 
+        // Cập nhật bảng hóa đơn + tổng
         function capNhatBangHoaDon() {
             const tbody = document.getElementById("danhSachHoaDon");
             tbody.innerHTML = "";
@@ -301,11 +317,10 @@
             // Tổng tiền hàng
             document.getElementById("tongTienHang").innerText = toVn(tongTien);
 
-            // Phụ thu (
+            // Phụ thu (đọc từ ô nhập) + hiển thị
             const phuThu = toNumber(document.querySelector('input[name="phuThu"]').value);
             document.getElementById("phuThuDisplay").innerText = toVn(phuThu);
 
-            // Nếu đã có số tiền ưu đãi đang hiển thị thì dùng để tính tổng.
             const giamGia = toNumber(document.getElementById("uuDaiGiamGia").innerText);
 
             const tongCong = tongTien - giamGia + phuThu;
@@ -316,6 +331,7 @@
             if (hoaDon[index].soLuong < hoaDon[index].maxSoLuong) {
                 hoaDon[index].soLuong += 1;
                 hoaDon[index].thanhTien = hoaDon[index].soLuong * hoaDon[index].giaBan;
+                resetMaGiamGia();
                 capNhatBangHoaDon();
             } else {
                 showError("Không thể vượt quá số lượng tồn kho!");
@@ -326,6 +342,7 @@
             if (hoaDon[index].soLuong > 1) {
                 hoaDon[index].soLuong -= 1;
                 hoaDon[index].thanhTien = hoaDon[index].soLuong * hoaDon[index].giaBan;
+                resetMaGiamGia();
                 capNhatBangHoaDon();
             } else {
                 Swal.fire({
@@ -338,6 +355,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         hoaDon.splice(index, 1);
+                        resetMaGiamGia();
                         capNhatBangHoaDon();
                     }
                 });
@@ -357,6 +375,7 @@
 
             hoaDon[index].soLuong = soMoi;
             hoaDon[index].thanhTien = hoaDon[index].soLuong * hoaDon[index].giaBan;
+            resetMaGiamGia();
             capNhatBangHoaDon();
         }
 
@@ -401,7 +420,7 @@
                         });
 
                     } else {
-                        maGiamGiaHienTai = ma; 
+                        maGiamGiaHienTai = ma; // giữ mgg người dùng nhập
                         currentVoucherId = null;
 
                         Swal.fire({ icon: "warning", title: "Thông báo", text: data.message });
@@ -421,20 +440,47 @@
             capNhatBangHoaDon();
         }
 
+        // Update phụ thu theo thời gian thực
         function capNhatPhuThuTheoThoiGianThuc() {
-            const phuThu = toNumber(document.querySelector('input[name="phuThu"]').value);
-            document.getElementById("phuThuDisplay").innerText = toVn(phuThu);
+            const el = document.querySelector('input[name="phuThu"]');
+            const raw = el.value.trim();
+
+            // parse có giữ dấu âm
+            const val = toNumber(raw, { allowNegative: true });
+
+            // Nếu nhập rác: hiển thị 0 và bỏ đánh dấu lỗi
+            if (raw !== "" && isNaN(val)) {
+                el.classList.add('is-invalid');
+                document.getElementById("phuThuDisplay").innerText = toVn(0);
+            } else {
+                // Nếu âm: đánh dấu lỗi + không tính vào tổng (coi như 0)
+                if (val < 0) {
+                    el.classList.add('is-invalid');
+                    document.getElementById("phuThuDisplay").innerText = toVn(0);
+                } else {
+                    el.classList.remove('is-invalid');
+                    document.getElementById("phuThuDisplay").innerText = toVn(val || 0);
+                }
+            }
 
             const tongTienHang = toNumber(document.getElementById("tongTienHang").innerText);
             const giamGia = toNumber(document.getElementById("uuDaiGiamGia").innerText);
-            const tongCong = tongTienHang - giamGia + phuThu;
+
+            // Nếu âm hoặc NaN -> không cộng vào tổng (coi như 0)
+            const phuThuCalc = (!isNaN(val) && val > 0) ? val : 0;
+
+            const tongCong = tongTienHang - giamGia + phuThuCalc;
             document.getElementById("tongCong").innerText = toVn(tongCong);
         }
 
-        function resetFormPOS() {
-            hoaDon = [];
-            capNhatBangHoaDon(); 
 
+        // Reset toàn bộ form sau khi thanh toán thành công
+        function resetFormPOS() {
+            // Clear giỏ
+            hoaDon = [];
+            capNhatBangHoaDon();
+
+            // Clear các input trên form
             document.querySelector('input[name="tenKhachHang"]').value = '';
             document.querySelector('input[name="sdt"]').value = '';
             document.querySelector('input[name="email"]').value = '';
@@ -450,6 +496,7 @@
             document.querySelector('input[name="phuThu"]').value = '';
             document.getElementById('phuThuDisplay').innerText = '0 đ';
 
+            // Cập nhật tổng
             document.getElementById('tongCong').innerText = '0 đ';
         }
 
@@ -461,16 +508,25 @@
             const hinhThuc = document.querySelector('select[name="phuongThucThanhToan"]').value.trim();
             if (!hinhThuc) return showError('Vui lòng chọn phương thức thanh toán');
 
-            const hoTen = document.querySelector('input[name="tenKhachHang"]').value.trim() || null;
-            const email = document.querySelector('input[name="email"]').value.trim() || null;
-            const sdt   = document.querySelector('input[name="sdt"]').value.trim() || null;
-            const diaChi= document.querySelector('input[name="diaChi"]').value.trim() || null;
-            const ghiChu= document.querySelector('textarea[name="ghiChu"]').value.trim() || null;
+            const hoTen  = document.querySelector('input[name="tenKhachHang"]').value.trim() || null;
+            const email  = document.querySelector('input[name="email"]').value.trim() || null;
+            const sdt    = document.querySelector('input[name="sdt"]').value.trim() || null;
+            const diaChi = document.querySelector('input[name="diaChi"]').value.trim() || null;
+            const ghiChu = document.querySelector('textarea[name="ghiChu"]').value.trim() || null;
+
+            const phuThuInputEl = document.querySelector('input[name="phuThu"]');
+            const phuThuRaw = phuThuInputEl.value.trim();
+            const phuThuVal = toNumber(phuThuRaw);
+            const hasPhuThu = phuThuRaw !== "";
+
+            if (hasPhuThu && (isNaN(phuThuVal) || phuThuVal <= 0)) {
+                return showError('Phụ thu phải lớn hơn 0');
+            }
 
             const tongTruocGiam = hoaDon.reduce((s, i) => s + (i.giaBan * i.soLuong), 0);
-            const phuThu = toNumber(document.querySelector('input[name="phuThu"]').value);
             const giamGia = toNumber(document.getElementById('uuDaiGiamGia').innerText);
-            const tongSauGiam = tongTruocGiam - giamGia + phuThu;
+            const phuThu = hasPhuThu ? phuThuVal : null;
+            const tongSauGiam = tongTruocGiam - giamGia + (phuThu ?? 0);
 
             const chiTiets = hoaDon.map(x => ({
                 id_SanPhamChiTiet: x.id_SanPhamChiTiet,
@@ -483,14 +539,15 @@
                 email,
                 sdt_NguoiNhan: sdt,
                 diaChi,
-                hinhThucThanhToan: hinhThuc,
+                hinhThucThanhToan: document.querySelector('select[name="phuongThucThanhToan"]').value.trim(),
                 tongTienTruocGiam: tongTruocGiam,
                 tongTienSauGiam: tongSauGiam,
-                phuThu: phuThu || null,
+                phuThu,                       // đã là null hoặc số > 0
                 ghiChu,
-                id_Voucher: currentVoucherId,
+                id_Voucher: currentVoucherId, // null nếu không áp dụng
                 hoaDonChiTiets: chiTiets
             };
+
 
             try {
                 const res = await fetch('/POS/Pay', {
@@ -511,6 +568,7 @@
                     confirmButtonText: 'OK'
                 });
 
+                // Reset toàn bộ form & giỏ
                 resetFormPOS();
 
             } catch (e) {
@@ -518,6 +576,14 @@
                 showError('Có lỗi khi gọi API thanh toán.');
             }
         }
+
+
+        function resetMaGiamGia() {
+            maGiamGiaHienTai = "";
+            currentVoucherId = null;
+            document.getElementById("uuDaiGiamGia").innerText = "0 đ";
+        }
+
 
         document.addEventListener("DOMContentLoaded", () => {
             const inputSearch = document.getElementById("timKiemSP");
@@ -533,6 +599,7 @@
                 });
             }
 
+            // Live update phụ thu
             const phuThuInput = document.querySelector('input[name="phuThu"]');
             if (phuThuInput) {
                 phuThuInput.addEventListener('input', capNhatPhuThuTheoThoiGianThuc);
