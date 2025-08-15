@@ -4,6 +4,7 @@ using DoAn.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DoAn.Migrations
 {
     [DbContext(typeof(DoAnDbContext))]
-    partial class DoAnDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250815161628_DoAn1")]
+    partial class DoAn1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -111,10 +114,6 @@ namespace DoAn.Migrations
 
                     b.Property<bool>("DiaChiMacDinh")
                         .HasColumnType("bit");
-
-                    b.Property<string>("HoTen")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<Guid>("ID_KhachHang")
                         .HasColumnType("uniqueidentifier");

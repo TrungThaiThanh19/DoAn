@@ -61,7 +61,7 @@
         background: linear-gradient(135deg, rgba(108,92,231,.12), rgba(0,210,255,.12));
         border-bottom: 0
     }
-    /* Khung mô tả */
+
     .desc-card {
         border-radius: 16px;
         border: 1px solid rgba(99,102,241,.25);
@@ -79,24 +79,16 @@
         position: fixed;
         top: 20px;
         right: 20px;
-        z-index: 1055
+        z-index: 9999
     }
 
     .toast-item {
         min-width: 260px;
-        color: #fff;
-        border-radius: 10px;
         padding: 10px 14px;
         margin-bottom: 10px;
+        border-radius: 10px;
+        color: #fff;
         box-shadow: 0 8px 20px rgba(0,0,0,.25)
-    }
-
-    .toast-success {
-        background: linear-gradient(135deg,#22c55e,#16a34a)
-    }
-
-    .toast-error {
-        background: linear-gradient(135deg,#ef4444,#dc2626)
     }
 </style>
 
@@ -129,7 +121,7 @@
                     <span class="chip">Tồn kho: @totalQty</span>
                 </div>
 
-                <!-- MÔ TẢ (đóng khung) -->
+                <!-- Mô tả -->
                 <div class="desc-card p-3 mb-3">
                     <div class="desc-title mb-2">Mô tả</div>
                     <div class="text-muted">@Model.MoTa</div>
@@ -179,17 +171,10 @@
                                     <td class="text-center">@giamPhanTram%</td>
                                     <td class="text-center">@ct.SoLuong</td>
                                     <td class="text-end">
-                                        @if (ct.SoLuong <= 0)
-                                        {
-                                            <button class="btn btn-secondary btn-sm" disabled>Hết hàng</button>
-                                        }
-                                        else
-                                        {
-                                            <button type="button" class="btn btn-primary btn-sm"
-                                                    onclick="addDetailToCart('@ct.ID_SanPhamChiTiet')">
-                                                <i class="fa-solid fa-cart-plus me-1"></i>Thêm giỏ
-                                            </button>
-                                        }
+                                        <button type="button" class="btn btn-primary btn-sm"
+                                                onclick="addToCartByVariant('@ct.ID_SanPhamChiTiet')">
+                                            <i class="fa-solid fa-cart-plus me-1"></i>Thêm giỏ
+                                        </button>
                                     </td>
                                 </tr>
                             }
@@ -203,21 +188,26 @@
     </div>
 </div>
 
-<!-- Toast -->
 <div id="toast-container"></div>
+
 @section Scripts {
     <script>
         function showToast(message, ok=true){
-          const box=document.getElementById('toast-container');
-          const el=document.createElement('div');
-          el.className='toast-item '+(ok?'toast-success':'toast-error');
-          el.textContent=message; box.appendChild(el);
-          setTimeout(()=>el.remove(),3000);
+          const box = document.getElementById('toast-container');
+          const el = document.createElement('div');
+          el.className = 'toast-item';
+          el.style.background = ok ? 'linear-gradient(135deg,#22c55e,#16a34a)' : 'linear-gradient(135deg,#ef4444,#dc2626)';
+          el.textContent = message; box.appendChild(el);
+          setTimeout(()=>el.remove(), 2600);
         }
-        function addDetailToCart(ctId){
-          fetch(`/Cart/AddDetail?id=${ctId}`, { method:'GET' })
-            .then(r=>showToast(r.ok?'Đã thêm vào giỏ hàng':'Không thể thêm vào giỏ', r.ok))
-            .catch(()=>showToast('Lỗi kết nối', false));
+        function addToCartByVariant(variantId){
+          fetch(`/Cart/AddDetail?id=${variantId}`, { method:'GET', credentials:'same-origin' })
+            .then(r => {
+              if (r.status === 200) { showToast('Đã thêm vào giỏ hàng!', true); return; }
+              if (r.status === 401) throw new Error('Bạn cần đăng nhập.');
+              throw new Error('Không thể thêm vào giỏ.');
+            })
+            .catch(e => showToast(e.message || 'Lỗi kết nối', false));
         }
     </script>
 }

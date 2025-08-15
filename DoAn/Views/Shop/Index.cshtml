@@ -76,6 +76,7 @@
         border-radius: 999px;
         font-size: .7rem;
     }
+
     /* Banner */
     .shp-banner-wrap {
         background: #fff;
@@ -96,17 +97,8 @@
         height: 8px;
         border-radius: 999px;
     }
-    {
-        max-width: 100%;
-    }
 
-    .shp-carousel .carousel-item {
-        height: 220px;
-    }
-
-    }
-
-    /* ==== Phần sản phẩm giữ nguyên style cũ ==== */
+    /* Products */
     :root {
         --brand: #6c5ce7;
         --accent: #00d2ff;
@@ -119,23 +111,6 @@
         min-height: 100vh;
         padding-bottom: 40px;
     }
-
-    .shop-hero {
-        border-radius: 20px;
-        background: linear-gradient(135deg, rgba(108,92,231,.15), rgba(0,210,255,.15));
-        border: 1px solid rgba(108,92,231,.25);
-        box-shadow: 0 10px 30px rgba(108,92,231,.15);
-    }
-
-        .shop-hero h2 {
-            font-weight: 800;
-            color: var(--ink)
-        }
-
-        .shop-hero p {
-            color: #475569;
-            margin: 0
-        }
 
     .product-card {
         border-radius: 18px;
@@ -214,53 +189,29 @@
         justify-content: center;
         background: radial-gradient(120% 120% at 30% 20%, var(--accent) 0%, var(--brand) 70%);
         box-shadow: 0 10px 20px rgba(108,92,231,.35);
-        transition: transform .2s ease, box-shadow .2s ease;
-        z-index: 3
+        z-index: 5;
     }
 
-        .cart-fab:hover {
-            transform: translateY(-2px) scale(1.03);
-            box-shadow: 0 14px 28px rgba(108,92,231,.45)
-        }
-
-        .cart-fab.disabled {
+        .cart-fab[disabled] {
             opacity: .5;
             filter: grayscale(.3);
             pointer-events: none
-        }
-
-    .btn-primary {
-        background: linear-gradient(135deg,var(--brand),var(--accent));
-        border: 0;
-        box-shadow: 0 8px 18px rgba(108,92,231,.3)
-    }
-
-        .btn-primary:hover {
-            filter: brightness(.95)
         }
 
     #toast-container {
         position: fixed;
         top: 20px;
         right: 20px;
-        z-index: 1055
+        z-index: 9999
     }
 
     .toast-item {
         min-width: 260px;
-        color: #fff;
-        border-radius: 10px;
         padding: 10px 14px;
         margin-bottom: 10px;
+        border-radius: 10px;
+        color: #fff;
         box-shadow: 0 8px 20px rgba(0,0,0,.25)
-    }
-
-    .toast-success {
-        background: linear-gradient(135deg,#22c55e,#16a34a)
-    }
-
-    .toast-error {
-        background: linear-gradient(135deg,#ef4444,#dc2626)
     }
 </style>
 
@@ -268,13 +219,12 @@
 <header class="shp-header">
     <div class="container py-2 shp-topbar d-flex justify-content-between">
         <div class="d-none d-md-flex gap-3">
-            <a class="text-white-50 text-decoration-none" href="#">Kênh Người Bán</a>
-            <a class="text-white-50 text-decoration-none" href="#">Tải ứng dụng</a>
+
         </div>
         <div class="d-flex gap-3">
-            <a class="text-white text-decoration-none" href="/Account/Register">Đăng Ký</a>
+            <a class="text-white text-decoration-none" href="/TaiKhoan/Register">Đăng Ký</a>
             <span class="text-white-50">|</span>
-            <a class="text-white text-decoration-none" href="/Account/Login">Đăng Nhập</a>
+            <a class="text-white text-decoration-none" href="/TaiKhoan/Login">Đăng Nhập</a>
         </div>
     </div>
     <div class="container py-3">
@@ -288,7 +238,10 @@
                 <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
             </form>
             <div class="shp-icons d-flex align-items-center">
-                <a href="/Cart"><i class="fa-solid fa-cart-shopping fa-lg"></i><span class="badge" id="cart-badge" style="display:none">0</span></a>
+                <a href="/GioHang/index">
+                    <i class="fa-solid fa-cart-shopping fa-lg"></i>
+                    <span class="badge" id="cart-badge" style="display:none">0</span>
+                </a>
             </div>
         </div>
     </div>
@@ -322,12 +275,9 @@
     </div>
 </div>
 
-<!-- ==== PHẦN SẢN PHẨM GIỮ NGUYÊN ==== -->
+<!-- ==== PRODUCTS ==== -->
 <div class="shop-wrap">
-
     <div class="container">
-        <!-- Bộ lọc -->
-
         <div class="row row-cols-1 row-cols-md-3 g-4">
             @foreach (var sp in Model)
             {
@@ -339,14 +289,12 @@
                 decimal giaHienThi = giaGoc;
                 int giamPhanTram = 0;
 
-                if (ctBan != null && ctBan.ChiTietKhuyenMais != null)
+                if (ctBan?.ChiTietKhuyenMais != null)
                 {
                     var now = DateTime.Now;
                     var km = ctBan.ChiTietKhuyenMais
-                    .Where(x => x.KhuyenMai != null
-                    && x.KhuyenMai.TrangThai == 1
-                    && x.KhuyenMai.NgayBatDau <= now
-                    && x.KhuyenMai.NgayHetHan >= now
+                    .Where(x => x.KhuyenMai != null && x.KhuyenMai.TrangThai == 1
+                    && x.KhuyenMai.NgayBatDau <= now && x.KhuyenMai.NgayHetHan >= now
                     && x.GiaSauGiam > 0)
                     .OrderBy(x => x.GiaSauGiam)
                     .FirstOrDefault();
@@ -365,6 +313,7 @@
                         <div class="product-img">
                             <img src="@sp.HinhAnh" alt="@sp.Ten_SanPham" />
                             <a class="stretched-image-link" asp-action="Details" asp-route-id="@sp.ID_SanPham"></a>
+
                             @if (hetHang)
                             {
                                 <span class="badge-flag badge-oos">Hết hàng</span>
@@ -373,13 +322,19 @@
                             {
                                 <span class="badge-flag badge-discount">-@giamPhanTram%</span>
                             }
-                            @if (hetHang)
+
+                            @if (ctBan != null)
                             {
-                                <a class="cart-fab disabled" href="javascript:void(0)"><i class="fa-solid fa-cart-plus"></i></a>
+                                <button type="button" class="cart-fab" title="Thêm vào giỏ"
+                                        onclick="addToCartByProduct('@sp.ID_SanPham')">
+                                    <i class="fa-solid fa-cart-plus"></i>
+                                </button>
                             }
                             else
                             {
-                                <a class="cart-fab" href="javascript:void(0)" onclick="addToCart('@sp.ID_SanPham')"><i class="fa-solid fa-cart-plus"></i></a>
+                                <button class="cart-fab" disabled title="Chưa có biến thể">
+                                    <i class="fa-solid fa-cart-plus"></i>
+                                </button>
                             }
                         </div>
                         <div class="card-body text-center">
@@ -397,37 +352,29 @@
                 </div>
             }
         </div>
-
-        @if (ViewBag.TotalPages > 1)
-        {
-            <nav class="mt-4">
-                <ul class="pagination justify-content-center">
-                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
-                    {
-                        <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
-                            <a class="page-link" href="@Url.Action("Index", new { search = ViewBag.Search, thuongHieuId = ViewBag.ThuongHieuId, gioiTinhId = ViewBag.GioiTinhId, page = i })">@i</a>
-                        </li>
-                    }
-                </ul>
-            </nav>
-        }
     </div>
 </div>
 
 <div id="toast-container"></div>
+
 @section Scripts {
     <script>
         function showToast(message, ok=true){
-          const box=document.getElementById('toast-container');
-          const el=document.createElement('div');
-          el.className='toast-item '+(ok?'toast-success':'toast-error');
-          el.textContent=message; box.appendChild(el);
-          setTimeout(()=>el.remove(),3000);
+          const box = document.getElementById('toast-container');
+          const el = document.createElement('div');
+          el.className = 'toast-item';
+          el.style.background = ok ? 'linear-gradient(135deg,#22c55e,#16a34a)' : 'linear-gradient(135deg,#ef4444,#dc2626)';
+          el.textContent = message; box.appendChild(el);
+          setTimeout(()=>el.remove(), 2600);
         }
-        function addToCart(id){
-          fetch(`/Cart/Add?id=${id}`, { method:'GET' })
-            .then(r=>showToast(r.ok?'Đã thêm vào giỏ hàng':'Không thể thêm vào giỏ', r.ok))
-            .catch(()=>showToast('Lỗi kết nối', false));
+        function addToCartByProduct(productId){
+          fetch(`/Cart/Add?id=${productId}`, { method:'GET', credentials:'same-origin' })
+            .then(r => {
+              if (r.status === 200) { showToast('Đã thêm vào giỏ hàng!', true); return; }
+              if (r.status === 401) throw new Error('Bạn cần đăng nhập.');
+              throw new Error('Không thể thêm vào giỏ.');
+            })
+            .catch(e => showToast(e.message || 'Lỗi kết nối', false));
         }
     </script>
 }
