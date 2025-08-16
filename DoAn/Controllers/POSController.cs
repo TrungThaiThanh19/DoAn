@@ -1,11 +1,13 @@
 ﻿using DoAn.Migrations;
 using DoAn.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
 namespace DoAn.Controllers
 {
+    [Authorize(Roles = "admin,nhanvien")]
     public class POSController : Controller
     {
         private readonly DoAnDbContext _context;

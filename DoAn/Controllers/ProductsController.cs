@@ -1,4 +1,5 @@
 ﻿using DoAn.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace DoAn.Controllers
 {
+    [Authorize(Roles = "admin")]
     public class ProductsController : Controller
     {
         private readonly DoAnDbContext _context;

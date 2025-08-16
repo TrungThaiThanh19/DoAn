@@ -1,9 +1,11 @@
 ﻿using DoAn.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace DoAn.Controllers
 {
+    [Authorize(Roles = "admin")]
     public class VolumesController : Controller
     {
         private readonly DoAnDbContext _context;

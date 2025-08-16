@@ -1,10 +1,12 @@
 ﻿using DoAn.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 
 namespace DoAn.Controllers
 {
+    [Authorize(Roles = "admin")]
     public class CountriesController : Controller
     {
         private readonly DoAnDbContext _context;

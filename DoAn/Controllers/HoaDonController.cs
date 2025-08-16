@@ -1,11 +1,13 @@
 ﻿using DoAn.Models;
 using DoAn.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace DoAn.Controllers
 {
+    [Authorize(Roles = "admin,nhanvien")]
     public class HoaDonController : Controller
     {
         private readonly DoAnDbContext _context;

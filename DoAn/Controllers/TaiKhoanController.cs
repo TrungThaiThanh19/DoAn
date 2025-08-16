@@ -2,6 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Security.Claims;
 using System;
 using System.Threading.Tasks;
 using DoAn.ViewModels;
@@ -17,6 +21,7 @@ namespace DoAn.Controllers
         }
 
         // GET: /TaiKhoan/Register
+        [AllowAnonymous]
         public IActionResult Register()
         {
             var role = HttpContext.Session.GetString("RoleName");
@@ -28,6 +33,7 @@ namespace DoAn.Controllers
 
         // POST: /TaiKhoan/Register
         [HttpPost]
+        [AllowAnonymous]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
@@ -84,7 +90,6 @@ namespace DoAn.Controllers
 
             await _context.SaveChangesAsync();
 
-            // Thông báo cho trang Login
             TempData["SuccessMessage"] = "Đăng ký thành công! Vui lòng đăng nhập.";
             return RedirectToAction("Login", "TaiKhoan");
         }
@@ -95,6 +100,7 @@ namespace DoAn.Controllers
         }
 
         // GET: /TaiKhoan/Login
+        [AllowAnonymous]
         public IActionResult Login()
         {
             var role = HttpContext.Session.GetString("RoleName");
@@ -106,6 +112,7 @@ namespace DoAn.Controllers
 
         // POST: /TaiKhoan/Login
         [HttpPost]
+        [AllowAnonymous]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
@@ -121,25 +128,36 @@ namespace DoAn.Controllers
                 return View(model);
             }
 
-            // Lưu session
+            // ===== TẠO COOKIE ĐĂNG NHẬP (CLAIMS + ROLE) =====
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, taiKhoan.ID_TaiKhoan.ToString()),
+                new Claim(ClaimTypes.Name, taiKhoan.Uername),
+                new Claim(ClaimTypes.Role, taiKhoan.Roles.Ten_Roles) // "admin"/"nhanvien"/"khachhang"
+            };
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
+            // (tuỳ chọn) vẫn lưu Session nếu bạn còn dùng ở nơi khác
             HttpContext.Session.SetString("UserID", taiKhoan.ID_TaiKhoan.ToString());
             HttpContext.Session.SetString("Username", taiKhoan.Uername);
             HttpContext.Session.SetString("RoleName", taiKhoan.Roles.Ten_Roles);
-
-            // KHÔNG set TempData["SuccessMessage"] cho đăng nhập để tránh tồn tại sau restart
-            // Nếu muốn thông báo ở trang đích, bạn có thể set một key khác tại đây,
-            // rồi hiển thị ở View của Shop/Admin/Home.
 
             return RedirectBasedOnRole(taiKhoan.Roles.Ten_Roles);
         }
 
         // GET: /TaiKhoan/Logout
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
-            HttpContext.Session.Clear();     // xoá session
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            HttpContext.Session.Clear();
             TempData["SuccessMessage"] = "Bạn đã đăng xuất.";
             return RedirectToAction("Login", "TaiKhoan");
         }
+
+        [AllowAnonymous]
+        public IActionResult Denied() => View(); // trang Access Denied
 
         private IActionResult RedirectBasedOnRole(string roleName)
         {

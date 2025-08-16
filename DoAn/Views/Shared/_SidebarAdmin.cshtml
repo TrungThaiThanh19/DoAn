@@ -1,4 +1,4 @@
-﻿﻿@using Microsoft.AspNetCore.Http
+﻿@using Microsoft.AspNetCore.Http
 <style>
     .nav-link {
         font-size: 14px !important;
@@ -39,62 +39,75 @@
                 <div class="bg-success rounded-circle border border-2 border-white position-absolute end-0 bottom-0 p-1"></div>
             </div>
             <div class="ms-3">
-                <h6 class="mb-0">
-                    @{
-                        // Lấy Username từ Session để hiển thị ở đây
-                        var username = Context.Session.GetString("Username");
-                        @Html.Raw(string.IsNullOrEmpty(username) ? "Người dùng" : username)
-                    }
-                </h6>
-                <span>
-                    @{
-                        // Lấy RoleName từ Session để hiển thị ở đây
-                        var roleName = Context.Session.GetString("RoleName");
-                        @Html.Raw(string.IsNullOrEmpty(roleName) ? "Unknown" : roleName)
-                    }
-                </span>
+                @{
+                    // Ưu tiên lấy từ Claims (User.Identity) -> fallback Session
+                    var displayName = (User?.Identity?.IsAuthenticated ?? false)
+                    ? (User.Identity?.Name ?? Context.Session.GetString("Username") ?? "Người dùng")
+                    : (Context.Session.GetString("Username") ?? "Người dùng");
+
+                    var displayRole = User.IsInRole("admin") ? "admin"
+                    : User.IsInRole("nhanvien") ? "nhanvien"
+                    : (Context.Session.GetString("RoleName") ?? "Unknown");
+                }
+                <h6 class="mb-0">@displayName</h6>
+                <span>@displayRole</span>
             </div>
         </div>
 
         <div class="navbar-nav w-100">
-            <a href="/Admin/ThongKe" class="nav-item nav-link">
-                <i class="fa fa-chart-bar me-2"></i>Thống kê
-            </a>
+            @* ADMIN: thấy full menu *@
+            @if (User.IsInRole("admin"))
+            {
+                <a href="/Admin/ThongKe" class="nav-item nav-link">
+                    <i class="fa fa-chart-bar me-2"></i>Thống kê
+                </a>
 
-            <a href="/HoaDon/Index" class="nav-item nav-link">
-                <i class="fa fa-shopping-cart me-2"></i>Quản lý hóa đơn
-            </a>
+                <a href="/HoaDon/Index" class="nav-item nav-link">
+                    <i class="fa fa-shopping-cart me-2"></i>Quản lý hóa đơn
+                </a>
 
-            <a href="/POS/Index" class="nav-item nav-link">
-                <i class="fa fa-store me-2"></i>Bán hàng tại quầy
-            </a>
+                <a href="/POS/Index" class="nav-item nav-link">
+                    <i class="fa fa-store me-2"></i>Bán hàng tại quầy
+                </a>
 
-            <a class="nav-item nav-link nav-link-toggle" data-bs-toggle="collapse" href="#collapseTaiKhoan" role="button" aria-expanded="false">
-                <span><i class="fa fa-users me-2"></i> Quản lý tài khoản</span>
-            </a>
-            <div class="collapse submenu" id="collapseTaiKhoan">
-                <a href="/NhanVien/Index" class="nav-link">Nhân viên</a>
-                <a href="/KhachHang/Index" class="nav-link">Khách hàng</a>
-            </div>
+                <a class="nav-item nav-link nav-link-toggle" data-bs-toggle="collapse" href="#collapseTaiKhoan" role="button" aria-expanded="false">
+                    <span><i class="fa fa-users me-2"></i> Quản lý tài khoản</span>
+                </a>
+                <div class="collapse submenu" id="collapseTaiKhoan">
+                    <a href="/NhanVien/Index" class="nav-link">Nhân viên</a>
+                    <a href="/KhachHang/Index" class="nav-link">Khách hàng</a>
+                </div>
 
-            <a class="nav-item nav-link nav-link-toggle" data-bs-toggle="collapse" href="#collapseSanPham" role="button" aria-expanded="false">
-                <span><i class="fa fa-box me-2"></i> Quản lý sản phẩm</span>
-            </a>
-            <div class="collapse submenu" id="collapseSanPham">
-                <a href="/Products/Index" class="nav-link">Sản phẩm</a>
-                <a href="/Brands/Index" class="nav-link">Thương hiệu</a>
-                <a href="/Volumes/Index" class="nav-link">Dung tích</a>
-                <a href="/Genders/Index" class="nav-link">Giới tính</a>
-                <a href="/Countries/Index" class="nav-link">Quốc Gia</a>
-            </div>
+                <a class="nav-item nav-link nav-link-toggle" data-bs-toggle="collapse" href="#collapseSanPham" role="button" aria-expanded="false">
+                    <span><i class="fa fa-box me-2"></i> Quản lý sản phẩm</span>
+                </a>
+                <div class="collapse submenu" id="collapseSanPham">
+                    <a href="/Products/Index" class="nav-link">Sản phẩm</a>
+                    <a href="/Brands/Index" class="nav-link">Thương hiệu</a>
+                    <a href="/Volumes/Index" class="nav-link">Dung tích</a>
+                    <a href="/Genders/Index" class="nav-link">Giới tính</a>
+                    <a href="/Countries/Index" class="nav-link">Quốc Gia</a>
+                </div>
 
-            <a class="nav-item nav-link nav-link-toggle" data-bs-toggle="collapse" href="#collapseKhuyenMai" role="button" aria-expanded="false">
-                <span><i class="fa fa-bullhorn me-2"></i> Khuyến mãi</span>
-            </a>
-            <div class="collapse submenu" id="collapseKhuyenMai">
-                <a href="/Admin/KhuyenMai" class="nav-link">Quản lý khuyến mãi</a>
-                <a href="/Voucher" class="nav-link">Quản lý voucher</a>
-            </div>
+                <a class="nav-item nav-link nav-link-toggle" data-bs-toggle="collapse" href="#collapseKhuyenMai" role="button" aria-expanded="false">
+                    <span><i class="fa fa-bullhorn me-2"></i> Khuyến mãi</span>
+                </a>
+                <div class="collapse submenu" id="collapseKhuyenMai">
+                    <a href="/Admin/KhuyenMai" class="nav-link">Quản lý khuyến mãi</a>
+                    <a href="/Voucher" class="nav-link">Quản lý voucher</a>
+                </div>
+            }
+            @* NHÂN VIÊN: chỉ Hóa đơn + POS *@
+            else if (User.IsInRole("nhanvien"))
+            {
+                <a href="/HoaDon/Index" class="nav-item nav-link">
+                    <i class="fa fa-shopping-cart me-2"></i>Quản lý hóa đơn
+                </a>
+                <a href="/POS/Index" class="nav-item nav-link">
+                    <i class="fa fa-store me-2"></i>Bán hàng tại quầy
+                </a>
+            }
+            @* Vai trò khác (khách hàng...) không hiện menu admin *@
         </div>
     </nav>
 </div>
