@@ -1,0 +1,39 @@
+﻿﻿@{
+    ViewData["Title"] = "Thêm thể tích";
+}
+
+<h2 class="mb-4 text-primary">➕ Thêm thể tích</h2>
+
+<form method="post">
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+    <div class="card shadow rounded-4 mb-4">
+        <div class="card-header bg-primary text-white">Thông tin thể tích</div>
+        <div class="card-body row g-3">
+
+            <div class="col-md-6">
+                <label class="form-label">Mã thể tích</label>
+                <input type="text" name="maTheTich" class="form-control" value="@ViewBag.MaTheTich" />
+                <span class="text-danger">@Html.ValidationMessage("MaTheTich")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Giá trị</label>
+                <input type="text" name="giaTri" class="form-control" value="@ViewBag.GiaTri" />
+                <span class="text-danger">@Html.ValidationMessage("GiaTri")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Đơn vị</label>
+                <input type="text" name="donVi" class="form-control" value="@ViewBag.DonVi" />
+                <span class="text-danger">@Html.ValidationMessage("DonVi")</span>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between">
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">← Quay lại</a>
+        <button type="submit" class="btn btn-success rounded-pill px-4">Thêm thể tích</button>
+    </div>
+</form>

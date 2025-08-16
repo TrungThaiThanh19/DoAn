@@ -1,0 +1,609 @@
+﻿﻿@{
+    ViewData["Title"] = "Bán hàng tại quầy";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var sanPhamList = ViewBag.SanPhamList as List<DoAn.Models.SanPham>;
+}
+
+<h2 class="mb-4 text-primary">🛒 Bán hàng tại quầy</h2>
+
+<div class="row g-4">
+    <div class="col-md-12">
+        <div class="card shadow-sm rounded-4">
+            <div class="card-header bg-info text-white fw-bold">📋 Thông tin khách hàng</div>
+            <div class="card-body row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Tên khách hàng</label>
+                    <input class="form-control" name="tenKhachHang" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Số điện thoại</label>
+                    <input class="form-control" name="sdt" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input class="form-control" name="email" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Địa chỉ</label>
+                    <input class="form-control" name="diaChi" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Phương thức thanh toán</label>
+                    <select class="form-select" name="phuongThucThanhToan">
+                        <option value="">-- Chọn --</option>
+                        <option>Tiền mặt</option>
+                        <option>Chuyển khoản</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Phương thức nhận hàng</label>
+                    <select class="form-select" name="phuongThucNhanFake" disabled>
+                        <option>Nhận tại quầy</option>
+                    </select>
+                    <input type="hidden" name="phuongThucNhan" value="Nhận tại quầy" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Mã giảm giá</label>
+                    <div class="d-flex gap-2">
+                        <input class="form-control" style="flex: 3;" name="maGiamGia" id="maGiamGia" />
+                        <button class="btn btn-outline-primary" type="button" style="flex: 1;" onclick="apDungMaGiamGia()">Áp dụng</button>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Phụ thu</label>
+                    <input class="form-control" name="phuThu" />
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">Ghi chú</label>
+                    <textarea class="form-control" rows="2" name="ghiChu"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12">
+        <div class="card shadow-sm rounded-4">
+            <div class="mb-3 row">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" id="timKiemSP" placeholder="🔍 Tìm theo mã / tên sản phẩm...">
+                </div>
+            </div>
+            <div class="card-header bg-secondary text-white fw-bold">🧴 Danh sách sản phẩm</div>
+            <div class="card-body p-2">
+                <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                    <table class="table table-bordered table-hover text-center align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Ảnh</th>
+                                <th>Mã SP</th>
+                                <th>Tên</th>
+                                <th>Thương hiệu</th>
+                                <th>Quốc gia</th>
+                                <th>Giới tính</th>
+                            </tr>
+                        </thead>
+                        <tbody id="danhSachSanPham">
+                            @foreach (var sp in sanPhamList)
+                            {
+                                <tr style="cursor:pointer" onclick="loadBienThe('@sp.ID_SanPham')">
+                                    <td><img src="@sp.HinhAnh" class="img-thumbnail" style="width: 60px;" /></td>
+                                    <td>@sp.Ma_SanPham</td>
+                                    <td>@sp.Ten_SanPham</td>
+                                    <td>@sp.ThuongHieu?.Ten_ThuongHieu</td>
+                                    <td>@sp.QuocGia?.Ten_QuocGia</td>
+                                    <td>@sp.GioiTinh?.Ten_GioiTinh</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-12">
+        <div class="card shadow-sm rounded-4">
+            <div class="card-header bg-warning text-white fw-bold">📦 Biến thể sản phẩm</div>
+            <div class="card-body p-2">
+                <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                    <table class="table table-bordered table-hover text-center align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Thể tích</th>
+                                <th>Giá bán</th>
+                                <th>Số lượng</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="danhSachBienThe">
+                            <tr>
+                                <td colspan="4" class="text-muted">Vui lòng chọn sản phẩm để xem biến thể.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-12">
+        <div class="card shadow-sm rounded-4">
+            <div class="card-header bg-success text-white fw-bold">🧾 Hóa đơn</div>
+            <div class="card-body p-2">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover text-center align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tên sản phẩm</th>
+                                <th>Thể tích</th>
+                                <th>Đơn giá</th>
+                                <th>Số lượng</th>
+                                <th>Thành tiền</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="danhSachHoaDon">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12 mt-3 d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div class="card shadow-sm rounded-4" style="min-width: 300px; flex: 1;">
+            <div class="card-header bg-light fw-bold text-center">📊 Chi tiết thanh toán</div>
+            <div class="card-body">
+                <div class="mb-2 d-flex justify-content-between">
+                    <span>Tổng tiền hàng:</span>
+                    <span id="tongTienHang">0 đ</span>
+                </div>
+                <div class="mb-2 d-flex justify-content-between">
+                    <span>Ưu đãi mã giảm giá:</span>
+                    <span id="uuDaiGiamGia">0 đ</span>
+                </div>
+                <div class="mb-2 d-flex justify-content-between">
+                    <span>Phụ thu:</span>
+                    <span id="phuThuDisplay">0 đ</span>
+                </div>
+                <hr />
+                <div class="d-flex justify-content-between fw-bold text-danger">
+                    <span>Tổng cộng:</span>
+                    <span id="tongCong">0 đ</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center">
+            <button id="btnThanhToan" class="btn btn-danger btn-lg rounded-pill px-5">💰 Thanh toán</button>
+        </div>
+    </div>
+</div>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+@section Scripts {
+    <script>
+        let hoaDon = [];
+        let bienTheTam = [];
+        let maGiamGiaHienTai = "";     // Chuỗi MGG người dùng đang nhập/dùng
+        let currentVoucherId = null;   // ID voucher đã áp dụng (nếu có)
+
+        const toNumber = (v) => {
+            if (typeof v === 'number') return v;
+            let s = String(v).trim();
+
+            // Giữ lại chữ số, dấu '.', ',', '-' ; loại ký tự khác
+            s = s.replace(/[^0-9.,-]/g, '');
+
+            // Chỉ cho phép dấu '-' ở đầu: xóa mọi '-' không ở đầu
+            s = s.replace(/(?!^)-/g, '');
+
+            // Bỏ tất cả dấu chấm (coi là phân tách nghìn), dùng dấu phẩy làm thập phân
+            s = s.replace(/\./g, '').replace(',', '.');
+
+            const n = parseFloat(s);
+            return isNaN(n) ? 0 : n;
+        };
+        const toVn = (n) => n.toLocaleString('vi-VN') + ' đ';
+
+
+        function showError(message) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: message,
+                confirmButtonText: 'OK',
+                backdrop: true
+            });
+        }
+
+        // Load biến thể theo sản phẩm
+        function loadBienThe(idSanPham) {
+            fetch(`/POS/GetVariantsByProductId?idSanPham=${idSanPham}`)
+                .then(res => res.json())
+                .then(data => {
+                    bienTheTam = data;
+                    const tbody = document.getElementById("danhSachBienThe");
+                    tbody.innerHTML = "";
+
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="4" class="text-muted">Không có biến thể còn hàng.</td></tr>`;
+                        return;
+                    }
+
+                    data.forEach((bt, index) => {
+                        const row = `
+                            <tr>
+                                <td>${bt.theTich}</td>
+                                <td>${bt.giaBan.toLocaleString('vi-VN')} đ</td>
+                                <td>${bt.soLuong}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-success" onclick="themVaoHoaDon(${index})">➕</button>
+                                </td>
+                            </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                })
+                .catch(() => {
+                    document.getElementById("danhSachBienThe").innerHTML =
+                        `<tr><td colspan="4" class="text-danger">Không thể tải biến thể.</td></tr>`;
+                });
+        }
+
+        function themVaoHoaDon(index) {
+            const bienThe = bienTheTam[index];
+            const id = bienThe.id_SanPhamChiTiet;
+
+            let existing = hoaDon.find(x => x.id_SanPhamChiTiet === id);
+
+            if (existing) {
+                if (existing.soLuong >= bienThe.soLuong) {
+                    showError("Số lượng đã đạt tối đa tồn kho!");
+                    return;
+                }
+                existing.soLuong += 1;
+                existing.thanhTien = existing.soLuong * existing.giaBan;
+            } else {
+                hoaDon.push({
+                    id_SanPhamChiTiet: id,
+                    tenSanPham: bienThe.tenSanPham,
+                    theTich: bienThe.theTich,
+                    giaBan: bienThe.giaBan,
+                    soLuong: 1,
+                    thanhTien: bienThe.giaBan,
+                    maxSoLuong: bienThe.soLuong
+                });
+            }
+            resetMaGiamGia();
+            capNhatBangHoaDon();
+        }
+
+        // Cập nhật bảng hóa đơn + tổng
+        function capNhatBangHoaDon() {
+            const tbody = document.getElementById("danhSachHoaDon");
+            tbody.innerHTML = "";
+
+            let tongTien = 0;
+
+            hoaDon.forEach((item, index) => {
+                item.thanhTien = item.soLuong * item.giaBan;
+                tongTien += item.thanhTien;
+
+                const row = `
+                    <tr>
+                        <td>${item.tenSanPham}</td>
+                        <td>${item.theTich}</td>
+                        <td>${item.giaBan.toLocaleString("vi-VN")} đ</td>
+                        <td>
+                            <button class="btn btn-sm btn-light" onclick="giamSoLuong(${index})">−</button>
+                            <input type="number" value="${item.soLuong}" min="1"
+                                class="form-control d-inline-block"
+                                style="width: 80px; text-align: center"
+                                oninput="capNhatSoLuong(${index}, this.value)" />
+                            <button class="btn btn-sm btn-light" onclick="tangSoLuong(${index})">+</button>
+                        </td>
+                        <td>${item.thanhTien.toLocaleString("vi-VN")} đ</td>
+                        <td><button class="btn btn-sm btn-danger" onclick="xoaKhoiHoaDon('${item.id_SanPhamChiTiet}')">❌</button></td>
+                    </tr>`;
+                tbody.innerHTML += row;
+            });
+
+            tbody.innerHTML += `
+                <tr class="fw-bold table-info">
+                    <td colspan="4" class="text-end">Tổng cộng:</td>
+                    <td colspan="2">${tongTien.toLocaleString("vi-VN")} đ</td>
+                </tr>`;
+
+            // Tổng tiền hàng
+            document.getElementById("tongTienHang").innerText = toVn(tongTien);
+
+            // Phụ thu (đọc từ ô nhập) + hiển thị
+            const phuThu = toNumber(document.querySelector('input[name="phuThu"]').value);
+            document.getElementById("phuThuDisplay").innerText = toVn(phuThu);
+
+            const giamGia = toNumber(document.getElementById("uuDaiGiamGia").innerText);
+
+            const tongCong = tongTien - giamGia + phuThu;
+            document.getElementById("tongCong").innerText = toVn(tongCong);
+        }
+
+        function tangSoLuong(index) {
+            if (hoaDon[index].soLuong < hoaDon[index].maxSoLuong) {
+                hoaDon[index].soLuong += 1;
+                hoaDon[index].thanhTien = hoaDon[index].soLuong * hoaDon[index].giaBan;
+                resetMaGiamGia();
+                capNhatBangHoaDon();
+            } else {
+                showError("Không thể vượt quá số lượng tồn kho!");
+            }
+        }
+
+        function giamSoLuong(index) {
+            if (hoaDon[index].soLuong > 1) {
+                hoaDon[index].soLuong -= 1;
+                hoaDon[index].thanhTien = hoaDon[index].soLuong * hoaDon[index].giaBan;
+                resetMaGiamGia();
+                capNhatBangHoaDon();
+            } else {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Xóa sản phẩm?',
+                    text: 'Số lượng tối thiểu là 1. Bạn có chắc muốn xóa khỏi hóa đơn?',
+                    showCancelButton: true,
+                    confirmButtonText: 'Xóa',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        hoaDon.splice(index, 1);
+                        resetMaGiamGia();
+                        capNhatBangHoaDon();
+                    }
+                });
+            }
+        }
+
+        function capNhatSoLuong(index, value) {
+            let soMoi = parseInt(value);
+            if (isNaN(soMoi) || soMoi <= 0) {
+                showError("Số lượng không hợp lệ!");
+                return;
+            }
+            if (soMoi > hoaDon[index].maxSoLuong) {
+                showError("Không thể vượt quá số lượng tồn kho!");
+                soMoi = hoaDon[index].maxSoLuong;
+            }
+
+            hoaDon[index].soLuong = soMoi;
+            hoaDon[index].thanhTien = hoaDon[index].soLuong * hoaDon[index].giaBan;
+            resetMaGiamGia();
+            capNhatBangHoaDon();
+        }
+
+        function apDungMaGiamGia() {
+            const input = document.getElementById("maGiamGia");
+            const ma = input.value.trim();
+
+            if (!ma) {
+                currentVoucherId = null;
+                maGiamGiaHienTai = "";
+                document.getElementById("uuDaiGiamGia").innerText = "0 đ";
+
+                const tongTienHang = toNumber(document.getElementById("tongTienHang").innerText);
+                const phuThu = toNumber(document.querySelector('input[name="phuThu"]').value);
+                document.getElementById("tongCong").innerText = toVn(tongTienHang + phuThu);
+
+                Swal.fire({ icon: "warning", title: "Thông báo", text: "Mã giảm giá không được bỏ trống" });
+                return;
+            }
+
+            const tongTienHang = toNumber(document.getElementById("tongTienHang").innerText);
+
+            fetch(`/POS/CheckVoucher?maGiamGia=${encodeURIComponent(ma)}&tongTienHang=${tongTienHang}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        maGiamGiaHienTai = ma;
+                        currentVoucherId = data.idVoucher || null;
+
+                        document.getElementById("uuDaiGiamGia").innerText = toVn(data.giamGia);
+
+                        const phuThu = toNumber(document.querySelector('input[name="phuThu"]').value);
+                        const tongCong = tongTienHang - data.giamGia + phuThu;
+                        document.getElementById("tongCong").innerText = toVn(tongCong);
+
+                        Swal.fire({
+                            icon: "success",
+                            title: "Áp dụng thành công!",
+                            text: `Bạn đã được giảm ${toVn(data.giamGia)}.`,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+
+                    } else {
+                        maGiamGiaHienTai = ma; // giữ mgg người dùng nhập
+                        currentVoucherId = null;
+
+                        Swal.fire({ icon: "warning", title: "Thông báo", text: data.message });
+
+                        document.getElementById("uuDaiGiamGia").innerText = "0 đ";
+                        const phuThu = toNumber(document.querySelector('input[name="phuThu"]').value);
+                        document.getElementById("tongCong").innerText = toVn(tongTienHang + phuThu);
+                    }
+                })
+                .catch(() => {
+                    Swal.fire({ icon: "error", title: "Lỗi", text: "Không thể kiểm tra mã giảm giá." });
+                });
+        }
+
+        function xoaKhoiHoaDon(id) {
+            hoaDon = hoaDon.filter(x => x.id_SanPhamChiTiet !== id);
+            capNhatBangHoaDon();
+        }
+
+        // Update phụ thu theo thời gian thực
+        function capNhatPhuThuTheoThoiGianThuc() {
+            const el = document.querySelector('input[name="phuThu"]');
+            const raw = el.value.trim();
+
+            // parse có giữ dấu âm
+            const val = toNumber(raw, { allowNegative: true });
+
+            // Nếu nhập rác: hiển thị 0 và bỏ đánh dấu lỗi
+            if (raw !== "" && isNaN(val)) {
+                el.classList.add('is-invalid');
+                document.getElementById("phuThuDisplay").innerText = toVn(0);
+            } else {
+                // Nếu âm: đánh dấu lỗi + không tính vào tổng (coi như 0)
+                if (val < 0) {
+                    el.classList.add('is-invalid');
+                    document.getElementById("phuThuDisplay").innerText = toVn(0);
+                } else {
+                    el.classList.remove('is-invalid');
+                    document.getElementById("phuThuDisplay").innerText = toVn(val || 0);
+                }
+            }
+
+            const tongTienHang = toNumber(document.getElementById("tongTienHang").innerText);
+            const giamGia = toNumber(document.getElementById("uuDaiGiamGia").innerText);
+
+            // Nếu âm hoặc NaN -> không cộng vào tổng (coi như 0)
+            const phuThuCalc = (!isNaN(val) && val > 0) ? val : 0;
+
+            const tongCong = tongTienHang - giamGia + phuThuCalc;
+            document.getElementById("tongCong").innerText = toVn(tongCong);
+        }
+
+
+        // Reset toàn bộ form sau khi thanh toán thành công
+        function resetFormPOS() {
+            // Clear giỏ
+            hoaDon = [];
+            capNhatBangHoaDon();
+
+            // Clear các input trên form
+            document.querySelector('input[name="tenKhachHang"]').value = '';
+            document.querySelector('input[name="sdt"]').value = '';
+            document.querySelector('input[name="email"]').value = '';
+            document.querySelector('input[name="diaChi"]').value = '';
+            document.querySelector('textarea[name="ghiChu"]').value = '';
+            const sel = document.querySelector('select[name="phuongThucThanhToan"]');
+            if (sel) sel.value = '';
+
+            currentVoucherId = null;
+            maGiamGiaHienTai = '';
+            document.getElementById('maGiamGia').value = '';
+            document.getElementById('uuDaiGiamGia').innerText = '0 đ';
+            document.querySelector('input[name="phuThu"]').value = '';
+            document.getElementById('phuThuDisplay').innerText = '0 đ';
+
+            // Cập nhật tổng
+            document.getElementById('tongCong').innerText = '0 đ';
+        }
+
+        document.getElementById('btnThanhToan').addEventListener('click', thanhToan);
+
+        async function thanhToan() {
+            if (!hoaDon.length) return showError('Hóa đơn đang trống. Vui lòng chọn sản phẩm.');
+
+            const hinhThuc = document.querySelector('select[name="phuongThucThanhToan"]').value.trim();
+            if (!hinhThuc) return showError('Vui lòng chọn phương thức thanh toán');
+
+            const hoTen  = document.querySelector('input[name="tenKhachHang"]').value.trim() || null;
+            const email  = document.querySelector('input[name="email"]').value.trim() || null;
+            const sdt    = document.querySelector('input[name="sdt"]').value.trim() || null;
+            const diaChi = document.querySelector('input[name="diaChi"]').value.trim() || null;
+            const ghiChu = document.querySelector('textarea[name="ghiChu"]').value.trim() || null;
+
+            const phuThuInputEl = document.querySelector('input[name="phuThu"]');
+            const phuThuRaw = phuThuInputEl.value.trim();
+            const phuThuVal = toNumber(phuThuRaw);
+            const hasPhuThu = phuThuRaw !== "";
+
+            if (hasPhuThu && (isNaN(phuThuVal) || phuThuVal <= 0)) {
+                return showError('Phụ thu phải lớn hơn 0');
+            }
+
+            const tongTruocGiam = hoaDon.reduce((s, i) => s + (i.giaBan * i.soLuong), 0);
+            const giamGia = toNumber(document.getElementById('uuDaiGiamGia').innerText);
+            const phuThu = hasPhuThu ? phuThuVal : null;
+            const tongSauGiam = tongTruocGiam - giamGia + (phuThu ?? 0);
+
+            const chiTiets = hoaDon.map(x => ({
+                id_SanPhamChiTiet: x.id_SanPhamChiTiet,
+                soLuong: x.soLuong,
+                donGia: x.giaBan
+            }));
+
+            const payload = {
+                hoTen,
+                email,
+                sdt_NguoiNhan: sdt,
+                diaChi,
+                hinhThucThanhToan: document.querySelector('select[name="phuongThucThanhToan"]').value.trim(),
+                tongTienTruocGiam: tongTruocGiam,
+                tongTienSauGiam: tongSauGiam,
+                phuThu,                       // đã là null hoặc số > 0
+                ghiChu,
+                id_Voucher: currentVoucherId, // null nếu không áp dụng
+                hoaDonChiTiets: chiTiets
+            };
+
+
+            try {
+                const res = await fetch('/POS/Pay', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (!res.ok || !data.success) {
+                    return showError(data.message || 'Thanh toán thất bại.');
+                }
+
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Thanh toán thành công!',
+                    html: `Mã hoá đơn: <b>${data.maHoaDon}</b>`,
+                    confirmButtonText: 'OK'
+                });
+
+                // Reset toàn bộ form & giỏ
+                resetFormPOS();
+
+            } catch (e) {
+                console.error(e);
+                showError('Có lỗi khi gọi API thanh toán.');
+            }
+        }
+
+
+        function resetMaGiamGia() {
+            maGiamGiaHienTai = "";
+            currentVoucherId = null;
+            document.getElementById("uuDaiGiamGia").innerText = "0 đ";
+        }
+
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const inputSearch = document.getElementById("timKiemSP");
+            if (inputSearch) {
+                inputSearch.addEventListener("input", function () {
+                    const keyword = this.value.toLowerCase().trim();
+                    const rows = document.querySelectorAll("#danhSachSanPham tr");
+                    rows.forEach(row => {
+                        const ma  = row.children[1]?.innerText.toLowerCase() || "";
+                        const ten = row.children[2]?.innerText.toLowerCase() || "";
+                        row.style.display = (ma.includes(keyword) || ten.includes(keyword)) ? "" : "none";
+                    });
+                });
+            }
+
+            // Live update phụ thu
+            const phuThuInput = document.querySelector('input[name="phuThu"]');
+            if (phuThuInput) {
+                phuThuInput.addEventListener('input', capNhatPhuThuTheoThoiGianThuc);
+            }
+        });
+    </script>
+}
