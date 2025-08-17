@@ -1,0 +1,49 @@
+﻿@model DoAn.Models.TheTich
+@{
+    ViewData["Title"] = "Cập nhật thể tích";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2 class="mb-4 text-primary">✏️ Cập nhật thể tích</h2>
+
+<form method="post">
+    <input type="hidden" name="id" value="@Model.ID_TheTich" />
+
+    <div class="card shadow rounded-4 mb-4">
+        <div class="card-header bg-primary text-white">Thông tin thể tích</div>
+        <div class="card-body row g-3">
+
+            <div class="col-md-6">
+                <label class="form-label">Mã thể tích</label>
+                <input name="maTheTich" class="form-control" value="@Model.Ma_TheTich" />
+                <span class="text-danger">@Html.ValidationMessage("MaTheTich")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Giá trị (dùng dấu phẩy)</label>
+                <input name="giaTri" class="form-control" value="@Model.GiaTri.ToString("0.##")" />
+                <span class="text-danger">@Html.ValidationMessage("GiaTri")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Đơn vị</label>
+                <input name="donVi" class="form-control" value="@Model.DonVi" />
+                <span class="text-danger">@Html.ValidationMessage("DonVi")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Trạng thái</label>
+                <select name="trangThai" class="form-select">
+                    <option value="1" selected="@(@Model.TrangThai == 1)">Hoạt động</option>
+                    <option value="0" selected="@(@Model.TrangThai == 0)">Không hoạt động</option>
+                </select>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between">
+        <a asp-action="Details" asp-route-id="@Model.ID_TheTich" class="btn btn-outline-secondary rounded-pill px-4">← Quay lại</a>
+        <button type="submit" class="btn btn-primary rounded-pill px-4">Cập nhật</button>
+    </div>
+</form>

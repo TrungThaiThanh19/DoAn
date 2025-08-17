@@ -1,0 +1,89 @@
+﻿@model DoAn.Models.SanPham
+@{
+	ViewData["Title"] = "Chi tiết sản phẩm";
+}
+<h2 class="mb-4">@Model.Ten_SanPham</h2>
+
+<div class="card mb-4 shadow-sm rounded-4 p-4">
+    <div class="row align-items-center">
+        <!-- Hình ảnh bên trái -->
+        <div class="col-md-4 text-center">
+            <img src="@Model.HinhAnh" class="img-thumbnail rounded-3 shadow-sm"
+                 style="max-width: 250px; height: auto;" alt="Ảnh sản phẩm" />
+        </div>
+
+        <!-- Thông tin bên phải -->
+        <div class="col-md-8 fs-5">
+            <p><strong>Mã sản phẩm:</strong> @Model.Ma_SanPham</p>
+            <p><strong>Tên sản phẩm:</strong> @Model.Ten_SanPham</p>
+            <p><strong>Thương hiệu:</strong> @Model.ThuongHieu?.Ten_ThuongHieu</p>
+            <p><strong>Quốc gia:</strong> @Model.QuocGia?.Ten_QuocGia</p>
+            <p><strong>Giới tính:</strong> @Model.GioiTinh?.Ten_GioiTinh</p>
+            <p><strong>Hương đầu:</strong> @Model.HuongDau</p>
+            <p><strong>Hương giữa:</strong> @Model.HuongGiua</p>
+            <p><strong>Hương cuối:</strong> @Model.HuongCuoi</p>
+            <p><strong>Thời gian lưu hương:</strong> @Model.ThoiGianLuuHuong giờ</p>
+            <p><strong>Mô tả:</strong> @Model.MoTa</p>
+        </div>
+    </div>
+</div>
+
+<h4 class="mt-5 mb-3">Các biến thể (chi tiết sản phẩm)</h4>
+
+@if (Model.SanPhamChiTiets != null && Model.SanPhamChiTiets.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover text-center align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Thể tích</th>
+                    <th>Giá nhập</th>
+                    <th>Giá bán</th>
+                    <th>Số lượng</th>
+                    <th>Ngày tạo</th>
+					<th>Ngày cập nhật</th>
+					<th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var ct in Model.SanPhamChiTiets)
+                {
+                    <tr>
+                        <td>@(ct.TheTich?.GiaTri.ToString("0.#") + ct.TheTich?.DonVi)</td>
+                        <td>@ct.GiaNhap.ToString("0.##") VNĐ</td>
+                        <td>@ct.GiaBan.ToString("0.##") VNĐ</td>
+                        <td>@ct.SoLuong</td>
+                        <td>@ct.NgayTao.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@(ct.NgayCapNhat?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                        <td>
+                            @if (ct.TrangThai == 1)
+                            {
+                                <span class="badge bg-success">Còn hàng</span>
+                            }
+                            else if (ct.TrangThai == 0)
+                            {
+                                <span class="badge bg-danger">Hết hàng</span>
+                            }
+                            else if (ct.TrangThai == 2)
+                            {
+                                <span class="badge bg-warning text-dark">Ngừng kinh doanh</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-muted">Sản phẩm chưa có biến thể nào.</p>
+}
+
+<div class="mt-4 d-flex justify-content-between">
+    <a asp-action="Index" class="btn btn-outline-primary rounded-pill px-4">← Quay lại</a>
+    <a asp-action="Update" asp-route-idSanPham="@Model.ID_SanPham" class="btn btn-primary rounded-pill px-4">
+        Cập nhật sản phẩm
+    </a>
+</div>

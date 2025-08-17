@@ -1,0 +1,60 @@
+﻿@model DoAn.Models.Voucher;
+
+@{
+    ViewData["Title"] = "Chi tiết voucher";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid pt-4 px-4">
+    <div class="bg-light rounded p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="mb-0">Chi tiết Voucher</h4>
+            <div>
+                <a asp-action="Edit" asp-route-id="@Model.ID_Voucher" class="btn btn-warning me-2">
+                    <i class="fa fa-edit"></i> Chỉnh sửa
+                </a>
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="fa fa-arrow-left"></i> Quay lại danh sách
+                </a>
+            </div>
+        </div>
+
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Mã Voucher</dt>
+            <dd class="col-sm-9">@Model.Ma_Voucher</dd>
+
+            <dt class="col-sm-3">Tên Voucher</dt>
+            <dd class="col-sm-9">@Model.Ten_Voucher</dd>
+
+            <dt class="col-sm-3">Ngày tạo</dt>
+            <dd class="col-sm-9">@Model.NgayTao.ToShortDateString()</dd>
+
+            <dt class="col-sm-3">Ngày hết hạn</dt>
+            <dd class="col-sm-9">@Model.NgayHetHan.ToShortDateString()</dd>
+
+            <dt class="col-sm-3">Kiểu giảm giá</dt>
+            <dd class="col-sm-9">@Model.KieuGiamGia</dd>
+
+            <dt class="col-sm-3">Giá trị giảm</dt>
+            <dd class="col-sm-9">@Model.GiaTriGiam</dd>
+
+            <dt class="col-sm-3">Giá trị tối thiểu</dt>
+            <dd class="col-sm-9">@Model.GiaTriToiThieu</dd>
+
+            <dt class="col-sm-3">Giá trị tối đa</dt>
+            <dd class="col-sm-9">@Model.GiaTriToiDa</dd>
+
+            <dt class="col-sm-3">Số lượng</dt>
+            <dd class="col-sm-9">@Model.SoLuong</dd>
+
+            <dt class="col-sm-3">Trạng thái</dt>
+            <dd class="col-sm-9">@Model.TrangThai</dd>
+
+            <dt class="col-sm-3">Mô tả</dt>
+            <dd class="col-sm-9">@Model.MoTa</dd>
+
+            <dt class="col-sm-3">Tài khoản tạo</dt>
+            <dd class="col-sm-9">@Model.TaiKhoan?.Uername</dd>
+        </dl>
+    </div>
+</div>
