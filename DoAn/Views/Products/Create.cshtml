@@ -1,0 +1,120 @@
+﻿﻿﻿@{
+    ViewData["Title"] = "Thêm sản phẩm mới";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+}
+
+<h2 class="mb-4 text-primary">➕ Thêm sản phẩm mới</h2>
+
+<form method="post" enctype="multipart/form-data">
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+    <!-- Thông tin chung -->
+    <div class="card mb-4 shadow rounded-4">
+        <div class="card-header bg-primary text-white">Thông tin chung</div>
+        <div class="card-body row g-3">
+
+            <div class="col-md-12">
+                <label class="form-label">Tên sản phẩm</label>
+                <input name="tenSanPham" class="form-control" value="@ViewBag.TenSanPham" />
+                <span class="text-danger">@Html.ValidationMessage("TenSanPham")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Mã sản phẩm</label>
+                <input name="maSanPham" type="text" class="form-control" value="@ViewBag.MaSanPham" />
+                <span class="text-danger">@Html.ValidationMessage("MaSanPham")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Thời gian lưu hương (giờ)</label>
+                <input name="thoiGianLuuHuong" type="text" class="form-control" value="@ViewBag.ThoiGianLuuHuong" />
+                <span class="text-danger">@Html.ValidationMessage("ThoiGianLuuHuong")</span>
+            </div>
+
+            <div class="col-md-12">
+                <label class="form-label">Mô tả</label>
+                <textarea name="moTa" class="form-control" rows="3">@ViewBag.MoTa</textarea>
+                <span class="text-danger">@Html.ValidationMessage("MoTa")</span>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Hương đầu</label>
+                <input name="huongDau" class="form-control" value="@ViewBag.HuongDau" />
+                <span class="text-danger">@Html.ValidationMessage("HuongDau")</span>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Hương giữa</label>
+                <input name="huongGiua" class="form-control" value="@ViewBag.HuongGiua" />
+                <span class="text-danger">@Html.ValidationMessage("HuongGiua")</span>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Hương cuối</label>
+                <input name="huongCuoi" class="form-control" value="@ViewBag.HuongCuoi" />
+                <span class="text-danger">@Html.ValidationMessage("HuongCuoi")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Hình ảnh</label>
+                <input type="file" name="hinhAnh" class="form-control" />
+                <span class="text-danger">@Html.ValidationMessage("HinhAnh")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Thương hiệu</label>
+                @Html.DropDownList("idThuongHieu", (SelectList)ViewBag.ThuongHieuList, "-- Chọn --", new { @class = "form-select" })
+                <span class="text-danger">@Html.ValidationMessage("ID_ThuongHieu")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Quốc gia</label>
+                @Html.DropDownList("idQuocGia", (SelectList)ViewBag.QuocGiaList, "-- Chọn --", new { @class = "form-select" })
+                <span class="text-danger">@Html.ValidationMessage("ID_QuocGia")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Giới tính</label>
+                @Html.DropDownList("idGioiTinh", (SelectList)ViewBag.GioiTinhList, "-- Chọn --", new { @class = "form-select" })
+                <span class="text-danger">@Html.ValidationMessage("ID_GioiTinh")</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thông tin chi tiết -->
+    <div class="card mb-4 shadow rounded-4">
+        <div class="card-header bg-secondary text-white">Thông tin chi tiết</div>
+        <div class="card-body row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Số lượng</label>
+                <input name="soLuong" type="text" class="form-control" value="@ViewBag.SoLuong" />
+                <span class="text-danger">@Html.ValidationMessage("SoLuong")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Giá nhập</label>
+                <input name="giaNhap" type="text" class="form-control" value="@ViewBag.GiaNhap" />
+                <span class="text-danger">@Html.ValidationMessage("GiaNhap")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Thể tích</label>
+                @* @Html.DropDownList("idTheTich", (SelectList)ViewBag.TheTichList, "-- Chọn --", new { @class = "form-select" }) *@
+                @Html.DropDownList("idTheTich", (SelectList)ViewBag.TheTichList, "-- Chọn thể tích --", new { @class = "form-select" })
+                <span class="text-danger">@Html.ValidationMessage("ID_TheTich")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Giá bán</label>
+                <input name="giaBan" type="text" class="form-control" value="@ViewBag.GiaBan" />
+                <span class="text-danger">@Html.ValidationMessage("GiaBan")</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between">
+        <a href="/Products/Index" class="btn btn-outline-success rounded-pill px-4">← Quay lại</a>
+        <button type="submit" class="btn btn-success rounded-pill px-4">Thêm sản phẩm</button>
+    </div>
+</form>

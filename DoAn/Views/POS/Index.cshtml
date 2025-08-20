@@ -1,0 +1,750 @@
+﻿﻿@{
+    ViewData["Title"] = "Bán hàng tại quầy";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var sanPhamList = ViewBag.SanPhamList as List<DoAn.Models.SanPham>;
+}
+
+<h2 class="mb-4 text-primary">🛒 Bán hàng tại quầy</h2>
+
+<div class="row g-4">
+    <div class="col-md-12">
+        <div class="card shadow-sm rounded-4">
+            <div class="card-header bg-info text-white fw-bold">📋 Thông tin khách hàng</div>
+            <div class="card-body row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Tên khách hàng</label>
+                    <input class="form-control" name="tenKhachHang" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Số điện thoại</label>
+                    <input class="form-control" name="sdt" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input class="form-control" name="email" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Địa chỉ</label>
+                    <input class="form-control" name="diaChi" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Phương thức thanh toán</label>
+                    <select class="form-select" name="phuongThucThanhToan">
+                        <option value="">-- Chọn --</option>
+                        <option>Tiền mặt</option>
+                        <option>Chuyển khoản</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Phương thức nhận hàng</label>
+                    <select class="form-select" name="phuongThucNhanFake" disabled>
+                        <option>Nhận tại quầy</option>
+                    </select>
+                    <input type="hidden" name="phuongThucNhan" value="Nhận tại quầy" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Mã giảm giá</label>
+                    <div class="d-flex gap-2">
+                        <input class="form-control" style="flex: 3;" name="maGiamGia" id="maGiamGia" />
+                        <button class="btn btn-outline-primary" type="button" style="flex: 1;" onclick="apDungMaGiamGia()">Áp dụng</button>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Phụ thu</label>
+                    <input class="form-control" name="phuThu" id="phuThuInput" />
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">Ghi chú</label>
+                    <textarea class="form-control" rows="2" name="ghiChu"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12">
+        <div class="card shadow-sm rounded-4">
+            <div class="mb-3 row">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" id="timKiemSP" placeholder="🔍 Tìm theo mã / tên sản phẩm...">
+                </div>
+            </div>
+            <div class="card-header bg-secondary text-white fw-bold">🧴 Danh sách sản phẩm</div>
+            <div class="card-body p-2">
+                <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                    <table class="table table-bordered table-hover text-center align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Ảnh</th>
+                                <th>Mã SP</th>
+                                <th>Tên</th>
+                                <th>Thương hiệu</th>
+                                <th>Quốc gia</th>
+                                <th>Giới tính</th>
+                            </tr>
+                        </thead>
+                        <tbody id="danhSachSanPham">
+                            @foreach (var sp in sanPhamList)
+                            {
+                                <tr style="cursor:pointer" onclick="loadBienThe('@sp.ID_SanPham')">
+                                    <td><img src="@sp.HinhAnh" class="img-thumbnail" style="width: 60px;" /></td>
+                                    <td>@sp.Ma_SanPham</td>
+                                    <td>@sp.Ten_SanPham</td>
+                                    <td>@sp.ThuongHieu?.Ten_ThuongHieu</td>
+                                    <td>@sp.QuocGia?.Ten_QuocGia</td>
+                                    <td>@sp.GioiTinh?.Ten_GioiTinh</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-12">
+        <div class="card shadow-sm rounded-4">
+            <div class="card-header bg-warning text-white fw-bold">📦 Biến thể sản phẩm</div>
+            <div class="card-body p-2">
+                <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                    <table class="table table-bordered table-hover text-center align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Thể tích</th>
+                                <th>Giá bán</th>
+                                <th>Số lượng</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="danhSachBienThe">
+                            <tr>
+                                <td colspan="4" class="text-muted">Vui lòng chọn sản phẩm để xem biến thể</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-12 mb-4">
+        <div class="card shadow-sm rounded-4">
+            <div class="card-header bg-primary text-white fw-bold">🕒 Danh sách hóa đơn chờ</div>
+            <div class="card-body p-2">
+                <div class="table-responsive" style="max-height: 200px;">
+                    <table class="table table-bordered table-hover text-center align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Mã hóa đơn</th>
+                                <th>Phương thức nhận hàng</th>
+                                <th>Loại hóa đơn</th>
+                                <th>Ngày tạo</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="danhSachHoaDonCho">
+                            <tr>
+                                <td colspan="5" class="text-muted">Đang tải...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-12">
+        <div class="card shadow-sm rounded-4">
+            <div class="card-header bg-success text-white fw-bold">🧾 Hóa đơn</div>
+            <div class="card-body p-2">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover text-center align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tên sản phẩm</th>
+                                <th>Thể tích</th>
+                                <th>Đơn giá</th>
+                                <th>Số lượng</th>
+                                <th>Thành tiền</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="danhSachHoaDon">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12 mt-3 d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div class="card shadow-sm rounded-4" style="min-width: 300px; flex: 1;">
+            <div class="card-header bg-light fw-bold text-center">📊 Chi tiết thanh toán</div>
+            <div class="card-body">
+                <div class="mb-2 d-flex justify-content-between">
+                    <span>Tổng tiền hàng:</span>
+                    <span id="tongTienHang">0 đ</span>
+                </div>
+                <div class="mb-2 d-flex justify-content-between">
+                    <span>Ưu đãi mã giảm giá:</span>
+                    <span id="uuDaiGiamGia">0 đ</span>
+                </div>
+                <div class="mb-2 d-flex justify-content-between">
+                    <span>Phụ thu:</span>
+                    <span id="phuThuDisplay">0 đ</span>
+                </div>
+                <hr />
+                <div class="d-flex justify-content-between fw-bold text-danger">
+                    <span>Tổng cộng:</span>
+                    <span id="tongCong">0 đ</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center">
+            <button id="btnThanhToan" class="btn btn-danger btn-lg rounded-pill px-5">💰 Thanh toán</button>
+        </div>
+    </div>
+</div>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+@section Scripts {
+    <script>
+        let hoaDon = [];
+        let bienTheTam = [];
+        let maGiamGiaHienTai = "";     // Chuỗi MGG người dùng đang nhập/dùng
+        let currentVoucherId = null;   // ID voucher đã áp dụng (nếu có)
+        let idHoaDonCho = null;        // ID hóa đơn chờ đang thao tác
+
+        const toNumber = (v) => {
+            if (typeof v === 'number') return v;
+            let s = String(v).trim();
+            s = s.replace(/[^0-9.,-]/g, '');
+            s = s.replace(/(?!^)-/g, '');
+            s = s.replace(/\./g, '').replace(',', '.');
+            const n = parseFloat(s);
+            return isNaN(n) ? 0 : n;
+        };
+        const toVn = (n) => n.toLocaleString('vi-VN') + ' đ';
+
+        function showError(message) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: message,
+                confirmButtonText: 'OK',
+                backdrop: true
+            });
+        }
+
+        // Load biến thể theo sản phẩm
+        function loadBienThe(idSanPham) {
+            fetch(`/POS/GetVariantsByProductId?idSanPham=${idSanPham}`)
+                .then(res => res.json())
+                .then(data => {
+                    bienTheTam = data;
+                    const tbody = document.getElementById("danhSachBienThe");
+                    tbody.innerHTML = "";
+
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="4" class="text-muted">Không có biến thể còn hàng</td></tr>`;
+                        return;
+                    }
+
+                    data.forEach((bt, index) => {
+                        const row = `
+                            <tr>
+                                <td>${bt.theTich}</td>
+                                <td>${bt.giaBan.toLocaleString('vi-VN')} đ</td>
+                                <td>${bt.soLuong}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-success" onclick="themVaoHoaDonCho(${index})">➕</button>
+                                </td>
+                            </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                })
+                .catch(() => {
+                    document.getElementById("danhSachBienThe").innerHTML =
+                        `<tr><td colspan="4" class="text-danger">Không thể tải biến thể.</td></tr>`;
+                });
+        }
+
+        async function themVaoHoaDonCho(index) {
+            const bienThe = bienTheTam[index];
+            const soLuong = 1;
+
+            if (!idHoaDonCho) {
+                // Chưa có hóa đơn chờ => tạo mới hóa đơn chờ và thêm sp đầu tiên
+                const payload = {
+                    ID_SanPhamChiTiet: bienThe.id_SanPhamChiTiet,
+                    SoLuong: soLuong,
+                    DonGia: bienThe.giaBan
+                };
+                const res = await fetch('/POS/TaoHoaDonCho', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    idHoaDonCho = data.idHoaDon;
+                    await loadChiTietHoaDon(idHoaDonCho);
+                    await loadHoaDonCho();
+                } else {
+                    showError(data.message || 'Không tạo được hóa đơn chờ.');
+                }
+            } else {
+                // Đã có hóa đơn chờ => thêm sp vào hóa đơn này
+                const payload = {
+                    ID_HoaDon: idHoaDonCho,
+                    ID_SanPhamChiTiet: bienThe.id_SanPhamChiTiet,
+                    SoLuong: soLuong
+                };
+                const res = await fetch('/POS/ThemSanPhamVaoHoaDonCho', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    await loadChiTietHoaDon(idHoaDonCho);
+                } else {
+                    showError(data.message || 'Không thêm được sản phẩm.');
+                }
+            }
+        }
+
+        // Cập nhật bảng hóa đơn chờ chi tiết
+        let dsChiTietHoaDon = [];
+        async function loadChiTietHoaDon(idHoaDon) {
+            idHoaDonCho = idHoaDon;
+            const res = await fetch(`/POS/LayChiTietHoaDon?idHoaDon=${idHoaDon}`);
+            const data = await res.json();
+            dsChiTietHoaDon = data;
+            const tbody = document.getElementById("danhSachHoaDon");
+            tbody.innerHTML = "";
+            let tongTien = 0;
+            data.forEach((item, index) => {
+                tongTien += item.thanhTien;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.tenSanPham}</td>
+                        <td>${item.theTich}</td>
+                        <td>${item.donGia.toLocaleString("vi-VN")} đ</td>
+                        <td>
+                            <button class="btn btn-sm btn-light" onclick="giamSoLuongHD(${index})">−</button>
+                            <input type="number" value="${item.soLuong}" min="1"
+                                class="form-control d-inline-block"
+                                style="width: 80px; text-align: center"
+                                oninput="capNhatSoLuongHD(${index}, this.value)" />
+                            <button class="btn btn-sm btn-light" onclick="tangSoLuongHD(${index})">+</button>
+                        </td>
+                        <td>${item.thanhTien.toLocaleString("vi-VN")} đ</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="xoaChiTietHD(${index})">❌</button>
+                        </td>
+                    </tr>`;
+            });
+            tbody.innerHTML += `
+                <tr class="fw-bold table-info">
+                    <td colspan="4" class="text-end">Tổng cộng:</td>
+                    <td colspan="2">${tongTien.toLocaleString("vi-VN")} đ</td>
+                </tr>`;
+
+            // Cập nhật chi tiết thanh toán
+            let uuDai = window.currentVoucherValue || 0;
+            let phuThu = toNumber(document.querySelector('[name="phuThu"]')?.value || 0);
+            capNhatChiTietThanhToan(tongTien, uuDai, phuThu);
+
+            if (data.length === 0) idHoaDonCho = null;
+        }
+
+
+        async function tangSoLuongHD(index) {
+            let item = dsChiTietHoaDon[index];
+            const res = await fetch('/POS/CapNhatSoLuongHoaDonChiTiet', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    ID_HoaDonChiTiet: item.iD_HoaDonChiTiet,
+                    SoLuong: item.soLuong + 1
+                })
+            });
+            const data = await res.json();
+            if (!data.success) {
+                showError(data.message || "Không tăng được số lượng.");
+                return;
+            }
+            await loadChiTietHoaDon(idHoaDonCho);
+            resetVoucher();
+        }
+
+
+        async function giamSoLuongHD(index) {
+            let item = dsChiTietHoaDon[index];
+            if (item.soLuong <= 1) {
+                return await xoaChiTietHD(index);
+            }
+            const res = await fetch('/POS/CapNhatSoLuongHoaDonChiTiet', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    ID_HoaDonChiTiet: item.iD_HoaDonChiTiet,
+                    SoLuong: item.soLuong - 1
+                })
+            });
+            const data = await res.json();
+            if (!data.success) {
+                showError(data.message || "Không giảm được số lượng.");
+                return;
+            }
+            await loadChiTietHoaDon(idHoaDonCho);
+            resetVoucher();
+        }
+
+
+        async function capNhatSoLuongHD(index, value) {
+            let item = dsChiTietHoaDon[index];
+            let soCu = item.soLuong;
+            let soMoi = parseInt(value);
+
+            if (isNaN(soMoi) || soMoi <= 0) {
+                showError("Số lượng không hợp lệ");
+                // Reset lại giá trị cũ
+                document.querySelectorAll("#danhSachHoaDon input[type='number']")[index].value = soCu;
+                return;
+            }
+
+            const res = await fetch('/POS/CapNhatSoLuongHoaDonChiTiet', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    ID_HoaDonChiTiet: item.iD_HoaDonChiTiet,
+                    SoLuong: soMoi
+                })
+            });
+
+            const data = await res.json();
+            if (!data.success) {
+                showError(data.message || "Không cập nhật được số lượng.");
+                document.querySelectorAll("#danhSachHoaDon input[type='number']")[index].value = soCu;
+                return;
+            }
+            await loadChiTietHoaDon(idHoaDonCho);
+            resetVoucher();
+        }
+
+
+        async function xoaChiTietHD(index) {
+            const item = dsChiTietHoaDon[index];
+            const result = await Swal.fire({
+                icon: 'warning',
+                title: 'Xác nhận xóa',
+                text: 'Bạn có chắc chắn muốn xóa sản phẩm này khỏi hóa đơn?',
+                showCancelButton: true,
+                confirmButtonText: 'Xóa',
+                cancelButtonText: 'Hủy',
+                reverseButtons: true
+            });
+
+            if (result.isConfirmed) {
+                const res = await fetch('/POS/XoaHoaDonChiTiet', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({
+                        ID_HoaDonChiTiet: item.iD_HoaDonChiTiet
+                    })
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    showError(data.message || "Không xóa được sản phẩm khỏi hóa đơn chờ.");
+                    return;
+                }
+                await loadChiTietHoaDon(idHoaDonCho);
+                resetVoucher();
+                await loadHoaDonCho();
+            }
+        }
+
+
+        async function loadHoaDonCho() {
+            const tbody = document.getElementById("danhSachHoaDonCho");
+            tbody.innerHTML = `<tr><td colspan="5" class="text-muted">Đang tải...</td></tr>`;
+            try {
+                const res = await fetch('/POS/DanhSachHoaDonCho');
+                const ds = await res.json();
+                if (!ds.length) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-muted">Không có hóa đơn chờ.</td></tr>`;
+                    return;
+                }
+                tbody.innerHTML = "";
+                ds.forEach(item => {
+                    tbody.innerHTML += `
+                    <tr data-id="${item.idHoaDon}" onclick="loadChiTietHoaDon('${item.idHoaDon}')">
+                        <td>${item.maHoaDon}</td>
+                        <td>${item.phuongThucNhanHang}</td>
+                        <td>${item.loaiHoaDon}</td>
+                        <td>${(new Date(item.ngayTao)).toLocaleString('vi-VN')}</td>
+                        <td>${item.trangThai}</td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" onclick="xoaHoaDonCho('${item.idHoaDon}', event)">❌</button>
+                        </td>
+                    </tr>`;
+                });
+            } catch {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-danger">Lỗi tải danh sách.</td></tr>`;
+            }
+        }
+
+        function capNhatChiTietThanhToan(tongTien, uuDai = 0, phuThu = 0) {
+            document.getElementById("tongTienHang").innerText = toVn(tongTien);
+            document.getElementById("uuDaiGiamGia").innerText = toVn(uuDai);
+            document.getElementById("phuThuDisplay").innerText = toVn(phuThu);
+            document.getElementById("tongCong").innerText = toVn(tongTien - uuDai + phuThu);
+        }
+
+
+        async function xoaHoaDonCho(id, event) {
+            event.stopPropagation();
+            const confirm = await Swal.fire({
+                icon: 'warning',
+                title: 'Xác nhận xóa hóa đơn chờ?',
+                text: 'Xóa hóa đơn này và toàn bộ chi tiết của nó?',
+                showCancelButton: true,
+                confirmButtonText: 'Xóa',
+                cancelButtonText: 'Hủy',
+                reverseButtons: true
+            });
+            if (confirm.isConfirmed) {
+                const res = await fetch('/POS/XoaHoaDonCho', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(id)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    await loadHoaDonCho();
+                    Swal.fire('Đã xóa!', '', 'success');
+                    if (idHoaDonCho === id) {
+                        idHoaDonCho = null;
+                        dsChiTietHoaDon = [];
+                        document.getElementById("danhSachHoaDon").innerHTML = "";
+                        capNhatChiTietThanhToan(0, 0, 0);
+                    }
+                } else {
+                    showError(data.message || "Không xóa được hóa đơn chờ!");
+                }
+            }
+        }
+
+
+        async function payHoaDonCho() {
+            // Lấy danh sách chi tiết hóa đơn
+            if (!dsChiTietHoaDon || dsChiTietHoaDon.length === 0) {
+                showError("Hóa đơn trống, không thể thanh toán!");
+                return;
+            }
+
+            // Lấy dữ liệu form
+            const hoTen = document.querySelector('[name="tenKhachHang"]')?.value?.trim() || null;
+            const email = document.querySelector('[name="email"]')?.value?.trim() || null;
+            const sdt = document.querySelector('[name="sdt"]')?.value?.trim() || null;
+            const diaChi = document.querySelector('[name="diaChi"]')?.value?.trim() || null;
+            const phuThuStr = document.querySelector('[name="phuThu"]')?.value?.trim();
+            const ghiChu = document.querySelector('[name="ghiChu"]')?.value?.trim() || null;
+            const phuongThuc = document.querySelector('[name="phuongThucThanhToan"]')?.value?.trim();
+            const idVoucher = window.currentVoucherId || null;
+            const phuThu = phuThuStr === "" ? null : toNumber(phuThuStr);
+
+            const chiTietList = dsChiTietHoaDon.map(x => ({
+                ID_SanPhamChiTiet: x.ID_SanPhamChiTiet || x.id_SanPhamChiTiet || x.iD_SanPhamChiTiet,
+                SoLuong: x.SoLuong || x.soLuong,
+                DonGia: x.DonGia || x.donGia,
+            }));
+
+            // Tổng tiền hàng
+            let tongTienHang = chiTietList.reduce((sum, ct) => sum + (ct.DonGia * ct.SoLuong), 0);
+
+            // Ưu đãi MGG
+            let uuDai = window.currentVoucherValue || 0;
+
+            // Đóng gói payload đúng DTO
+            const payload = {
+                ID_HoaDon: idHoaDonCho,
+                HoTen: hoTen,
+                Email: email,
+                Sdt_NguoiNhan: sdt,
+                DiaChi: diaChi,
+                HinhThucThanhToan: phuongThuc,
+                TongTienTruocGiam: tongTienHang,
+                TongTienSauGiam: tongTienHang - uuDai + (phuThu || 0),
+                PhuThu: phuThu,
+                GhiChu: ghiChu,
+                ID_Voucher: idVoucher,
+                HoaDonChiTiets: chiTietList
+            };
+
+            // Gửi request
+            const btn = document.getElementById("btnThanhToan");
+            if (btn) btn.disabled = true;
+            try {
+                const res = await fetch('/POS/Pay', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Thanh toán thành công',
+                        html: `<b>Mã hóa đơn:</b> <span class="text-success">${data.maHoaDon || ""}</span>`
+                    });
+                    // Reset form
+                    idHoaDonCho = null;
+                    dsChiTietHoaDon = [];
+                    document.getElementById("danhSachHoaDon").innerHTML = "";
+                    capNhatChiTietThanhToan(0, 0, 0);
+                    await loadHoaDonCho();
+                    // Thanh toán thành công thì clear input
+                    document.querySelector('[name="tenKhachHang"]').value = "";
+                    document.querySelector('[name="sdt"]').value = "";
+                    document.querySelector('[name="email"]').value = "";
+                    document.querySelector('[name="diaChi"]').value = "";
+                    document.querySelector('[name="ghiChu"]').value = "";
+                    document.querySelector('[name="phuThu"]').value = "";
+                    document.querySelector('[name="maGiamGia"]').value = "";
+                    document.querySelector('[name="phuongThucThanhToan"]').selectedIndex = 0;
+
+                    // Clear luôn danh sách biến thể đang hiển thị sau khi thanh toán thành công
+                    const tbodyBienThe = document.getElementById("danhSachBienThe");
+                    if (tbodyBienThe) {
+                        tbodyBienThe.innerHTML = `<tr><td colspan="4" class="text-muted">Vui lòng chọn sản phẩm để xem biến thể</td></tr>`;
+                    }
+                    bienTheTam = [];
+                } else {
+                    showError(data.message || "Thanh toán thất bại.");
+                }
+            } catch (err) {
+                showError("Có lỗi xảy ra khi thanh toán!");
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+
+        // Xử lý nhập phụ thu
+        function onPhuThuInput(e) {
+            let value = e.target.value;
+            let soPhuThu = toNumber(value);
+
+            if (value.trim() === "") {
+                soPhuThu = 0;
+                capNhatChiTietThanhToan(getTongTienHang(), window.currentVoucherValue || 0, 0);
+                return;
+            }
+
+            if (soPhuThu <= 0) {
+                showError("Phụ thu phải lớn hơn 0!");
+                // Reset lại về giá trị cũ nếu có, hoặc clear nếu chưa có phụ thu
+                e.target.value = "";
+                capNhatChiTietThanhToan(getTongTienHang(), window.currentVoucherValue || 0, 0);
+                return;
+            }
+            // Update realtime
+            capNhatChiTietThanhToan(getTongTienHang(), window.currentVoucherValue || 0, soPhuThu);
+        }
+
+        function getTongTienHang() {
+            if (!dsChiTietHoaDon) return 0;
+            return dsChiTietHoaDon.reduce((sum, item) => sum + ((item.DonGia || item.donGia) * (item.SoLuong || item.soLuong)), 0);
+        }
+
+
+        async function apDungMaGiamGia() {
+            // Lấy mã giảm giá đang nhập
+            const maGiamGia = document.querySelector('[name="maGiamGia"]').value.trim();
+            let tongTienHang = getTongTienHang();
+
+            if (!maGiamGia) {
+                showError("Vui lòng nhập mã giảm giá!");
+                return;
+            }
+
+            // Gửi request kiểm tra mã giảm giá
+            try {
+                const res = await fetch(`/POS/CheckVoucher?maGiamGia=${encodeURIComponent(maGiamGia)}&tongTienHang=${tongTienHang}`);
+                const data = await res.json();
+
+                if (data.success) {
+                    window.currentVoucherValue = data.giamGia || 0;
+                    window.currentVoucherId = data.idVoucher || null;
+                    document.getElementById("uuDaiGiamGia").innerText = toVn(window.currentVoucherValue);
+                    // Cập nhật lại tổng cộng
+                    let phuThu = toNumber(document.querySelector('[name="phuThu"]')?.value || 0);
+                    capNhatChiTietThanhToan(tongTienHang, window.currentVoucherValue, phuThu);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Áp dụng thành công!',
+                        text: `Bạn được giảm ${toVn(window.currentVoucherValue)}`
+                    });
+                } else {
+                    // Lỗi voucher: reset lại giá trị ưu đãi, id voucher
+                    window.currentVoucherValue = 0;
+                    window.currentVoucherId = null;
+                    document.getElementById("uuDaiGiamGia").innerText = "0 đ";
+                    let phuThu = toNumber(document.querySelector('[name="phuThu"]')?.value || 0);
+                    capNhatChiTietThanhToan(tongTienHang, 0, phuThu);
+                    showError(data.message || "Không áp dụng được mã giảm giá!");
+                }
+            } catch (err) {
+                showError("Có lỗi khi kiểm tra mã giảm giá!");
+            }
+        }
+
+
+        function resetVoucher() {
+            window.currentVoucherValue = 0;
+            window.currentVoucherId = null;
+            document.getElementById("uuDaiGiamGia").innerText = "0 đ";
+            // Cập nhật lại tổng cộng với ưu đãi = 0
+            let tongTien = getTongTienHang();
+            let phuThu = toNumber(document.querySelector('[name="phuThu"]')?.value || 0);
+            capNhatChiTietThanhToan(tongTien, 0, phuThu);
+        }
+
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadHoaDonCho();
+
+            const btnPay = document.getElementById("btnThanhToan");
+            if (btnPay) btnPay.addEventListener("click", payHoaDonCho);
+
+            const inputSearch = document.getElementById("timKiemSP");
+            if (inputSearch) {
+                inputSearch.addEventListener("input", function () {
+                    const keyword = this.value.toLowerCase().trim();
+                    const rows = document.querySelectorAll("#danhSachSanPham tr");
+                    rows.forEach(row => {
+                        const ma  = row.children[1]?.innerText.toLowerCase() || "";
+                        const ten = row.children[2]?.innerText.toLowerCase() || "";
+                        row.style.display = (ma.includes(keyword) || ten.includes(keyword)) ? "" : "none";
+                    });
+                });
+            }
+
+            const phuThuInput = document.getElementById("phuThuInput");
+            if (phuThuInput) {
+                phuThuInput.addEventListener("input", onPhuThuInput);
+                phuThuInput.addEventListener("blur", function(e){
+                    let soPhuThu = toNumber(e.target.value);
+                    if (e.target.value.trim() !== "" && soPhuThu <= 0) {
+                        e.target.value = "";
+                        capNhatChiTietThanhToan(getTongTienHang(), window.currentVoucherValue || 0, 0);
+                    }
+                });
+            }
+        });
+    </script>
+}

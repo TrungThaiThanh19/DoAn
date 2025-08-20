@@ -1,0 +1,32 @@
+﻿@model DoAn.Models.ThuongHieu
+@{
+    ViewData["Title"] = "Chi tiết thương hiệu";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2 class="mb-4 text-primary">🏷️ Chi tiết thương hiệu</h2>
+
+<div class="card shadow-sm rounded-4 p-4 mb-4">
+    <div class="row fs-5">
+        <div class="col-md-6">
+            <p><strong>Mã thương hiệu:</strong> @Model.Ma_ThuongHieu</p>
+            <p><strong>Tên thương hiệu:</strong> @Model.Ten_ThuongHieu</p>
+            <p>
+                <strong>Trạng thái:</strong>
+                @if (Model.TrangThai == 1)
+                {
+                    <span class="badge bg-success">Hoạt động</span>
+                }
+                else
+                {
+                    <span class="badge bg-danger">Không hoạt động</span>
+                }
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between">
+    <a asp-action="Index" class="btn btn-outline-primary rounded-pill px-4">← Quay lại</a>
+    <a asp-action="Update" asp-route-idThuongHieu="@Model.ID_ThuongHieu" class="btn btn-primary rounded-pill px-4">✏️ Cập nhật</a>
+</div>
