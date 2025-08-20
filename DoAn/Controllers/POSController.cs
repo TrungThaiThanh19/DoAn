@@ -23,7 +23,7 @@ namespace DoAn.Controllers
 				.Include(x => x.QuocGia)
 				.Include(x => x.GioiTinh)
 				.Include(x => x.SanPhamChiTiets)
-				.Where(x => x.SanPhamChiTiets.Any(ct => ct.TrangThai == 1))
+				.Where(x => x.SanPhamChiTiets.Any(ct => ct.TrangThai == 1 && ct.SoLuong > 0))
 				.OrderBy(x => x.Ten_SanPham)
 				.ToListAsync();
 
@@ -37,7 +37,7 @@ namespace DoAn.Controllers
 			var danhSachBienThe = await _context.SanPhamChiTiets
 				.Include(ct => ct.TheTich)
 				.Include(ct => ct.SanPham)
-				.Where(ct => ct.ID_SanPham == idSanPham && ct.TrangThai == 1)
+				.Where(ct => ct.ID_SanPham == idSanPham && ct.TrangThai == 1 && ct.SoLuong > 0)
 				.Select(ct => new {
 					id_SanPhamChiTiet = ct.ID_SanPhamChiTiet,
 					TenSanPham = ct.SanPham.Ten_SanPham,
@@ -50,6 +50,7 @@ namespace DoAn.Controllers
 			return Json(danhSachBienThe);
 		}
 
+
 		[HttpGet]
 		public async Task<IActionResult> CheckVoucher(string maGiamGia, decimal tongTienHang)
 		{
@@ -59,17 +60,17 @@ namespace DoAn.Controllers
 			var voucher = await _context.Vouchers
 				.FirstOrDefaultAsync(v => v.Ma_Voucher == maGiamGia);
 
-			if (voucher == null || voucher.TrangThai != 1)
-				return Json(new { success = false, message = "Mã giảm giá không tồn tại hoặc đã hết hạn." });
+			if (voucher == null)
+				return Json(new { success = false, message = "Mã giảm giá không tồn tại" });
 
-			if (DateTime.Now < voucher.NgayTao)
-				return Json(new { success = false, message = "Mã giảm giá chưa được kích hoạt." });
+			if (voucher.TrangThai != 1)
+				return Json(new { success = false, message = "Mã giảm giá chưa được kích hoạt" });
 
 			if (DateTime.Now > voucher.NgayHetHan)
-				return Json(new { success = false, message = "Mã giảm giá đã hết hạn sử dụng." });
+				return Json(new { success = false, message = "Mã giảm giá đã hết hạn sử dụng" });
 
 			if (voucher.SoLuong <= 0)
-				return Json(new { success = false, message = "Mã giảm giá đã hết lượt sử dụng." });
+				return Json(new { success = false, message = "Mã giảm giá đã hết lượt sử dụng" });
 
 			if (tongTienHang < voucher.GiaTriToiThieu)
 				return Json(new { success = false, message = $"Đơn hàng chưa đạt tối thiểu {voucher.GiaTriToiThieu:N0} đ để áp dụng mã." });
@@ -80,207 +81,22 @@ namespace DoAn.Controllers
 			if (voucher.KieuGiamGia == "Phần trăm")
 			{
 				// Tính phần trăm trước, sau đó giới hạn theo Giá trị tối đa
-				decimal tienGiam = tongTienHang * (voucher.GiaTriGiam / 100m); // thêm 'm' để ép kiểu decimal
+				decimal tienGiam = tongTienHang * (voucher.GiaTriGiam / 100m);
 				giamGia = Math.Min(tienGiam, voucher.GiaTriToiDa);
 			}
-			else
+			else if (voucher.KieuGiamGia == "Tiền mặt")
 			{
 				// Nếu là kiểu "tiền mặt" thì giảm đúng số tiền đó
 				giamGia = voucher.GiaTriGiam;
+			}
+			else
+			{
+				return Json(new { success = false, message = "Kiểu giảm giá không hợp lệ" });
 			}
 
 			return Json(new { success = true, giamGia = giamGia, idVoucher = voucher.ID_Voucher });
 		}
 
-
-		[HttpPost]
-		public async Task<IActionResult> Pay([FromBody] HoaDonRequest model)
-		{
-			if (!TryValidateModel(model))
-			{
-				var allErrors = ModelState
-					.Where(kv => kv.Value.Errors.Count > 0)
-					.SelectMany(kv => kv.Value.Errors.Select(e => e.ErrorMessage))
-					.Distinct()
-					.ToList();
-
-				return Json(new { success = false, message = string.Join(" | ", allErrors) });
-			}
-
-			// Chỉ chấp nhận 2 giá trị thanh toán có sẵn
-			var paymentsMethod = new[] { "Tiền mặt", "Chuyển khoản" };
-			if (!paymentsMethod.Contains(model.HinhThucThanhToan))
-				return Json(new { success = false, message = "Hình thức thanh toán không hợp lệ." });
-
-			if (model.PhuThu.HasValue && model.PhuThu.Value < 0)
-				return Json(new { success = false, message = "Phụ thu không được nhỏ hơn 0đ" });
-
-			// Lấy danh sách SPCT theo các ID client gửi lên
-			var ids = model.HoaDonChiTiets.Select(x => x.ID_SanPhamChiTiet).ToList();
-			var spctsCalc = await _context.SanPhamChiTiets
-				.Where(x => ids.Contains(x.ID_SanPhamChiTiet))
-				.Select(x => new { x.ID_SanPhamChiTiet, x.GiaBan, x.SoLuong, x.TrangThai })
-				.ToListAsync();
-
-			if (spctsCalc.Count != ids.Count || spctsCalc.Any(x => x.TrangThai != 1))
-				return Json(new { success = false, message = "Có sản phẩm không tồn tại hoặc ngừng bán." });
-
-			// Tính tổng tiền trước giảm và kiểm tra số lượng tồn kho
-			decimal tongTruocGiam = 0;
-			foreach (var ct in model.HoaDonChiTiets)
-			{
-				var dbItem = spctsCalc.First(x => x.ID_SanPhamChiTiet == ct.ID_SanPhamChiTiet);
-
-				if (ct.SoLuong > dbItem.SoLuong)
-					return Json(new { success = false, message = "Số lượng mua vượt tồn kho." });
-
-				tongTruocGiam += dbItem.GiaBan * ct.SoLuong;
-			}
-
-			// Kiểm tra voucher: trạng thái, thời gian hiệu lực, còn lượt, đạt mức tối thiểu
-			decimal giamGiaServer = 0m;
-			DoAn.Models.Voucher? voucherEntity = null;
-			if (model.ID_Voucher.HasValue)
-			{
-				voucherEntity = await _context.Vouchers.FirstOrDefaultAsync(v => v.ID_Voucher == model.ID_Voucher);
-				if (voucherEntity == null || voucherEntity.TrangThai != 1
-					|| DateTime.Now < voucherEntity.NgayTao
-					|| DateTime.Now > voucherEntity.NgayHetHan
-					|| voucherEntity.SoLuong <= 0
-					|| tongTruocGiam < voucherEntity.GiaTriToiThieu)
-				{
-					return Json(new { success = false, message = "Voucher không hợp lệ hoặc không áp dụng được" });
-				}
-
-				// Nếu là kiểu giảm giá %, tính số tiền giảm theo % và giới hạn theo giá trị tối đa
-				if (voucherEntity.KieuGiamGia == "Phần trăm")
-				{
-					var tienGiam = tongTruocGiam * (voucherEntity.GiaTriGiam / 100m);
-					giamGiaServer = Math.Min(tienGiam, voucherEntity.GiaTriToiDa);
-				}
-				else // Giảm trực tiếp
-				{
-					giamGiaServer = voucherEntity.GiaTriGiam;
-				}
-			}
-
-			// Nếu client không nhập phụ thu thì mặc định là 0
-			var phuThuServer = model.PhuThu ?? 0m;
-			var tongSauGiamServer = tongTruocGiam - giamGiaServer + phuThuServer;
-
-			// Đối chiếu số tiền client gửi với server (dung sai 0.5đ để tránh vấn đề làm tròn)
-			if (Math.Abs((double)(model.TongTienTruocGiam - tongTruocGiam)) > 0.5 ||
-				Math.Abs((double)(model.TongTienSauGiam - tongSauGiamServer)) > 0.5)
-			{
-				return Json(new
-				{
-					success = false,
-					message = "Số tiền không hợp lệ"
-				});
-			}
-
-			// Sinh mã hoá đơn ngẫu nhiên và duy nhất
-			string maHoaDon;
-			do { maHoaDon = TaoMaNgauNhien(10); }
-			while (await _context.HoaDons.AnyAsync(x => x.Ma_HoaDon == maHoaDon));
-
-			// Trừ số lượng SPCT + trừ số lượng voucher + tạo hoá đơn
-			await using var tx = await _context.Database.BeginTransactionAsync();
-			try
-			{
-				var spctsUpdate = await _context.SanPhamChiTiets
-					.Where(x => ids.Contains(x.ID_SanPhamChiTiet))
-					.ToListAsync();
-
-				foreach (var ct in model.HoaDonChiTiets)
-				{
-					var ent = spctsUpdate.First(x => x.ID_SanPhamChiTiet == ct.ID_SanPhamChiTiet);
-
-					if (ent.TrangThai != 1)
-						return Json(new { success = false, message = $"Sản phẩm đã ngừng bán: {ent.ID_SanPhamChiTiet}" });
-
-					if (ct.SoLuong > ent.SoLuong)
-						return Json(new { success = false, message = "Số lượng mua vượt tồn kho (vừa có thay đổi tồn). Vui lòng thử lại." });
-				}
-
-				if (voucherEntity != null)
-				{
-					var voucherTracked = await _context.Vouchers
-						.FirstOrDefaultAsync(v => v.ID_Voucher == voucherEntity.ID_Voucher);
-
-					if (voucherTracked == null
-						|| voucherTracked.TrangThai != 1
-						|| DateTime.Now < voucherTracked.NgayTao
-						|| DateTime.Now > voucherTracked.NgayHetHan
-						|| voucherTracked.SoLuong <= 0
-						|| tongTruocGiam < voucherTracked.GiaTriToiThieu)
-					{
-						return Json(new { success = false, message = "Voucher không còn hợp lệ. Vui lòng áp dụng lại." });
-					}
-
-					voucherTracked.SoLuong -= 1; // trừ 1 lượt dùng voucher
-					_context.Vouchers.Update(voucherTracked);
-				}
-
-				var hoaDon = new HoaDon
-				{
-					ID_HoaDon = Guid.NewGuid(),
-					Ma_HoaDon = maHoaDon,
-					HoTen = string.IsNullOrWhiteSpace(model.HoTen) ? null : model.HoTen,
-					Email = string.IsNullOrWhiteSpace(model.Email) ? null : model.Email,
-					Sdt_NguoiNhan = string.IsNullOrWhiteSpace(model.Sdt_NguoiNhan) ? null : model.Sdt_NguoiNhan,
-					DiaChi = string.IsNullOrWhiteSpace(model.DiaChi) ? null : model.DiaChi,
-					HinhThucThanhToan = model.HinhThucThanhToan,
-					PhuongThucNhanHang = "Nhận tại quầy",
-					TongTienTruocGiam = tongTruocGiam,
-					TongTienSauGiam = tongSauGiamServer,
-					PhuThu = phuThuServer,
-					LoaiHoaDon = "Offline",
-					GhiChu = string.IsNullOrWhiteSpace(model.GhiChu) ? null : model.GhiChu,
-					NgayTao = DateTime.Now,
-					TrangThai = 1,
-					ID_Voucher = model.ID_Voucher
-				};
-
-				hoaDon.HoaDonChiTiets = model.HoaDonChiTiets.Select(ct =>
-				{
-					var dbItem = spctsCalc.First(x => x.ID_SanPhamChiTiet == ct.ID_SanPhamChiTiet);
-					return new HoaDonChiTiet
-					{
-						ID_HoaDonChiTiet = Guid.NewGuid(),
-						ID_HoaDon = hoaDon.ID_HoaDon,
-						ID_SanPhamChiTiet = ct.ID_SanPhamChiTiet,
-						SoLuong = ct.SoLuong,
-						DonGia = dbItem.GiaBan
-					};
-				}).ToList();
-
-				_context.HoaDons.Add(hoaDon);
-
-				// Trừ tồn kho từng SPCT
-				foreach (var ct in model.HoaDonChiTiets)
-				{
-					var ent = spctsUpdate.First(x => x.ID_SanPhamChiTiet == ct.ID_SanPhamChiTiet);
-					ent.SoLuong -= ct.SoLuong;
-					_context.SanPhamChiTiets.Update(ent);
-				}
-
-				await _context.SaveChangesAsync();
-				await tx.CommitAsync();
-
-				return Json(new { success = true, message = "Thanh toán thành công!", maHoaDon });
-			}
-			catch (DbUpdateConcurrencyException)
-			{
-				await tx.RollbackAsync();
-				return Json(new { success = false, message = "Có thay đổi đồng thời" });
-			}
-			catch (Exception)
-			{
-				await tx.RollbackAsync();
-				return Json(new { success = false, message = "Có lỗi khi tạo hoá đơn" });
-			}
-		}
 
 		// Hàm sinh mã ngẫu nhiên
 		private string TaoMaNgauNhien(int length)
@@ -289,34 +105,6 @@ namespace DoAn.Controllers
 			var random = new Random();
 			return new string(Enumerable.Repeat(chars, length)
 				.Select(s => s[random.Next(s.Length)]).ToArray());
-		}
-
-		// DTO nhận từ frontend
-		public class HoaDonRequest
-		{
-			public Guid ID_HoaDon { get; set; }
-			[RegularExpression(@"^[\p{L}\s'.-]+$", ErrorMessage = "Tên không hợp lệ")]
-			[StringLength(100, ErrorMessage = "Tên tối đa 100 ký tự")]
-			public string? HoTen { get; set; }
-			[EmailAddress(ErrorMessage = "Email không hợp lệ")]
-			public string? Email { get; set; }
-			[RegularExpression(@"^0\d{9}$", ErrorMessage = "SĐT không hợp lệ")]
-			public string? Sdt_NguoiNhan { get; set; }
-			public string? DiaChi { get; set; }
-			public string HinhThucThanhToan { get; set; }
-			public decimal TongTienTruocGiam { get; set; }
-			public decimal TongTienSauGiam { get; set; }
-			public decimal? PhuThu { get; set; }
-			public string? GhiChu { get; set; }
-			public Guid? ID_Voucher { get; set; }
-			public List<HoaDonChiTietRequest> HoaDonChiTiets { get; set; }
-		}
-
-		public class HoaDonChiTietRequest
-		{
-			public Guid ID_SanPhamChiTiet { get; set; }
-			public int SoLuong { get; set; }
-			public decimal DonGia { get; set; }
 		}
 
 
@@ -362,24 +150,19 @@ namespace DoAn.Controllers
 			return Json(dsChiTiet);
 		}
 
-		public class TaoHoaDonChoRequest
-		{
-			public Guid ID_SanPhamChiTiet { get; set; }
-			public int SoLuong { get; set; }
-			public decimal DonGia { get; set; }
-		}
-		public class ThemSanPhamVaoHoaDonChoRequest
-		{
-			public Guid ID_HoaDon { get; set; }
-			public Guid ID_SanPhamChiTiet { get; set; }
-			public int SoLuong { get; set; }
-		}
+
 
 		[HttpPost]
 		public async Task<IActionResult> TaoHoaDonCho([FromBody] TaoHoaDonChoRequest model)
 		{
 			try
 			{
+				var soHoaDonCho = await _context.HoaDons.CountAsync(x => x.TrangThai == 0);
+				if (soHoaDonCho >= 5)
+				{
+					return Json(new { success = false, message = "Chỉ được phép tạo tối đa 5 hóa đơn chờ! Vui lòng xóa bớt hóa đơn chờ trước khi tạo mới" });
+				}
+
 				string maHoaDon;
 				do { maHoaDon = TaoMaNgauNhien(10); }
 				while (await _context.HoaDons.AnyAsync(x => x.Ma_HoaDon == maHoaDon));
@@ -425,15 +208,24 @@ namespace DoAn.Controllers
 				.FirstOrDefaultAsync(hd => hd.ID_HoaDon == model.ID_HoaDon && hd.TrangThai == 0);
 
 			if (hoaDon == null)
-				return Json(new { success = false, message = "Không tìm thấy hóa đơn chờ." });
+				return Json(new { success = false, message = "Không tìm thấy hóa đơn chờ" });
 
-			// Kiểm tra sản phẩm đã có trong chi tiết chưa
-			var chiTiet = hoaDon.HoaDonChiTiets
-				.FirstOrDefault(ct => ct.ID_SanPhamChiTiet == model.ID_SanPhamChiTiet);
+			// Lấy tồn kho thực tế của biến thể
+			var spct = await _context.SanPhamChiTiets.FirstOrDefaultAsync(x => x.ID_SanPhamChiTiet == model.ID_SanPhamChiTiet);
+			if (spct == null || spct.TrangThai != 1)
+				return Json(new { success = false, message = "Biến thể không hợp lệ hoặc đã ngừng kinh doanh" });
+
+			// Kiểm tra tổng số lượng đã có trong hóa đơn
+			var chiTiet = hoaDon.HoaDonChiTiets.FirstOrDefault(ct => ct.ID_SanPhamChiTiet == model.ID_SanPhamChiTiet);
+			int soLuongHienTai = chiTiet?.SoLuong ?? 0;
+			int soLuongMoi = soLuongHienTai + model.SoLuong;
+
+			if (soLuongMoi > spct.SoLuong)
+				return Json(new { success = false, message = "Vượt quá số lượng tồn kho" });
 
 			if (chiTiet != null)
 			{
-				chiTiet.SoLuong += model.SoLuong;
+				chiTiet.SoLuong = soLuongMoi;
 				_context.HoaDonChiTiets.Update(chiTiet);
 			}
 			else
@@ -444,10 +236,7 @@ namespace DoAn.Controllers
 					ID_HoaDon = hoaDon.ID_HoaDon,
 					ID_SanPhamChiTiet = model.ID_SanPhamChiTiet,
 					SoLuong = model.SoLuong,
-					DonGia = await _context.SanPhamChiTiets
-						.Where(spct => spct.ID_SanPhamChiTiet == model.ID_SanPhamChiTiet)
-						.Select(spct => spct.GiaBan)
-						.FirstOrDefaultAsync()
+					DonGia = spct.GiaBan
 				};
 				_context.HoaDonChiTiets.Add(chiTiet);
 			}
@@ -455,6 +244,7 @@ namespace DoAn.Controllers
 			await _context.SaveChangesAsync();
 			return Json(new { success = true });
 		}
+
 
 		[HttpPost]
 		public async Task<IActionResult> CapNhatSoLuongHoaDonChiTiet([FromBody] CapNhatSoLuongRequest req)
@@ -482,12 +272,6 @@ namespace DoAn.Controllers
 			return Json(new { success = true, message = "Đã cập nhật số lượng." });
 		}
 
-		// Request DTO
-		public class CapNhatSoLuongRequest
-		{
-			public Guid ID_HoaDonChiTiet { get; set; }
-			public int SoLuong { get; set; }
-		}
 
 
 		[HttpPost]
@@ -517,10 +301,268 @@ namespace DoAn.Controllers
 			return Json(new { success = true, message = "Đã xóa sản phẩm khỏi hóa đơn chờ." });
 		}
 
+
+		[HttpPost]
+		public async Task<IActionResult> XoaHoaDonCho([FromBody] Guid idHoaDon)
+		{
+			var hoaDon = await _context.HoaDons
+				.Include(x => x.HoaDonChiTiets)
+				.FirstOrDefaultAsync(x => x.ID_HoaDon == idHoaDon && x.TrangThai == 0);
+
+			if (hoaDon == null)
+				return Json(new { success = false, message = "Không tìm thấy hóa đơn chờ cần xóa!" });
+
+			// Xóa chi tiết trước
+			_context.HoaDonChiTiets.RemoveRange(hoaDon.HoaDonChiTiets);
+			_context.HoaDons.Remove(hoaDon);
+
+			await _context.SaveChangesAsync();
+
+			return Json(new { success = true, message = "Đã xóa hóa đơn chờ." });
+		}
+
+
+
+		[HttpPost]
+		public async Task<IActionResult> Pay([FromBody] HoaDonRequest model)
+		{
+			try
+			{
+				if (model == null || model.HoaDonChiTiets == null || !model.HoaDonChiTiets.Any())
+					return Json(new { success = false, message = "Hóa đơn không được để trống!" });
+
+				if (string.IsNullOrWhiteSpace(model.HinhThucThanhToan))
+					return Json(new { success = false, message = "Vui lòng chọn phương thức thanh toán!" });
+
+				if (!string.IsNullOrEmpty(model.HoTen) && !System.Text.RegularExpressions.Regex.IsMatch(model.HoTen, @"^[\p{L}\s'.-]+$"))
+					return Json(new { success = false, message = "Tên khách hàng không hợp lệ" });
+
+				if (!string.IsNullOrEmpty(model.Sdt_NguoiNhan) && !System.Text.RegularExpressions.Regex.IsMatch(model.Sdt_NguoiNhan, @"^0\d{9}$"))
+					return Json(new { success = false, message = "Số điện thoại không hợp lệ" });
+
+				if (!string.IsNullOrEmpty(model.Email) && !new EmailAddressAttribute().IsValid(model.Email))
+					return Json(new { success = false, message = "Email không đúng định dạng" });
+
+				if (model.PhuThu.HasValue && model.PhuThu.Value <= 0)
+					return Json(new { success = false, message = "Phụ thu phải lớn hơn 0" });
+
+				// Mặc định phương thức nhận hàng là “Nhận tại quầy”
+				string phuongThucNhanHang = "Nhận tại quầy";
+
+				// Validate và xử lý Mã giảm giá (cho phép null)
+				Voucher? voucher = null;
+				decimal giamGia = 0;
+				if (model.ID_Voucher.HasValue)
+				{
+					voucher = await _context.Vouchers.FirstOrDefaultAsync(v => v.ID_Voucher == model.ID_Voucher.Value);
+
+					if (voucher == null)
+						return Json(new { success = false, message = "Mã giảm giá không tồn tại" });
+
+					if (voucher.TrangThai != 1)
+						return Json(new { success = false, message = "Mã giảm giá chưa được kích hoạt" });
+
+					if (DateTime.Now > voucher.NgayHetHan)
+						return Json(new { success = false, message = "Mã giảm giá đã hết hạn sử dụng" });
+
+					if (voucher.SoLuong <= 0)
+						return Json(new { success = false, message = "Mã giảm giá đã hết lượt sử dụng" });
+
+					if (model.TongTienTruocGiam < voucher.GiaTriToiThieu)
+						return Json(new { success = false, message = $"Đơn hàng chưa đạt tối thiểu {voucher.GiaTriToiThieu:N0}đ để áp dụng mã." });
+
+					// Tính số tiền giảm
+					if (voucher.KieuGiamGia == "Phần trăm")
+					{
+						decimal tienGiam = model.TongTienTruocGiam * (voucher.GiaTriGiam / 100m);
+						giamGia = Math.Min(tienGiam, voucher.GiaTriToiDa);
+					}
+					else if (voucher.KieuGiamGia == "Tiền mặt")
+					{
+						giamGia = voucher.GiaTriGiam;
+					}
+					else
+					{
+						return Json(new { success = false, message = "Kiểu giảm giá không hợp lệ" });
+					}
+				}
+
+				// Kiểm tra tồn kho sản phẩm
+				foreach (var item in model.HoaDonChiTiets)
+				{
+					var spct = await _context.SanPhamChiTiets.FindAsync(item.ID_SanPhamChiTiet);
+					if (spct == null || spct.TrangThai != 1)
+						return Json(new { success = false, message = "Có biến thể sản phẩm tạm ngừng kinh doanh" });
+					if (item.SoLuong > spct.SoLuong)
+						return Json(new { success = false, message = "Có sản phẩm trong hóa đơn không đủ số lượng tồn kho!" });
+				}
+
+				HoaDon hoaDon;
+				bool laHoaDonCho = model.ID_HoaDon != Guid.Empty;
+
+				if (laHoaDonCho)
+				{
+					// Tìm hóa đơn chờ đã có, chỉ update
+					hoaDon = await _context.HoaDons
+						.Include(hd => hd.HoaDonChiTiets)
+						.FirstOrDefaultAsync(hd => hd.ID_HoaDon == model.ID_HoaDon);
+
+					if (hoaDon == null)
+						return Json(new { success = false, message = "Không tìm thấy hóa đơn chờ để thanh toán!" });
+
+					// Update các trường thông tin khách hàng
+					hoaDon.HoTen = model.HoTen;
+					hoaDon.Email = model.Email;
+					hoaDon.Sdt_NguoiNhan = model.Sdt_NguoiNhan;
+					hoaDon.DiaChi = model.DiaChi;
+					hoaDon.HinhThucThanhToan = model.HinhThucThanhToan;
+					hoaDon.PhuThu = model.PhuThu;
+					hoaDon.GhiChu = model.GhiChu;
+					hoaDon.ID_Voucher = voucher?.ID_Voucher;
+					hoaDon.TongTienTruocGiam = model.TongTienTruocGiam;
+					hoaDon.TongTienSauGiam = model.TongTienTruocGiam - giamGia + (model.PhuThu ?? 0);
+					hoaDon.TrangThai = 1; // Đã thanh toán
+					hoaDon.NgayCapNhat = DateTime.Now;
+					hoaDon.PhuongThucNhanHang = phuongThucNhanHang;
+
+					// Trừ tồn kho sản phẩm
+					foreach (var item in model.HoaDonChiTiets)
+					{
+						var spct = await _context.SanPhamChiTiets.FindAsync(item.ID_SanPhamChiTiet);
+						spct.SoLuong -= item.SoLuong;
+						if (spct.SoLuong <= 0)
+						{
+							spct.SoLuong = 0;
+							spct.TrangThai = 0;
+						}
+						_context.SanPhamChiTiets.Update(spct);
+					}
+				}
+				else
+				{
+					// Tạo hóa đơn mới 
+					hoaDon = new HoaDon
+					{
+						ID_HoaDon = Guid.NewGuid(),
+						Ma_HoaDon = TaoMaNgauNhien(10),
+						HoTen = model.HoTen,
+						Email = model.Email,
+						Sdt_NguoiNhan = model.Sdt_NguoiNhan,
+						DiaChi = model.DiaChi,
+						HinhThucThanhToan = model.HinhThucThanhToan,
+						PhuongThucNhanHang = phuongThucNhanHang,
+						TongTienTruocGiam = model.TongTienTruocGiam,
+						TongTienSauGiam = model.TongTienTruocGiam - giamGia + (model.PhuThu ?? 0),
+						PhuThu = model.PhuThu,
+						GhiChu = model.GhiChu,
+						ID_Voucher = voucher?.ID_Voucher,
+						LoaiHoaDon = "Offline",
+						NgayTao = DateTime.Now,
+						TrangThai = 1 // Đã thanh toán
+					};
+
+					// Tạo chi tiết hóa đơn + trừ tồn kho
+					hoaDon.HoaDonChiTiets = new List<HoaDonChiTiet>();
+					foreach (var item in model.HoaDonChiTiets)
+					{
+						var spct = await _context.SanPhamChiTiets.FindAsync(item.ID_SanPhamChiTiet);
+						spct.SoLuong -= item.SoLuong;
+						if (spct.SoLuong <= 0)
+						{
+							spct.SoLuong = 0;
+							spct.TrangThai = 0;
+						}
+						_context.SanPhamChiTiets.Update(spct);
+
+						hoaDon.HoaDonChiTiets.Add(new HoaDonChiTiet
+						{
+							ID_HoaDonChiTiet = Guid.NewGuid(),
+							ID_HoaDon = hoaDon.ID_HoaDon,
+							ID_SanPhamChiTiet = item.ID_SanPhamChiTiet,
+							SoLuong = item.SoLuong,
+							DonGia = item.DonGia
+						});
+					}
+
+					_context.HoaDons.Add(hoaDon);
+				}
+
+				// Trừ lượt sử dụng của voucher (nếu có)
+				if (voucher != null)
+				{
+					voucher.SoLuong -= 1;
+					_context.Vouchers.Update(voucher);
+				}
+
+				await _context.SaveChangesAsync();
+
+				// Trả kết quả thành công kèm mã hóa đơn
+				return Json(new { success = true, message = "Thanh toán thành công!", maHoaDon = hoaDon.Ma_HoaDon });
+			}
+			catch (Exception ex)
+			{
+				var detail = ex.InnerException?.Message ?? ex.Message;
+				return Json(new { success = false, message = "Có lỗi xảy ra khi thanh toán!", detail });
+			}
+		}
+
+
+		// DTO nhận từ frontend
+		public class HoaDonRequest
+		{
+			public Guid ID_HoaDon { get; set; }
+			[RegularExpression(@"^[\p{L}\s'.-]+$", ErrorMessage = "Tên không hợp lệ")]
+			[StringLength(100, ErrorMessage = "Tên tối đa 100 ký tự")]
+			public string? HoTen { get; set; }
+			[EmailAddress(ErrorMessage = "Email không hợp lệ")]
+			public string? Email { get; set; }
+			[RegularExpression(@"^0\d{9}$", ErrorMessage = "SĐT không hợp lệ")]
+			public string? Sdt_NguoiNhan { get; set; }
+			public string? DiaChi { get; set; }
+			public string HinhThucThanhToan { get; set; }
+			public decimal TongTienTruocGiam { get; set; }
+			public decimal TongTienSauGiam { get; set; }
+			public decimal? PhuThu { get; set; }
+			public string? GhiChu { get; set; }
+			public Guid? ID_Voucher { get; set; }
+			public List<HoaDonChiTietRequest> HoaDonChiTiets { get; set; }
+		}
+
+
+		public class HoaDonChiTietRequest
+		{
+			public Guid ID_SanPhamChiTiet { get; set; }
+			public int SoLuong { get; set; }
+			public decimal DonGia { get; set; }
+		}
+
+
 		public class XoaHoaDonChiTietRequest
 		{
 			public Guid ID_HoaDonChiTiet { get; set; }
 		}
 
+
+		public class CapNhatSoLuongRequest
+		{
+			public Guid ID_HoaDonChiTiet { get; set; }
+			public int SoLuong { get; set; }
+		}
+
+
+		public class TaoHoaDonChoRequest
+		{
+			public Guid ID_SanPhamChiTiet { get; set; }
+			public int SoLuong { get; set; }
+			public decimal DonGia { get; set; }
+		}
+
+
+		public class ThemSanPhamVaoHoaDonChoRequest
+		{
+			public Guid ID_HoaDon { get; set; }
+			public Guid ID_SanPhamChiTiet { get; set; }
+			public int SoLuong { get; set; }
+		}
 	}
 }

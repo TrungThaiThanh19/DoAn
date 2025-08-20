@@ -52,7 +52,7 @@
 
                 <div class="col-md-6">
                     <label class="form-label">Phụ thu</label>
-                    <input class="form-control" name="phuThu" />
+                    <input class="form-control" name="phuThu" id="phuThuInput" />
                 </div>
                 <div class="col-md-12">
                     <label class="form-label">Ghi chú</label>
@@ -117,7 +117,7 @@
                         </thead>
                         <tbody id="danhSachBienThe">
                             <tr>
-                                <td colspan="4" class="text-muted">Vui lòng chọn sản phẩm để xem biến thể.</td>
+                                <td colspan="4" class="text-muted">Vui lòng chọn sản phẩm để xem biến thể</td>
                             </tr>
                         </tbody>
                     </table>
@@ -139,6 +139,7 @@
                                 <th>Loại hóa đơn</th>
                                 <th>Ngày tạo</th>
                                 <th>Trạng thái</th>
+                                <th>Thao tác</th>
                             </tr>
                         </thead>
                         <tbody id="danhSachHoaDonCho">
@@ -246,7 +247,7 @@
                     tbody.innerHTML = "";
 
                     if (!data || data.length === 0) {
-                        tbody.innerHTML = `<tr><td colspan="4" class="text-muted">Không có biến thể còn hàng.</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="4" class="text-muted">Không có biến thể còn hàng</td></tr>`;
                         return;
                     }
 
@@ -269,13 +270,12 @@
                 });
         }
 
-        // === Xử lý hóa đơn chờ ===
         async function themVaoHoaDonCho(index) {
             const bienThe = bienTheTam[index];
             const soLuong = 1;
 
             if (!idHoaDonCho) {
-                // Chưa có hóa đơn chờ => tạo mới hóa đơn chờ và add sp đầu tiên
+                // Chưa có hóa đơn chờ => tạo mới hóa đơn chờ và thêm sp đầu tiên
                 const payload = {
                     ID_SanPhamChiTiet: bienThe.id_SanPhamChiTiet,
                     SoLuong: soLuong,
@@ -377,13 +377,14 @@
                 return;
             }
             await loadChiTietHoaDon(idHoaDonCho);
+            resetVoucher();
         }
 
 
         async function giamSoLuongHD(index) {
             let item = dsChiTietHoaDon[index];
             if (item.soLuong <= 1) {
-                return await xoaChiTietHD(item.id_HoaDonChiTiet);
+                return await xoaChiTietHD(index);
             }
             const res = await fetch('/POS/CapNhatSoLuongHoaDonChiTiet', {
                 method: 'POST',
@@ -399,12 +400,22 @@
                 return;
             }
             await loadChiTietHoaDon(idHoaDonCho);
+            resetVoucher();
         }
+
 
         async function capNhatSoLuongHD(index, value) {
             let item = dsChiTietHoaDon[index];
+            let soCu = item.soLuong;
             let soMoi = parseInt(value);
-            if (isNaN(soMoi) || soMoi <= 0) return;
+
+            if (isNaN(soMoi) || soMoi <= 0) {
+                showError("Số lượng không hợp lệ");
+                // Reset lại giá trị cũ
+                document.querySelectorAll("#danhSachHoaDon input[type='number']")[index].value = soCu;
+                return;
+            }
+
             const res = await fetch('/POS/CapNhatSoLuongHoaDonChiTiet', {
                 method: 'POST',
                 headers: {'Content-Type':'application/json'},
@@ -413,13 +424,17 @@
                     SoLuong: soMoi
                 })
             });
+
             const data = await res.json();
             if (!data.success) {
                 showError(data.message || "Không cập nhật được số lượng.");
+                document.querySelectorAll("#danhSachHoaDon input[type='number']")[index].value = soCu;
                 return;
             }
             await loadChiTietHoaDon(idHoaDonCho);
+            resetVoucher();
         }
+
 
         async function xoaChiTietHD(index) {
             const item = dsChiTietHoaDon[index];
@@ -438,7 +453,7 @@
                     method: 'POST',
                     headers: {'Content-Type':'application/json'},
                     body: JSON.stringify({
-                        ID_HoaDonChiTiet: item.iD_HoaDonChiTiet // Đúng property name!
+                        ID_HoaDonChiTiet: item.iD_HoaDonChiTiet
                     })
                 });
                 const data = await res.json();
@@ -447,10 +462,10 @@
                     return;
                 }
                 await loadChiTietHoaDon(idHoaDonCho);
+                resetVoucher();
                 await loadHoaDonCho();
             }
         }
-
 
 
         async function loadHoaDonCho() {
@@ -472,6 +487,9 @@
                         <td>${item.loaiHoaDon}</td>
                         <td>${(new Date(item.ngayTao)).toLocaleString('vi-VN')}</td>
                         <td>${item.trangThai}</td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" onclick="xoaHoaDonCho('${item.idHoaDon}', event)">❌</button>
+                        </td>
                     </tr>`;
                 });
             } catch {
@@ -486,45 +504,72 @@
             document.getElementById("tongCong").innerText = toVn(tongTien - uuDai + phuThu);
         }
 
-        // Hàm xử lý thanh toán hóa đơn chờ
+
+        async function xoaHoaDonCho(id, event) {
+            event.stopPropagation();
+            const confirm = await Swal.fire({
+                icon: 'warning',
+                title: 'Xác nhận xóa hóa đơn chờ?',
+                text: 'Xóa hóa đơn này và toàn bộ chi tiết của nó?',
+                showCancelButton: true,
+                confirmButtonText: 'Xóa',
+                cancelButtonText: 'Hủy',
+                reverseButtons: true
+            });
+            if (confirm.isConfirmed) {
+                const res = await fetch('/POS/XoaHoaDonCho', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(id)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    await loadHoaDonCho();
+                    Swal.fire('Đã xóa!', '', 'success');
+                    if (idHoaDonCho === id) {
+                        idHoaDonCho = null;
+                        dsChiTietHoaDon = [];
+                        document.getElementById("danhSachHoaDon").innerHTML = "";
+                        capNhatChiTietThanhToan(0, 0, 0);
+                    }
+                } else {
+                    showError(data.message || "Không xóa được hóa đơn chờ!");
+                }
+            }
+        }
+
+
         async function payHoaDonCho() {
-            // Lấy chi tiết hóa đơn
+            // Lấy danh sách chi tiết hóa đơn
             if (!dsChiTietHoaDon || dsChiTietHoaDon.length === 0) {
                 showError("Hóa đơn trống, không thể thanh toán!");
                 return;
             }
 
-            // Lấy phương thức thanh toán
-            const phuongThuc = document.querySelector('[name="phuongThucThanhToan"]')?.value?.trim();
-            if (!phuongThuc) {
-                showError("Vui lòng chọn phương thức thanh toán.");
-                return;
-            }
-
-            // Lấy các thông tin từ form
+            // Lấy dữ liệu form
             const hoTen = document.querySelector('[name="tenKhachHang"]')?.value?.trim() || null;
             const email = document.querySelector('[name="email"]')?.value?.trim() || null;
             const sdt = document.querySelector('[name="sdt"]')?.value?.trim() || null;
             const diaChi = document.querySelector('[name="diaChi"]')?.value?.trim() || null;
-            const phuThu = toNumber(document.querySelector('[name="phuThu"]')?.value || 0) || 0;
+            const phuThuStr = document.querySelector('[name="phuThu"]')?.value?.trim();
             const ghiChu = document.querySelector('[name="ghiChu"]')?.value?.trim() || null;
+            const phuongThuc = document.querySelector('[name="phuongThucThanhToan"]')?.value?.trim();
+            const idVoucher = window.currentVoucherId || null;
+            const phuThu = phuThuStr === "" ? null : toNumber(phuThuStr);
 
-            // Chuẩn bị dữ liệu chi tiết hóa đơn
             const chiTietList = dsChiTietHoaDon.map(x => ({
                 ID_SanPhamChiTiet: x.ID_SanPhamChiTiet || x.id_SanPhamChiTiet || x.iD_SanPhamChiTiet,
                 SoLuong: x.SoLuong || x.soLuong,
                 DonGia: x.DonGia || x.donGia,
             }));
 
-            // Tổng tiền, voucher (nếu có), phụ thu
-            let tongTienHang = 0;
-            chiTietList.forEach(ct => {
-                tongTienHang += (ct.DonGia * ct.SoLuong);
-            });
-            let uuDai = window.currentVoucherValue || 0;
-            let idVoucher = window.currentVoucherId || null; // Nên set currentVoucherId mỗi khi áp dụng mã giảm giá!
+            // Tổng tiền hàng
+            let tongTienHang = chiTietList.reduce((sum, ct) => sum + (ct.DonGia * ct.SoLuong), 0);
 
-            // Gửi về server
+            // Ưu đãi MGG
+            let uuDai = window.currentVoucherValue || 0;
+
+            // Đóng gói payload đúng DTO
             const payload = {
                 ID_HoaDon: idHoaDonCho,
                 HoTen: hoTen,
@@ -533,14 +578,14 @@
                 DiaChi: diaChi,
                 HinhThucThanhToan: phuongThuc,
                 TongTienTruocGiam: tongTienHang,
-                TongTienSauGiam: tongTienHang - uuDai + phuThu,
+                TongTienSauGiam: tongTienHang - uuDai + (phuThu || 0),
                 PhuThu: phuThu,
                 GhiChu: ghiChu,
                 ID_Voucher: idVoucher,
                 HoaDonChiTiets: chiTietList
             };
 
-            // Xử lý gửi dữ liệu
+            // Gửi request
             const btn = document.getElementById("btnThanhToan");
             if (btn) btn.disabled = true;
             try {
@@ -554,14 +599,30 @@
                     await Swal.fire({
                         icon: 'success',
                         title: 'Thanh toán thành công',
-                        text: `Mã hóa đơn: ${data.maHoaDon || ""}`
+                        html: `<b>Mã hóa đơn:</b> <span class="text-success">${data.maHoaDon || ""}</span>`
                     });
-                    // Reset lại UI
+                    // Reset form
                     idHoaDonCho = null;
                     dsChiTietHoaDon = [];
                     document.getElementById("danhSachHoaDon").innerHTML = "";
                     capNhatChiTietThanhToan(0, 0, 0);
                     await loadHoaDonCho();
+                    // Thanh toán thành công thì clear input
+                    document.querySelector('[name="tenKhachHang"]').value = "";
+                    document.querySelector('[name="sdt"]').value = "";
+                    document.querySelector('[name="email"]').value = "";
+                    document.querySelector('[name="diaChi"]').value = "";
+                    document.querySelector('[name="ghiChu"]').value = "";
+                    document.querySelector('[name="phuThu"]').value = "";
+                    document.querySelector('[name="maGiamGia"]').value = "";
+                    document.querySelector('[name="phuongThucThanhToan"]').selectedIndex = 0;
+
+                    // Clear luôn danh sách biến thể đang hiển thị sau khi thanh toán thành công
+                    const tbodyBienThe = document.getElementById("danhSachBienThe");
+                    if (tbodyBienThe) {
+                        tbodyBienThe.innerHTML = `<tr><td colspan="4" class="text-muted">Vui lòng chọn sản phẩm để xem biến thể</td></tr>`;
+                    }
+                    bienTheTam = [];
                 } else {
                     showError(data.message || "Thanh toán thất bại.");
                 }
@@ -570,6 +631,87 @@
             } finally {
                 if (btn) btn.disabled = false;
             }
+        }
+
+
+        // Xử lý nhập phụ thu
+        function onPhuThuInput(e) {
+            let value = e.target.value;
+            let soPhuThu = toNumber(value);
+
+            if (value.trim() === "") {
+                soPhuThu = 0;
+                capNhatChiTietThanhToan(getTongTienHang(), window.currentVoucherValue || 0, 0);
+                return;
+            }
+
+            if (soPhuThu <= 0) {
+                showError("Phụ thu phải lớn hơn 0!");
+                // Reset lại về giá trị cũ nếu có, hoặc clear nếu chưa có phụ thu
+                e.target.value = "";
+                capNhatChiTietThanhToan(getTongTienHang(), window.currentVoucherValue || 0, 0);
+                return;
+            }
+            // Update realtime
+            capNhatChiTietThanhToan(getTongTienHang(), window.currentVoucherValue || 0, soPhuThu);
+        }
+
+        function getTongTienHang() {
+            if (!dsChiTietHoaDon) return 0;
+            return dsChiTietHoaDon.reduce((sum, item) => sum + ((item.DonGia || item.donGia) * (item.SoLuong || item.soLuong)), 0);
+        }
+
+
+        async function apDungMaGiamGia() {
+            // Lấy mã giảm giá đang nhập
+            const maGiamGia = document.querySelector('[name="maGiamGia"]').value.trim();
+            let tongTienHang = getTongTienHang();
+
+            if (!maGiamGia) {
+                showError("Vui lòng nhập mã giảm giá!");
+                return;
+            }
+
+            // Gửi request kiểm tra mã giảm giá
+            try {
+                const res = await fetch(`/POS/CheckVoucher?maGiamGia=${encodeURIComponent(maGiamGia)}&tongTienHang=${tongTienHang}`);
+                const data = await res.json();
+
+                if (data.success) {
+                    window.currentVoucherValue = data.giamGia || 0;
+                    window.currentVoucherId = data.idVoucher || null;
+                    document.getElementById("uuDaiGiamGia").innerText = toVn(window.currentVoucherValue);
+                    // Cập nhật lại tổng cộng
+                    let phuThu = toNumber(document.querySelector('[name="phuThu"]')?.value || 0);
+                    capNhatChiTietThanhToan(tongTienHang, window.currentVoucherValue, phuThu);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Áp dụng thành công!',
+                        text: `Bạn được giảm ${toVn(window.currentVoucherValue)}`
+                    });
+                } else {
+                    // Lỗi voucher: reset lại giá trị ưu đãi, id voucher
+                    window.currentVoucherValue = 0;
+                    window.currentVoucherId = null;
+                    document.getElementById("uuDaiGiamGia").innerText = "0 đ";
+                    let phuThu = toNumber(document.querySelector('[name="phuThu"]')?.value || 0);
+                    capNhatChiTietThanhToan(tongTienHang, 0, phuThu);
+                    showError(data.message || "Không áp dụng được mã giảm giá!");
+                }
+            } catch (err) {
+                showError("Có lỗi khi kiểm tra mã giảm giá!");
+            }
+        }
+
+
+        function resetVoucher() {
+            window.currentVoucherValue = 0;
+            window.currentVoucherId = null;
+            document.getElementById("uuDaiGiamGia").innerText = "0 đ";
+            // Cập nhật lại tổng cộng với ưu đãi = 0
+            let tongTien = getTongTienHang();
+            let phuThu = toNumber(document.querySelector('[name="phuThu"]')?.value || 0);
+            capNhatChiTietThanhToan(tongTien, 0, phuThu);
         }
 
 
@@ -591,8 +733,18 @@
                     });
                 });
             }
+
+            const phuThuInput = document.getElementById("phuThuInput");
+            if (phuThuInput) {
+                phuThuInput.addEventListener("input", onPhuThuInput);
+                phuThuInput.addEventListener("blur", function(e){
+                    let soPhuThu = toNumber(e.target.value);
+                    if (e.target.value.trim() !== "" && soPhuThu <= 0) {
+                        e.target.value = "";
+                        capNhatChiTietThanhToan(getTongTienHang(), window.currentVoucherValue || 0, 0);
+                    }
+                });
+            }
         });
-
-
     </script>
 }
