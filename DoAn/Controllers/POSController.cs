@@ -3,6 +3,10 @@ using DoAn.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
+using QuestPDF.Drawing;
 
 namespace DoAn.Controllers
 {
@@ -201,6 +205,48 @@ namespace DoAn.Controllers
 
 
 		[HttpPost]
+		public async Task<IActionResult> TaoHoaDonChoRong()
+		{
+			try
+			{
+				// Giới hạn số lượng hóa đơn chờ tối đa (nếu cần)
+				var soHoaDonCho = await _context.HoaDons.CountAsync(x => x.TrangThai == 0);
+				if (soHoaDonCho >= 5)
+				{
+					return Json(new { success = false, message = "Chỉ được tạo tối đa 5 hóa đơn chờ. Vui lòng xóa bớt hóa đơn chờ trước khi tạo mới." });
+				}
+
+				string maHoaDon;
+				do { maHoaDon = TaoMaNgauNhien(10); }
+				while (await _context.HoaDons.AnyAsync(x => x.Ma_HoaDon == maHoaDon));
+
+				var idHoaDon = Guid.NewGuid();
+				var hoaDon = new HoaDon
+				{
+					ID_HoaDon = idHoaDon,
+					Ma_HoaDon = maHoaDon,
+					PhuongThucNhanHang = "Nhận tại quầy",
+					LoaiHoaDon = "Offline",
+					NgayTao = DateTime.Now,
+					TrangThai = 0,
+					HinhThucThanhToan = "Chưa xác định"
+					// KHÔNG thêm chi tiết nào!
+				};
+
+				_context.HoaDons.Add(hoaDon);
+				await _context.SaveChangesAsync();
+
+				return Json(new { success = true, idHoaDon = hoaDon.ID_HoaDon, maHoaDon = hoaDon.Ma_HoaDon });
+			}
+			catch (Exception ex)
+			{
+				return Json(new { success = false, message = ex.Message, detail = ex.InnerException?.Message });
+			}
+		}
+
+
+
+		[HttpPost]
 		public async Task<IActionResult> ThemSanPhamVaoHoaDonCho([FromBody] ThemSanPhamVaoHoaDonChoRequest model)
 		{
 			var hoaDon = await _context.HoaDons
@@ -391,8 +437,8 @@ namespace DoAn.Controllers
 				foreach (var item in model.HoaDonChiTiets)
 				{
 					var spct = await _context.SanPhamChiTiets.FindAsync(item.ID_SanPhamChiTiet);
-					if (spct == null || spct.TrangThai != 1)
-						return Json(new { success = false, message = "Có biến thể sản phẩm tạm ngừng kinh doanh" });
+					if (spct == null || spct.TrangThai == 0)
+						return Json(new { success = false, message = "Có sản phẩm trong hóa đơn không đủ số lượng tồn kho!" });
 					if (item.SoLuong > spct.SoLuong)
 						return Json(new { success = false, message = "Có sản phẩm trong hóa đơn không đủ số lượng tồn kho!" });
 				}
@@ -495,9 +541,28 @@ namespace DoAn.Controllers
 				}
 
 				await _context.SaveChangesAsync();
+				var hoaDonDayDu = await _context.HoaDons
+					.Include(hd => hd.HoaDonChiTiets)
+					.ThenInclude(ct => ct.SanPhamChiTiet)
+					.ThenInclude(spct => spct.SanPham)
+					.Include(hd => hd.HoaDonChiTiets)
+					.ThenInclude(ct => ct.SanPhamChiTiet)
+					.ThenInclude(spct => spct.TheTich)
+					.FirstOrDefaultAsync(hd => hd.ID_HoaDon == hoaDon.ID_HoaDon);
+
+				var fileName = XuatHoaDonPdf(hoaDonDayDu); // hoaDon là object đã thanh toán
+				var fileUrl = Url.Content($"~/hoadon/{fileName}");
 
 				// Trả kết quả thành công kèm mã hóa đơn
-				return Json(new { success = true, message = "Thanh toán thành công!", maHoaDon = hoaDon.Ma_HoaDon });
+				return Json(new
+				{
+					success = true,
+					message = "Thanh toán thành công!",
+					maHoaDon = hoaDon.Ma_HoaDon,
+					fileName = fileName,
+					fileUrl = fileUrl // đường dẫn truy cập từ web
+				});
+
 			}
 			catch (Exception ex)
 			{
@@ -505,6 +570,93 @@ namespace DoAn.Controllers
 				return Json(new { success = false, message = "Có lỗi xảy ra khi thanh toán!", detail });
 			}
 		}
+
+
+		public string XuatHoaDonPdf(HoaDon hoaDon)
+		{
+			QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+			var maHoaDon = hoaDon.Ma_HoaDon;
+			var fileName = $"{maHoaDon}.pdf";
+			var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/hoadon", fileName);
+
+			// Nếu chưa có thư mục thì tạo
+			var dir = Path.GetDirectoryName(filePath);
+			if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+			// Tính lại tiền ưu đãi đúng logic (đặc biệt khi có phụ thu)
+			decimal uuDai = hoaDon.TongTienTruocGiam - hoaDon.TongTienSauGiam + (hoaDon.PhuThu ?? 0);
+
+			// Render PDF
+			var document = Document.Create(container =>
+			{
+				container.Page(page =>
+				{
+					page.Margin(40);
+					page.Size(PageSizes.A4);
+
+					page.Header()
+						.Text($"HÓA ĐƠN THANH TOÁN\nMã hóa đơn: {maHoaDon}")
+						.FontSize(20).Bold().AlignCenter();
+
+					page.Content()
+						.PaddingVertical(10)
+						.Column(col =>
+						{
+							col.Item().Text($"Ngày mua: {hoaDon.NgayTao:dd/MM/yyyy HH:mm}");
+							col.Item().Text($"Tên khách hàng: {hoaDon.HoTen ?? "Khách lẻ"}");
+							col.Item().Text($"Số điện thoại: {hoaDon.Sdt_NguoiNhan}");
+							col.Item().Text($"Email: {hoaDon.Email ?? ""}");
+							col.Item().Text($"Địa chỉ: {hoaDon.DiaChi}");
+							col.Item().Text($"Phương thức thanh toán: {hoaDon.HinhThucThanhToan ?? ""}");
+							col.Item().Text($"Phương thức nhận hàng: {hoaDon.PhuongThucNhanHang ?? ""}");
+							if (!string.IsNullOrEmpty(hoaDon.GhiChu))
+								col.Item().Text($"Ghi chú: {hoaDon.GhiChu}");
+
+							col.Item().LineHorizontal(1);
+
+							// Chi tiết hóa đơn
+							col.Item().Table(tbl =>
+							{
+								tbl.ColumnsDefinition(cols =>
+								{
+									cols.RelativeColumn();
+									cols.RelativeColumn();
+									cols.RelativeColumn();
+									cols.RelativeColumn();
+								});
+
+								tbl.Header(header =>
+								{
+									header.Cell().Text("Sản phẩm").Bold();
+									header.Cell().Text("Thể tích").Bold();
+									header.Cell().Text("Số lượng").Bold();
+									header.Cell().Text("Thành tiền").AlignRight();
+								});
+
+								foreach (var ct in hoaDon.HoaDonChiTiets)
+								{
+									tbl.Cell().Text(ct.SanPhamChiTiet?.SanPham?.Ten_SanPham ?? "");
+									tbl.Cell().Text($"{ct.SanPhamChiTiet?.TheTich?.GiaTri:0.#}{ct.SanPhamChiTiet?.TheTich?.DonVi}");
+									tbl.Cell().Text(ct.SoLuong.ToString());
+									tbl.Cell().Text($"{(ct.SoLuong * ct.DonGia):n0} đ").AlignRight();
+								}
+							});
+
+							col.Item().LineHorizontal(1);
+							col.Item().AlignRight().Text($"Tổng tiền: {hoaDon.TongTienTruocGiam:n0} đ");
+							col.Item().AlignRight().Text($"Ưu đãi: {uuDai:n0} đ");
+							col.Item().AlignRight().Text($"Phụ thu: {(hoaDon.PhuThu ?? 0):n0} đ");
+							col.Item().AlignRight().Text($"Tổng cộng: {hoaDon.TongTienSauGiam:n0} đ").Bold();
+						});
+
+					page.Footer().Text("Cảm ơn quý khách!").AlignCenter();
+				});
+			});
+
+			document.GeneratePdf(filePath);
+			return fileName;
+		}
+
 
 
 		// DTO nhận từ frontend
