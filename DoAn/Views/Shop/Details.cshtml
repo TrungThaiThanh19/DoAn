@@ -1,0 +1,361 @@
+﻿@model DoAn.Models.SanPham
+@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = Model.Ten_SanPham;
+    var anyInStock = Model.SanPhamChiTiets.Any(ct => ct.SoLuong > 0);
+    var totalQty = Model.SanPhamChiTiets.Sum(ct => ct.SoLuong);
+    var username = Context.Session.GetString("Username");
+}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+<style>
+    .shp-header {
+        background: linear-gradient(180deg,#ff7043,#ff5a3c 45%, #ff4d2e);
+        color: #fff;
+    }
+
+    .shp-topbar {
+        font-size: .95rem;
+        opacity: .95;
+    }
+
+    .shp-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 800;
+        font-size: 1.5rem;
+    }
+
+        .shp-brand img {
+            height: 36px;
+            width: auto;
+        }
+
+    .shp-search {
+        position: relative;
+        max-width: 720px;
+        width: 100%;
+    }
+
+        .shp-search input {
+            height: 44px;
+            border-radius: 999px;
+            border: 0;
+            padding-left: 18px;
+            padding-right: 54px;
+        }
+
+        .shp-search button {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 999px;
+            height: 36px;
+            width: 44px;
+            border: 0;
+            background: #fff;
+            color: #ff4d2e;
+        }
+
+    .shp-icons a {
+        color: #fff;
+        text-decoration: none;
+        margin-left: 18px;
+        position: relative;
+    }
+
+    .shp-icons .badge {
+        position: absolute;
+        top: -6px;
+        right: -10px;
+        background: #fff;
+        color: #ff4d2e;
+        border-radius: 999px;
+        font-size: .7rem;
+    }
+
+    .detail-wrap {
+        background: radial-gradient(1200px 500px at -10% -10%, rgba(108,92,231,.15), transparent 60%), radial-gradient(1200px 500px at 110% 0%, rgba(0,210,255,.15), transparent 60%), linear-gradient(180deg,#f8fafc,#ffffff);
+        min-height: 100vh;
+        padding: 0 0 40px;
+    }
+
+    .thumb {
+        border-radius: 16px;
+        border: 1px solid rgba(99,102,241,.25);
+        box-shadow: 0 12px 28px rgba(31,41,55,.12);
+    }
+
+    .badge-flag {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 9999px;
+        color: #fff;
+        font-weight: 700;
+        font-size: .85rem;
+    }
+
+    .badge-oos {
+        background: #6c757d;
+    }
+
+    .chip {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #334155;
+        font-weight: 600;
+        margin-right: 8px;
+        margin-bottom: 8px;
+    }
+
+    .price {
+        font-weight: 700;
+        color: #dc3545;
+    }
+
+    .old-price {
+        text-decoration: line-through;
+        color: #6c757d;
+    }
+
+    .table-variants th, .table-variants td {
+        vertical-align: middle;
+    }
+
+    .table-variants thead th {
+        background: linear-gradient(135deg, rgba(108,92,231,.12), rgba(0,210,255,.12));
+        border-bottom: 0;
+    }
+
+    .desc-card {
+        border-radius: 16px;
+        border: 1px solid rgba(99,102,241,.25);
+        background: #ffffff;
+        box-shadow: 0 8px 20px rgba(31,41,55,.08);
+    }
+
+    .desc-title {
+        font-weight: 800;
+        letter-spacing: .2px;
+        color: #1f2937;
+    }
+
+    #toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+
+    .toast-item {
+        min-width: 260px;
+        padding: 10px 14px;
+        margin-bottom: 10px;
+        border-radius: 10px;
+        color: #fff;
+        box-shadow: 0 8px 20px rgba(0,0,0,.25);
+    }
+</style>
+
+<!-- ==== HEADER ==== -->
+<header class="shp-header">
+    <div class="container py-2 shp-topbar d-flex justify-content-between align-items-center">
+        <div class="d-none d-md-flex gap-3"></div>
+
+        <div class="d-flex align-items-center gap-3">
+            @if (!string.IsNullOrEmpty(username))
+            {
+                <span class="text-white">Xin chào, <strong>@username</strong></span>
+                <a class="btn btn-sm btn-light px-3" href="/TaiKhoan/Logout">Đăng xuất</a>
+            }
+            else
+            {
+                <a class="text-white text-decoration-none" href="/TaiKhoan/Register">Đăng Ký</a>
+                <span class="text-white-50">|</span>
+                <a class="text-white text-decoration-none" href="/TaiKhoan/Login">Đăng Nhập</a>
+            }
+        </div>
+    </div>
+
+    <div class="container py-3">
+        <div class="d-flex align-items-center gap-3">
+            <a href="~/" class="shp-brand">
+                <img src="~/images/logo.png" alt="Logo" />
+                <span>ShopPerfume</span>
+            </a>
+
+            <form asp-controller="Shop" asp-action="Index" method="get" class="flex-grow-1 shp-search">
+                <input name="search" class="form-control" placeholder="Tìm kiếm sản phẩm..." />
+                <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </form>
+
+            <div class="shp-icons d-flex align-items-center">
+                <!-- Giỏ hàng -->
+                <a href="/GioHang/Index" class="position-relative" title="Giỏ hàng">
+                    <i class="fa-solid fa-cart-shopping fa-lg"></i>
+                    <span class="badge" id="cart-badge" style="display:none">0</span>
+                    <span class="d-none d-md-inline">Giỏ hàng</span>
+                </a>
+
+                <!-- Đơn hàng (THEO DÕI) -->
+                <a href="/DonHang/Index" class="position-relative" title="Theo dõi đơn hàng">
+                    <i class="fa-solid fa-box-open fa-lg"></i>
+                    <span class="badge" id="order-badge" style="display:none">0</span>
+                    <span class="d-none d-md-inline">Đơn hàng</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</header>
+<div class="detail-wrap">
+    <div class="container pt-4">
+        <div class="row g-4">
+            <!-- Ảnh -->
+            <div class="col-md-5">
+                <div class="thumb position-relative p-3">
+                    <img src="@Model.HinhAnh" class="img-fluid" alt="@Model.Ten_SanPham" />
+                    @if (!anyInStock)
+                    {
+                        <span class="badge-flag badge-oos position-absolute" style="left:14px;top:14px">Hết hàng</span>
+                    }
+                </div>
+            </div>
+
+            <!-- Thông tin -->
+            <div class="col-md-7">
+                <h3 class="mb-2">@Model.Ten_SanPham</h3>
+                <div class="text-muted mb-3">
+                    @Model.ThuongHieu?.Ten_ThuongHieu • @Model.GioiTinh?.Ten_GioiTinh • @Model.QuocGia?.Ten_QuocGia
+                </div>
+
+                <div class="mb-2">
+                    <span class="chip">Hương đầu: @Model.HuongDau</span>
+                    <span class="chip">Hương giữa: @Model.HuongGiua</span>
+                    <span class="chip">Hương cuối: @Model.HuongCuoi</span>
+                    <span class="chip">Lưu hương: @Model.ThoiGianLuuHuong giờ</span>
+                    <span class="chip">Tồn kho: @totalQty</span>
+                </div>
+
+                <!-- Mô tả -->
+                <div class="desc-card p-3 mb-3">
+                    <div class="desc-title mb-2">Mô tả</div>
+                    <div class="text-muted">@Model.MoTa</div>
+                </div>
+
+                <!-- Bảng biến thể -->
+                <div class="table-responsive">
+                    <table class="table table-sm table-variants">
+                        <thead>
+                            <tr>
+                                <th>Thể tích</th>
+                                <th class="text-end">Giá gốc</th>
+                                <th class="text-end">Giá sau KM</th>
+                                <th class="text-center">% Giảm</th>
+                                <th class="text-center">Tồn</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ct in Model.SanPhamChiTiets.OrderBy(c => c.GiaBan))
+                            {
+                                var now = DateTime.Now;
+                                decimal giaGoc = ct.GiaBan;
+                                decimal giaHienThi = giaGoc;
+                                int giamPhanTram = 0;
+
+                                var km = ct.ChiTietKhuyenMais?
+                                .Where(x => x.KhuyenMai != null
+                                && x.KhuyenMai.TrangThai == 1
+                                && x.KhuyenMai.NgayBatDau <= now
+                                && x.KhuyenMai.NgayHetHan >= now
+                                && x.GiaSauGiam > 0)
+                                .OrderBy(x => x.GiaSauGiam)
+                                .FirstOrDefault();
+
+                                if (km != null && km.GiaSauGiam < giaGoc)
+                                {
+                                    giaHienThi = km.GiaSauGiam;
+                                    giamPhanTram = (int)Math.Round((1 - (giaHienThi / giaGoc)) * 100M);
+                                    giamPhanTram = Math.Clamp(giamPhanTram, 0, 100);
+                                }
+
+                                <tr>
+                                    <td>@ct.TheTich?.DonVi</td>
+                                    <td class="text-end">@string.Format("{0:N0} ₫", giaGoc)</td>
+                                    <td class="text-end">@string.Format("{0:N0} ₫", giaHienThi)</td>
+                                    <td class="text-center">@giamPhanTram%</td>
+                                    <td class="text-center">@ct.SoLuong</td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-primary btn-sm"
+                                                onclick="addToCartByVariant('@ct.ID_SanPhamChiTiet')">
+                                            <i class="fa-solid fa-cart-plus me-1"></i>Thêm giỏ
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <a asp-action="Index" class="btn btn-outline-secondary mt-2">← Quay lại cửa hàng</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast-container"></div>
+
+@section Scripts {
+    <script>
+        // ===== Badge giỏ hàng =====
+        function renderCartCount(n){
+          const badge = document.getElementById('cart-badge');
+          if(!badge) return;
+          const c = Number(n) || 0;
+          badge.textContent = c;
+          badge.style.display = c > 0 ? 'inline-block' : 'none';
+        }
+        async function refreshCartCount(){
+          try{
+            const r = await fetch('/Cart/Count', { credentials:'same-origin' });
+            const d = await r.json();
+            renderCartCount(d.count);
+          }catch(_){}
+        }
+        document.addEventListener('DOMContentLoaded', refreshCartCount);
+
+        // ===== Toast =====
+        function showToast(message, ok=true){
+          const box = document.getElementById('toast-container');
+          const el = document.createElement('div');
+          el.className = 'toast-item';
+          el.style.background = ok ? 'linear-gradient(135deg,#22c55e,#16a34a)'
+                                   : 'linear-gradient(135deg,#ef4444,#dc2626)';
+          el.textContent = message;
+          box.appendChild(el);
+          setTimeout(()=>el.remove(), 2600);
+        }
+
+        // ===== Thêm biến thể cụ thể vào giỏ =====
+        function addToCartByVariant(variantId){
+          fetch(`/Cart/AddDetail?id=${variantId}`, { method:'GET', credentials:'same-origin' })
+            .then(async r => {
+              if (r.status === 200){
+                showToast('Đã thêm vào giỏ hàng!', true);
+                await refreshCartCount();               // <== cập nhật badge
+                return;
+              }
+              if (r.status === 401) throw new Error('Bạn cần đăng nhập.');
+              throw new Error('Không thể thêm vào giỏ.');
+            })
+            .catch(e => showToast(e.message || 'Lỗi kết nối', false));
+        }
+    </script>
+}
+

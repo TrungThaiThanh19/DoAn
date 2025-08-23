@@ -1,0 +1,28 @@
+﻿@{
+    ViewData["Title"] = "➕ Thêm quốc gia mới";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2 class="mb-4 text-primary">➕ Thêm quốc gia mới</h2>
+
+<form method="post">
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+    <div class="card shadow rounded-4 mb-4">
+        <div class="card-header bg-primary text-white">Thông tin quốc gia</div>
+        <div class="card-body row g-3">
+
+            <div class="col-md-12">
+                <label class="form-label">Tên quốc gia</label>
+                <input type="text" name="tenQuocGia" class="form-control" value="@ViewBag.TenQuocGia" />
+                <span class="text-danger">@Html.ValidationMessage("TenQuocGia")</span>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between">
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">← Quay lại</a>
+        <button type="submit" class="btn btn-success rounded-pill px-4">Thêm quốc gia</button>
+    </div>
+</form>

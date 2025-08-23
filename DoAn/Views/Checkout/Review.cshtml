@@ -1,0 +1,142 @@
+﻿@model DoAn.ViewModel.CheckoutReviewVM
+@{
+    ViewData["Title"] = "Xem lại đơn";
+}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+<style>
+    :root {
+        --brand: #ee4d2d;
+        --line: #e5e7eb;
+    }
+
+    .page-head {
+        background: linear-gradient(180deg,#ff7043,#ff5a3c 45%,#ff4d2e);
+        color: #fff;
+    }
+
+    .wrap {
+        max-width: 980px;
+        margin: 16px auto 40px;
+    }
+
+    .card {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden
+    }
+
+    .card-header {
+        background: #fff;
+        font-weight: 900
+    }
+
+    .btn-brand {
+        background: linear-gradient(135deg,#ff6a3d,var(--brand));
+        color: #fff;
+        border: 0;
+        font-weight: 800
+    }
+
+    .total {
+        color: #ef4444;
+        font-weight: 900
+    }
+</style>
+
+<header class="page-head">
+    <div class="container py-3 d-flex align-items-center gap-3">
+        <a href="~/" class="text-white text-decoration-none fw-bold fs-4"><i class="fa-solid fa-bag-shopping me-2"></i>ShopPerfume</a>
+        <div class="ms-auto"><a href="/GioHang/Index" class="text-white text-decoration-none"><i class="fa-solid fa-cart-shopping me-1"></i>Giỏ hàng</a></div>
+    </div>
+</header>
+
+<div class="wrap container">
+    <h3 class="mb-3 fw-bold">Xem lại đơn hàng</h3>
+
+    @* HIỂN THỊ LỖI KHI HẾT HÀNG / LỖI ĐẶT HÀNG *@
+    @if (TempData["OrderError"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["OrderError"]
+        </div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-header">Thông tin nhận hàng</div>
+        <div class="card-body row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Họ tên người nhận</label>
+                <input class="form-control" form="f" name="ReceiverName" value="@Model.ReceiverName" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Số điện thoại</label>
+                <input class="form-control" form="f" name="Phone" value="@Model.Phone" />
+            </div>
+            <div class="col-12">
+                <label class="form-label">Địa chỉ</label>
+                <input class="form-control" value="@Model.FullAddress" disabled />
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">Sản phẩm</div>
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>Sản phẩm</th>
+                    <th class="text-center">SL</th>
+                    <th class="text-end">Đơn giá</th>
+                    <th class="text-end">Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var i in Model.Items)
+                {
+                    <tr>
+                        <td>@i.TenSanPham (@i.TheTich)</td>
+                        <td class="text-center">@i.SoLuong</td>
+                        <td class="text-end">@i.DonGia.ToString("n0") đ</td>
+                        <td class="text-end">@i.ThanhTien.ToString("n0") đ</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="3" class="text-end">Phí vận chuyển</th>
+                    <th class="text-end">@Model.ShippingFee.ToString("n0") đ</th>
+                </tr>
+                <tr>
+                    <th colspan="3" class="text-end">Tổng thanh toán</th>
+                    <th class="text-end total">
+                        @((Model.Items.Sum(x => x.ThanhTien) + Model.ShippingFee).ToString("n0")) đ
+                    </th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <form id="f" asp-action="PlaceOrder" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="AddressId" value="@Model.AddressId" />
+        <input type="hidden" name="ShippingFee" value="@Model.ShippingFee" />
+
+        <div class="card mb-3">
+            <div class="card-header">Thanh toán</div>
+            <div class="card-body d-flex align-items-center gap-3">
+                <select class="form-select" style="max-width:280px" name="PaymentMethod">
+                    <option value="COD" selected="@("COD"==Model.PaymentMethod)">Thanh toán khi nhận hàng</option>
+                    <option value="VNPAY" selected="@("VNPAY"==Model.PaymentMethod)">VNPAY</option>
+                    <option value="MOMO" selected="@("MOMO"==Model.PaymentMethod)">MOMO</option>
+                </select>
+                <input type="text" class="form-control" name="ReceiverName" value="@Model.ReceiverName" hidden />
+                <input type="text" class="form-control" name="Phone" value="@Model.Phone" hidden />
+                <input type="text" class="form-control" name="Note" placeholder="Ghi chú thêm (tuỳ chọn)" />
+                <button class="btn btn-brand ms-auto px-4">Đặt hàng</button>
+            </div>
+        </div>
+    </form>
+
+    <a class="btn btn-outline-secondary" href="@Url.Action("Index","GioHang")">← Quay lại giỏ hàng</a>
+</div>

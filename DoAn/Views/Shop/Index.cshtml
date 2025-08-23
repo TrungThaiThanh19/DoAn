@@ -1,0 +1,630 @@
+﻿@model IEnumerable<DoAn.Models.SanPham>
+@using Microsoft.AspNetCore.Http
+
+@{
+    ViewData["Title"] = "Danh sách sản phẩm";
+    var username = Context.Session.GetString("Username");
+}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<style>
+    /* ==== Header ==== */
+    .shp-header {
+        background: linear-gradient(180deg,#ff7043,#ff5a3c 45%, #ff4d2e);
+        color: #fff;
+    }
+
+    .shp-topbar {
+        font-size: .95rem;
+        opacity: .95;
+    }
+
+    .shp-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 800;
+        font-size: 1.5rem;
+    }
+
+        .shp-brand img {
+            height: 36px;
+            width: auto;
+        }
+
+    .shp-search {
+        position: relative;
+        max-width: 720px;
+        width: 100%;
+    }
+
+        .shp-search input {
+            height: 44px;
+            border-radius: 999px;
+            border: 0;
+            padding-left: 18px;
+            padding-right: 54px;
+        }
+
+        .shp-search button {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 999px;
+            height: 36px;
+            width: 44px;
+            border: 0;
+            background: #fff;
+            color: #ff4d2e;
+        }
+
+    .shp-icons a {
+        color: #fff;
+        text-decoration: none;
+        margin-left: 18px;
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .shp-icons .badge {
+        position: absolute;
+        top: -6px;
+        right: -10px;
+        background: #fff;
+        color: #ff4d2e;
+        border-radius: 999px;
+        font-size: .7rem;
+    }
+
+    /* Banner */
+    .shp-banner-wrap {
+        background: #fff;
+    }
+
+    .shp-carousel .carousel-item {
+        height: 340px;
+    }
+
+        .shp-carousel .carousel-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+    .shp-carousel .carousel-indicators [data-bs-target] {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+    }
+
+    /* Products */
+    :root {
+        --brand: #6c5ce7;
+        --accent: #00d2ff;
+        --accent2: #ff6b6b;
+        --ink: #1f2937;
+    }
+
+    .shop-wrap {
+        background: radial-gradient(1200px 400px at 10% -10%, rgba(108,92,231,.18), transparent 60%), radial-gradient(1200px 450px at 110% 0%, rgba(0,210,255,.18), transparent 60%), linear-gradient(180deg,#f8fafc,#ffffff);
+        min-height: 100vh;
+        padding-bottom: 40px;
+    }
+
+    .product-card {
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid rgba(99,102,241,.25);
+        box-shadow: 0 4px 18px rgba(31,41,55,.08);
+        background: linear-gradient(180deg,#fff,#fbfdff);
+        transition: transform .25s, box-shadow .25s;
+    }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 18px 40px rgba(31,41,55,.15);
+        }
+
+    .product-img {
+        position: relative;
+        background: linear-gradient(135deg,#ffffff,#f6faff);
+    }
+
+        .product-img img {
+            width: 100%;
+            height: 300px;
+            object-fit: contain;
+        }
+
+    .stretched-image-link {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+    }
+
+    .badge-flag {
+        position: absolute;
+        left: 12px;
+        top: 12px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        color: #fff;
+        font-weight: 700;
+        font-size: .85rem;
+        box-shadow: 0 6px 14px rgba(0,0,0,.12);
+        z-index: 2;
+    }
+
+    .badge-discount {
+        background: linear-gradient(135deg,var(--accent2),#ff8787);
+    }
+
+    .badge-oos {
+        background: linear-gradient(135deg,#94a3b8,#64748b);
+    }
+
+    .price {
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: #111827;
+    }
+
+    .old-price {
+        color: #9ca3af;
+        text-decoration: line-through;
+    }
+
+    .cart-fab {
+        position: absolute;
+        right: 14px;
+        bottom: 14px;
+        width: 46px;
+        height: 46px;
+        border-radius: 999px;
+        border: 0;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(120% 120% at 30% 20%, var(--accent) 0%, var(--brand) 70%);
+        box-shadow: 0 10px 20px rgba(108,92,231,.35);
+        z-index: 5;
+    }
+
+        .cart-fab[disabled] {
+            opacity: .5;
+            filter: grayscale(.3);
+            pointer-events: none;
+        }
+
+    #toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+
+    .toast-item {
+        min-width: 260px;
+        padding: 10px 14px;
+        margin-bottom: 10px;
+        border-radius: 10px;
+        color: #fff;
+        box-shadow: 0 8px 20px rgba(0,0,0,.25);
+    }
+</style>
+
+<!-- ==== HEADER ==== -->
+<header class="shp-header">
+    <div class="container py-2 shp-topbar d-flex justify-content-between align-items-center">
+        <div class="d-none d-md-flex gap-3"></div>
+
+        <div class="d-flex align-items-center gap-3">
+            @if (!string.IsNullOrEmpty(username))
+            {
+                <span class="text-white">Xin chào, <strong>@username</strong></span>
+                <a class="btn btn-sm btn-light px-3" href="/TaiKhoan/Logout">Đăng xuất</a>
+            }
+            else
+            {
+                <a class="text-white text-decoration-none" href="/TaiKhoan/Register">Đăng Ký</a>
+                <span class="text-white-50">|</span>
+                <a class="text-white text-decoration-none" href="/TaiKhoan/Login">Đăng Nhập</a>
+            }
+        </div>
+    </div>
+
+    <div class="container py-3">
+        <div class="d-flex align-items-center gap-3">
+            <a href="~/" class="shp-brand">
+                <img src="~/images/logo.png" alt="Logo" />
+                <span>ShopPerfume</span>
+            </a>
+
+            <form asp-controller="Shop" asp-action="Index" method="get" class="flex-grow-1 shp-search">
+                <input name="search" class="form-control" placeholder="Tìm kiếm sản phẩm..." />
+                <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </form>
+
+            <div class="shp-icons d-flex align-items-center">
+                <!-- Giỏ hàng -->
+                <a href="/GioHang/Index" class="position-relative" title="Giỏ hàng">
+                    <i class="fa-solid fa-cart-shopping fa-lg"></i>
+                    <span class="badge" id="cart-badge" style="display:none">0</span>
+                    <span class="d-none d-md-inline">Giỏ hàng</span>
+                </a>
+
+                <!-- Đơn hàng (THEO DÕI) -->
+                <a href="/DonHang/Index" class="position-relative" title="Theo dõi đơn hàng">
+                    <i class="fa-solid fa-box-open fa-lg"></i>
+                    <span class="badge" id="order-badge" style="display:none">0</span>
+                    <span class="d-none d-md-inline">Đơn hàng</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- ==== BANNER ==== -->
+<div class="shp-banner-wrap">
+    <div id="homeBanner" class="carousel slide shp-carousel" data-bs-ride="carousel" data-bs-interval="3500">
+        <div class="carousel-indicators">
+            <button type="button" data-bs-target="#homeBanner" data-bs-slide-to="0" class="active"></button>
+            <button type="button" data-bs-target="#homeBanner" data-bs-slide-to="1"></button>
+            <button type="button" data-bs-target="#homeBanner" data-bs-slide-to="2"></button>
+        </div>
+        <div class="carousel-inner">
+            <div class="carousel-item active">
+                <img src="https://images.pexels.com/photos/965989/pexels-photo-965989.jpeg" alt="Banner 1">
+            </div>
+            <div class="carousel-item">
+                <img src="https://img.pikbest.com/wp/202413/bottle-perfume-floral-plant-european-photography-web-banner_9087727.jpg!w700wp" alt="Banner 2">
+            </div>
+            <div class="carousel-item">
+                <img src="https://img.vuahanghieu.com/unsafe/0x0/left/top/smart/filters:quality(90)/https://admin.vuahanghieu.com/upload/news/content/2021/04/top-nuoc-hoa-limited-edition-noi-tieng-25-jpg-1618289032-13042021114352.jpg" alt="Banner 3">
+            </div>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#homeBanner" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#homeBanner" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+        </button>
+    </div>
+</div>
+
+<!-- ==== PRODUCTS ==== -->
+<div class="shop-wrap">
+    <div class="container">
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            @foreach (var sp in Model)
+            {
+                var ctBan = sp.SanPhamChiTiets
+                .Where(c => c.SoLuong > 0).OrderBy(c => c.GiaBan).FirstOrDefault()
+                ?? sp.SanPhamChiTiets.OrderBy(c => c.GiaBan).FirstOrDefault();
+
+                decimal giaGoc = ctBan?.GiaBan ?? 0M;
+                decimal giaHienThi = giaGoc;
+                int giamPhanTram = 0;
+
+                if (ctBan?.ChiTietKhuyenMais != null)
+                {
+                    var now = DateTime.Now;
+                    var km = ctBan.ChiTietKhuyenMais
+                    .Where(x => x.KhuyenMai != null && x.KhuyenMai.TrangThai == 1
+                    && x.KhuyenMai.NgayBatDau <= now && x.KhuyenMai.NgayHetHan >= now
+                    && x.GiaSauGiam > 0)
+                    .OrderBy(x => x.GiaSauGiam)
+                    .FirstOrDefault();
+
+                    if (km != null && km.GiaSauGiam < giaGoc)
+                    {
+                        giaHienThi = km.GiaSauGiam;
+                        giamPhanTram = (int)Math.Round((1 - (giaHienThi / giaGoc)) * 100M);
+                        giamPhanTram = Math.Clamp(giamPhanTram, 0, 100);
+                    }
+                }
+
+                bool hetHang = !sp.SanPhamChiTiets.Any(c => c.SoLuong > 0);
+
+                <div class="col">
+                    <div class="card product-card h-100 border-0">
+                        <div class="product-img">
+                            <img src="@sp.HinhAnh" alt="@sp.Ten_SanPham" />
+                            <a class="stretched-image-link" asp-action="Details" asp-route-id="@sp.ID_SanPham"></a>
+
+                            @if (hetHang)
+                            {
+                                <span class="badge-flag badge-oos">Hết hàng</span>
+                            }
+                            else if (giamPhanTram > 0)
+                            {
+                                <span class="badge-flag badge-discount">-@giamPhanTram%</span>
+                            }
+
+                            @if (ctBan != null)
+                            {
+                                <button type="button" class="cart-fab" title="Thêm vào giỏ"
+                                        onclick="addToCartByProduct('@sp.ID_SanPham')">
+                                    <i class="fa-solid fa-cart-plus"></i>
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="cart-fab" disabled title="Chưa có biến thể">
+                                    <i class="fa-solid fa-cart-plus"></i>
+                                </button>
+                            }
+                        </div>
+                        <div class="card-body text-center">
+                            <h6 class="card-title mb-2 text-truncate">@sp.Ten_SanPham</h6>
+                            <div class="d-flex justify-content-center align-items-center gap-2">
+                                <span class="price">@string.Format("{0:N0} ₫", giaHienThi)</span>
+                                @if (giamPhanTram > 0)
+                                {
+                                    <span class="old-price">@string.Format("{0:N0} ₫", giaGoc)</span>
+                                }
+                            </div>
+                            <a asp-action="Details" asp-route-id="@sp.ID_SanPham" class="btn btn-link p-0 mt-2">Xem chi tiết</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- ====== FOOTER ====== -->
+<style>
+    .site-footer {
+        background: #fff;
+        border-top: 1px solid #e5e7eb;
+        margin-top: 36px;
+    }
+
+        .site-footer .ft-wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 28px 12px 36px;
+        }
+
+    .ft-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1.2fr 1.1fr 1.2fr;
+        gap: 28px;
+    }
+
+    .ft-col h6 {
+        font-weight: 800;
+        font-size: 14px;
+        color: #111827;
+        margin-bottom: 14px;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+    }
+
+    .ft-col ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .ft-col li {
+        margin: 8px 0;
+    }
+
+    .ft-col a {
+        color: #334155;
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+        .ft-col a:hover {
+            color: #ef4444;
+        }
+
+    .pay-grid, .ship-grid {
+        display: grid;
+        grid-template-columns: repeat(3,minmax(0,1fr));
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .badge-tile {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 8px 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #fff;
+    }
+
+        .badge-tile i {
+            font-size: 18px;
+        }
+
+    .social a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 10px 0;
+        color: #334155;
+        text-decoration: none;
+    }
+
+    .social i {
+        width: 20px;
+        text-align: center;
+    }
+
+    .app-btns img {
+        height: 36px;
+        width: auto;
+        display: block;
+        margin-bottom: 8px;
+    }
+
+    .qr {
+        width: 120px;
+        height: 120px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: #fff url('https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://yourdomain.example') center/cover no-repeat;
+    }
+</style>
+
+<footer class="site-footer">
+    <div class="ft-wrap">
+        <div class="ft-grid">
+            <div class="ft-col">
+                <h6>DỊCH VỤ KHÁCH HÀNG</h6>
+                <ul>
+                    <li><a href="#">Trung Tâm Trợ Giúp</a></li>
+                    <li><a href="#">Hướng Dẫn Mua Hàng/Đặt Hàng</a></li>
+                    <li><a href="#">Hướng Dẫn Bán Hàng</a></li>
+                    <li><a href="#">Ví ShopPay</a></li>
+                    <li><a href="#">Đơn Hàng</a></li>
+                    <li><a href="#">Trả Hàng/Hoàn Tiền</a></li>
+                    <li><a href="#">Liên Hệ</a></li>
+                    <li><a href="#">Chính Sách Bảo Hành</a></li>
+                </ul>
+            </div>
+
+            <div class="ft-col">
+                <h6>SHOPPE VIỆT NAM</h6>
+                <ul>
+                    <li><a href="#">Về Shoppe</a></li>
+                    <li><a href="#">Tuyển Dụng</a></li>
+                    <li><a href="#">Điều Khoản</a></li>
+                    <li><a href="#">Chính Sách Bảo Mật</a></li>
+                    <li><a href="#">Kênh Người Bán</a></li>
+                    <li><a href="#">Flash Sale</a></li>
+                    <li><a href="#">Liên Hệ Truyền Thông</a></li>
+                </ul>
+            </div>
+
+            <div class="ft-col">
+                <h6>THANH TOÁN</h6>
+                <div class="pay-grid">
+                    <div class="badge-tile"><i class="fa-brands fa-cc-visa"></i><span>VISA</span></div>
+                    <div class="badge-tile"><i class="fa-brands fa-cc-mastercard"></i><span>Mastercard</span></div>
+                    <div class="badge-tile"><i class="fa-brands fa-cc-amex"></i><span>AMEX</span></div>
+                    <div class="badge-tile"><i class="fa-solid fa-money-bill-wave"></i><span>COD</span></div>
+                    <div class="badge-tile"><i class="fa-solid fa-receipt"></i><span>Trả góp</span></div>
+                    <div class="badge-tile"><i class="fa-solid fa-wallet"></i><span>ShopPay</span></div>
+                </div>
+
+                <h6 class="mt-3">ĐƠN VỊ VẬN CHUYỂN</h6>
+                <div class="ship-grid">
+                    <div class="badge-tile"><i class="fa-solid fa-truck-fast"></i><span>J&T</span></div>
+                    <div class="badge-tile"><i class="fa-solid fa-truck"></i><span>VNPost</span></div>
+                    <div class="badge-tile"><i class="fa-solid fa-truck-front"></i><span>GHN</span></div>
+                    <div class="badge-tile"><i class="fa-solid fa-truck-ramp-box"></i><span>GHTK</span></div>
+                    <div class="badge-tile"><i class="fa-solid fa-motorcycle"></i><span>Grab</span></div>
+                    <div class="badge-tile"><i class="fa-solid fa-plane"></i><span>Ahamove</span></div>
+                </div>
+            </div>
+
+            <div class="ft-col">
+                <h6>THEO DÕI CHÚNG TÔI</h6>
+                <div class="social">
+                    <a href="#"><i class="fa-brands fa-facebook-f"></i>Facebook</a>
+                    <a href="#"><i class="fa-brands fa-instagram"></i>Instagram</a>
+                    <a href="#"><i class="fa-brands fa-linkedin-in"></i>LinkedIn</a>
+                    <a href="#"><i class="fa-brands fa-youtube"></i>YouTube</a>
+                </div>
+
+                <h6 class="mt-3">TẢI ỨNG DỤNG</h6>
+                <div class="d-flex align-items-start gap-3">
+                    <div class="qr"></div>
+                    <div class="app-btns">
+                        <a href="#"><img alt="App Store" src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"></a>
+                        <a href="#"><img alt="Google Play" src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"></a>
+                        <a href="#"><img alt="AppGallery" src="https://upload.wikimedia.org/wikipedia/commons/4/4f/Huawei_AppGallery_badge_EN.svg"></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+@section Scripts {
+    <script>
+        // ===== Badge giỏ hàng =====
+        function renderCartCount(n){
+          const badge = document.getElementById('cart-badge');
+          if(!badge) return;
+          const c = Number(n) || 0;
+          badge.textContent = c;
+          badge.style.display = c > 0 ? 'inline-block' : 'none';
+        }
+        async function refreshCartCount(){
+          try{
+            const r = await fetch('/Cart/Count', { credentials:'same-origin' });
+            if(!r.ok) return;
+            const d = await r.json();
+            renderCartCount(d.count);
+          }catch(_){}
+        }
+
+        // ===== Badge đơn hàng =====
+        function renderOrderCount(n){
+          const badge = document.getElementById('order-badge');
+          if(!badge) return;
+          const c = Number(n) || 0;
+          badge.textContent = c;
+          badge.style.display = c > 0 ? 'inline-block' : 'none';
+        }
+        async function refreshOrderCount(){
+          try{
+            const r = await fetch('/DonHang/Count', { credentials:'same-origin' });
+            if(!r.ok) return;
+            const d = await r.json();
+            // API mình trả về { count: <number> }
+            renderOrderCount(d.count);
+          }catch(_){}
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+          refreshCartCount();
+          refreshOrderCount();
+        });
+
+        // ===== Toast nhỏ gọn =====
+        function showToast(message, ok=true){
+          const box = document.getElementById('toast-container');
+          const el = document.createElement('div');
+          el.className = 'toast-item';
+          el.style.background = ok ? 'linear-gradient(135deg,#22c55e,#16a34a)'
+                                   : 'linear-gradient(135deg,#ef4444,#dc2626)';
+          el.textContent = message;
+          box.appendChild(el);
+          setTimeout(()=>el.remove(), 2600);
+        }
+
+        // ===== Thêm vào giỏ từ product =====
+        function addToCartByProduct(productId){
+          fetch(`/Cart/Add?id=${productId}`, { method:'GET', credentials:'same-origin' })
+            .then(async r => {
+              if (r.status === 200){
+                showToast('Đã thêm vào giỏ hàng!', true);
+                await refreshCartCount();
+                return;
+              }
+              if (r.status === 401) throw new Error('Bạn cần đăng nhập.');
+              throw new Error('Không thể thêm vào giỏ.');
+            })
+            .catch(e => showToast(e.message || 'Lỗi kết nối', false));
+        }
+    </script>
+}
