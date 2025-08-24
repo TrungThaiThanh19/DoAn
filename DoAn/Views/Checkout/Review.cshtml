@@ -1,6 +1,7 @@
 ﻿@model DoAn.ViewModel.CheckoutReviewVM
 @{
     ViewData["Title"] = "Xem lại đơn";
+    var carriedLines = (string)ViewBag.Lines ?? Context.Request.Query["lines"].ToString();
 }
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
@@ -54,12 +55,9 @@
 <div class="wrap container">
     <h3 class="mb-3 fw-bold">Xem lại đơn hàng</h3>
 
-    @* HIỂN THỊ LỖI KHI HẾT HÀNG / LỖI ĐẶT HÀNG *@
     @if (TempData["OrderError"] != null)
     {
-        <div class="alert alert-danger">
-            @TempData["OrderError"]
-        </div>
+        <div class="alert alert-danger">@TempData["OrderError"]</div>
     }
 
     <div class="card mb-3">
@@ -121,6 +119,7 @@
         @Html.AntiForgeryToken()
         <input type="hidden" name="AddressId" value="@Model.AddressId" />
         <input type="hidden" name="ShippingFee" value="@Model.ShippingFee" />
+        <input type="hidden" name="lines" value="@carriedLines" />
 
         <div class="card mb-3">
             <div class="card-header">Thanh toán</div>

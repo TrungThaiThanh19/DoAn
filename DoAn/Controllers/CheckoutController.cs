@@ -3,6 +3,7 @@ using DoAn.Service.IService;
 using DoAn.ViewModel;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 
 namespace DoAn.Controllers
 {
@@ -10,6 +11,9 @@ namespace DoAn.Controllers
     {
         private readonly DoAnDbContext _db;
         private readonly IGioHangService _cart;
+
+        private const int TrangThaiConBan = 1;
+        private const int TrangThaiHetHang = 0;
 
         public CheckoutController(DoAnDbContext db, IGioHangService cart)
         {
@@ -45,7 +49,8 @@ namespace DoAn.Controllers
         }
 
         // ===== B1: CHỌN ĐỊA CHỈ =====
-        public async Task<IActionResult> Address()
+        // NHẬN THÊM lines để mang theo qua các bước, KHÔNG đổi logic khác
+        public async Task<IActionResult> Address(string? lines)
         {
             var khId = await GetKhachHangIdAsync();
             var kh = await _db.KhachHangs.FirstAsync(x => x.ID_KhachHang == khId);
@@ -72,17 +77,18 @@ namespace DoAn.Controllers
                                     ?? list.FirstOrDefault()?.ID_DiaChiKhachHang
             };
 
+            ViewBag.Lines = lines; // mang theo
             return View(vm);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult UseAddress(Guid addressId)
-            => RedirectToAction(nameof(Review), new { addressId });
+        public IActionResult UseAddress(Guid addressId, string? lines)
+            => RedirectToAction(nameof(Review), new { addressId, lines });
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddAddress(DiaChiKhachHang model, bool MakeDefault)
+        public async Task<IActionResult> AddAddress(DiaChiKhachHang model, bool MakeDefault, string? lines)
         {
             var khId = await GetKhachHangIdAsync();
             var kh = await _db.KhachHangs.FirstAsync(x => x.ID_KhachHang == khId);
@@ -103,19 +109,40 @@ namespace DoAn.Controllers
             _db.DiaChiKhachHangs.Add(model);
             await _db.SaveChangesAsync();
 
-            return RedirectToAction(nameof(Review), new { addressId = model.ID_DiaChiKhachHang });
+            return RedirectToAction(nameof(Review), new { addressId = model.ID_DiaChiKhachHang, lines });
         }
 
         // ===== B2: REVIEW =====
-        public async Task<IActionResult> Review(Guid addressId)
+        // THÊM tham số lines để hiển thị đúng các dòng đã tick (nếu có)
+        public async Task<IActionResult> Review(Guid addressId, string? lines)
         {
             var khId = await GetKhachHangIdAsync();
             var kh = await _db.KhachHangs.FirstAsync(x => x.ID_KhachHang == khId);
             var addr = await _db.DiaChiKhachHangs
                 .FirstOrDefaultAsync(a => a.ID_DiaChiKhachHang == addressId && a.ID_KhachHang == khId);
-            if (addr == null) return RedirectToAction(nameof(Address));
+            if (addr == null) return RedirectToAction(nameof(Address), new { lines });
 
             var cart = await _cart.GetCartAsync(khId);
+
+            // --- LỌC items theo lines (nếu có). Không có lines => giữ nguyên như cũ ---
+            HashSet<Guid>? selectedIds = null;
+            if (!string.IsNullOrWhiteSpace(lines))
+            {
+                selectedIds = new HashSet<Guid>(
+                    lines.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                         .Select(s => Guid.TryParse(s, out var g) ? g : Guid.Empty)
+                         .Where(g => g != Guid.Empty)
+                );
+            }
+            var items = (selectedIds == null || selectedIds.Count == 0)
+                ? cart.Items
+                : cart.Items.Where(x => selectedIds.Contains(x.ChiTietGioHangId)).ToList();
+
+            if (!items.Any())
+            {
+                TempData["OrderError"] = "Không có sản phẩm nào được chọn.";
+                return RedirectToAction("Index", "GioHang");
+            }
 
             var vm = new CheckoutReviewVM
             {
@@ -123,53 +150,84 @@ namespace DoAn.Controllers
                 FullAddress = $"{addr.SoNha}, {addr.Xa_Phuong}, {addr.Quan_Huyen}, {addr.Tinh_ThanhPho}",
                 ReceiverName = string.IsNullOrWhiteSpace(addr.HoTen) ? kh.Ten_KhachHang : addr.HoTen,
                 Phone = string.IsNullOrWhiteSpace(addr.SoDienThoai) ? kh.SoDienThoai : addr.SoDienThoai,
-                Items = cart.Items,
+                Items = items,
                 ShippingFee = 1000,
                 PaymentMethod = "COD"
             };
+            ViewBag.Lines = lines; // mang theo tiếp
             return View(vm);
         }
 
-        // ===== B3: ĐẶT HÀNG (ĐÃ SỬA: trừ tồn kho ATOMIC + TRANSACTION) =====
+        // ===== B3: ĐẶT HÀNG (TRỪ KHO + SET TRẠNG THÁI THEO TỒN) =====
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> PlaceOrder(PlaceOrderPost dto)
+        public async Task<IActionResult> PlaceOrder(PlaceOrderPost dto, string? lines)
         {
             var khId = await GetKhachHangIdAsync();
 
             var addr = await _db.DiaChiKhachHangs
                 .FirstOrDefaultAsync(a => a.ID_DiaChiKhachHang == dto.AddressId && a.ID_KhachHang == khId);
-            if (addr == null) return RedirectToAction(nameof(Address));
+            if (addr == null) return RedirectToAction(nameof(Address), new { lines });
 
             var cart = await _cart.GetCartAsync(khId);
             if (cart == null || !cart.Items.Any())
             {
                 TempData["OrderError"] = "Giỏ hàng trống.";
-                return RedirectToAction(nameof(Review), new { addressId = dto.AddressId });
+                return RedirectToAction(nameof(Review), new { addressId = dto.AddressId, lines });
+            }
+
+            // --- LỌC items theo lines (nếu có). Không có lines => giữ nguyên như cũ ---
+            HashSet<Guid>? selectedIds = null;
+            if (!string.IsNullOrWhiteSpace(lines))
+            {
+                selectedIds = new HashSet<Guid>(
+                    lines.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                         .Select(s => Guid.TryParse(s, out var g) ? g : Guid.Empty)
+                         .Where(g => g != Guid.Empty)
+                );
+            }
+            var items = (selectedIds == null || selectedIds.Count == 0)
+                ? cart.Items
+                : cart.Items.Where(x => selectedIds.Contains(x.ChiTietGioHangId)).ToList();
+
+            if (!items.Any())
+            {
+                TempData["OrderError"] = "Không có sản phẩm nào được chọn.";
+                return RedirectToAction(nameof(Review), new { addressId = dto.AddressId, lines });
             }
 
             await using var tx = await _db.Database.BeginTransactionAsync();
             try
             {
-                // 1) Trừ tồn kho theo từng biến thể bằng EF (điều kiện SoLuong >= yêu cầu)
-                foreach (var i in cart.Items)
+                // 1) Trừ kho + set trạng thái theo tồn (atomic)
+                foreach (var i in items)
                 {
                     var affected = await _db.SanPhamChiTiets
-                        .Where(v => v.ID_SanPhamChiTiet == i.SanPhamChiTietId && v.SoLuong >= i.SoLuong)
-                        .ExecuteUpdateAsync(setters =>
-                            setters.SetProperty(v => v.SoLuong, v => v.SoLuong - i.SoLuong));
+                        .Where(v => v.ID_SanPhamChiTiet == i.SanPhamChiTietId
+                                    && v.TrangThai == TrangThaiConBan
+                                    && v.SoLuong >= i.SoLuong)
+                        .ExecuteUpdateAsync(setters => setters
+                            .SetProperty(v => v.SoLuong, v => v.SoLuong - i.SoLuong)
+                            .SetProperty(v => v.TrangThai, v => (v.SoLuong - i.SoLuong) > 0 ? TrangThaiConBan : TrangThaiHetHang)
+                        );
 
                     if (affected == 0)
                     {
-                        // Không đủ hàng cho biến thể này
                         await tx.RollbackAsync();
                         TempData["OrderError"] =
                             $"Sản phẩm \"{i.TenSanPham} ({i.TheTich})\" không đủ hàng. Vui lòng cập nhật giỏ hàng.";
-                        return RedirectToAction(nameof(Review), new { addressId = dto.AddressId });
+                        return RedirectToAction(nameof(Review), new { addressId = dto.AddressId, lines });
                     }
                 }
 
-                // 2) Tạo hóa đơn + chi tiết
+                // 2) Đồng bộ lại các biến thể vừa trừ kho nếu tồn <= 0
+                var ids = items.Select(x => x.SanPhamChiTietId).ToList();
+                await _db.SanPhamChiTiets
+                    .Where(v => ids.Contains(v.ID_SanPhamChiTiet) && v.SoLuong <= 0 && v.TrangThai != TrangThaiHetHang)
+                    .ExecuteUpdateAsync(s => s.SetProperty(v => v.TrangThai, TrangThaiHetHang));
+
+                // 3) Tạo hóa đơn + chi tiết từ items đã chọn
+                var subtotal = items.Sum(x => x.ThanhTien);
                 var hd = new HoaDon
                 {
                     ID_HoaDon = Guid.NewGuid(),
@@ -180,16 +238,16 @@ namespace DoAn.Controllers
                     DiaChi = $"{addr.SoNha}, {addr.Xa_Phuong}, {addr.Quan_Huyen}, {addr.Tinh_ThanhPho}",
                     HinhThucThanhToan = dto.PaymentMethod,
                     PhuongThucNhanHang = "Giao hàng",
-                    TongTienTruocGiam = cart.Subtotal,
-                    TongTienSauGiam = cart.Subtotal + dto.ShippingFee,
+                    TongTienTruocGiam = subtotal,
+                    TongTienSauGiam = subtotal + dto.ShippingFee,
                     PhuThu = dto.ShippingFee,
                     LoaiHoaDon = "Online",
-                    TrangThai = 0,
+                    TrangThai = 0, // Chờ xác nhận
                     NgayTao = DateTime.Now
                 };
                 _db.HoaDons.Add(hd);
 
-                foreach (var i in cart.Items)
+                foreach (var i in items)
                 {
                     _db.HoaDonChiTiets.Add(new HoaDonChiTiet
                     {
@@ -204,8 +262,16 @@ namespace DoAn.Controllers
                 await _db.SaveChangesAsync();
                 await tx.CommitAsync();
 
-                // 3) Dọn giỏ sau khi commit
-                await _cart.ClearAsync(khId);
+                // 4) Dọn giỏ: nếu có lines -> chỉ xóa các dòng đã mua; nếu không -> xóa toàn bộ như cũ
+                if (selectedIds != null && selectedIds.Count > 0)
+                {
+                    foreach (var lineId in selectedIds)
+                        await _cart.RemoveItemAsync(khId, lineId);
+                }
+                else
+                {
+                    await _cart.ClearAsync(khId);
+                }
 
                 return RedirectToAction(nameof(Success), new { id = hd.ID_HoaDon });
             }
@@ -213,7 +279,7 @@ namespace DoAn.Controllers
             {
                 await tx.RollbackAsync();
                 TempData["OrderError"] = "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại.";
-                return RedirectToAction(nameof(Review), new { addressId = dto.AddressId });
+                return RedirectToAction(nameof(Review), new { addressId = dto.AddressId, lines });
             }
         }
 

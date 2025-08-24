@@ -2,12 +2,19 @@
 @{
     ViewData["Title"] = "Theo dõi đơn hàng " + Model.Ma_HoaDon;
 
-    // Các bước trạng thái
-    var steps = new[] { "Chờ xác nhận", "Đã xác nhận", "Đang vận chuyển", "Đã thanh toán", "Thành công" };
-    var active = Math.Clamp(Model.TrangThai, 0, steps.Length - 1);
+    bool isCanceled = Model.TrangThai == 5;
+    bool isReturnDone = Model.TrangThai == 7;
 
-    // Đã từng gửi yêu cầu hoàn hàng chưa? (6)
-    var hasReturnRequest = Model.TrangThaiDonHangs?.Any(x => x.TrangThai == 6) == true;
+    // lấy log mới nhất theo trạng thái để hiển thị lý do/người thực hiện
+    var cancelLog = Model.TrangThaiDonHangs?
+        .Where(x => x.TrangThai == 5)
+        .OrderByDescending(x => x.NgayChuyen)
+        .FirstOrDefault();
+
+    var returnDoneLog = Model.TrangThaiDonHangs?
+        .Where(x => x.TrangThai == 7)
+        .OrderByDescending(x => x.NgayChuyen)
+        .FirstOrDefault();
 
     string Currency(decimal v) => string.Format("{0:N0} đ", v);
 }
@@ -20,59 +27,6 @@
         background: linear-gradient(180deg,#eef2ff,#f8fafc);
         border: 1px solid #e5e7eb;
         border-radius: 18px
-    }
-
-    .stepper {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        padding: 18px
-    }
-
-    .step {
-        text-align: center;
-        flex: 1;
-        position: relative;
-        color: #6b7280
-    }
-
-        .step:not(:last-child)::after {
-            content: "";
-            position: absolute;
-            top: 22px;
-            left: 50%;
-            right: -50%;
-            height: 4px;
-            background: #e5e7eb;
-            z-index: 0
-        }
-
-    .dot {
-        width: 40px;
-        height: 40px;
-        border-radius: 999px;
-        background: #d1d5db;
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 8px;
-        font-weight: 800;
-        position: relative;
-        z-index: 1
-    }
-
-    .step.done .dot {
-        background: #22c55e
-    }
-
-    .step.active .dot {
-        background: #0d6efd
-    }
-
-    .step.done, .step.active {
-        color: #111827;
-        font-weight: 700
     }
 
     .badge-soft {
@@ -99,9 +53,8 @@
     <i class="fa fa-location-dot me-2"></i>Theo dõi đơn hàng: @Model.Ma_HoaDon
 </h2>
 <div class="text-muted mb-3">
-    Trạng thái hiện tại:
-    <span class="badge-soft"><i class="fa-solid fa-circle me-1"></i>@steps[active]</span>
-    <span class="ms-3">Cập nhật: <span id="updated">@((Model.NgayCapNhat ?? Model.NgayTao).ToString("dd/MM/yyyy HH:mm"))</span></span>
+    Cập nhật:
+    <span id="updated">@((Model.NgayCapNhat ?? Model.NgayTao).ToString("dd/MM/yyyy HH:mm"))</span>
 </div>
 
 @if (TempData["Success"] != null)
@@ -113,61 +66,52 @@
     <div class="alert alert-danger"><i class="fa fa-triangle-exclamation me-1"></i>@TempData["Error"]</div>
 }
 
-@* Nếu đã gửi yêu cầu hoàn hàng: báo nhẹ *@
-@if (hasReturnRequest)
+@* ====== BANNER: ĐƠN ĐÃ HỦY ====== *@
+@if (isCanceled && cancelLog != null)
 {
-    <div class="alert alert-warning d-flex align-items-center">
-        <i class="fa fa-rotate-left me-2"></i>
+    var byCustomer = string.Equals(cancelLog.NhanVienDoi, "Khách hàng", StringComparison.OrdinalIgnoreCase);
+    <div class="alert alert-danger d-flex align-items-start">
+        <i class="fa fa-circle-xmark me-2 mt-1"></i>
         <div>
-            <strong>Đã gửi yêu cầu hoàn hàng.</strong>
-            <div class="text-muted">Shop sẽ liên hệ và sắp xếp đơn vị vận chuyển đến lấy.</div>
+            <div><strong>Đơn hàng đã bị hủy@(byCustomer ? " bởi khách hàng" : "")</strong>.</div>
+            <div class="text-muted">Thời gian: @cancelLog.NgayChuyen.ToString("dd/MM/yyyy HH:mm")</div>
+            @if (!string.IsNullOrWhiteSpace(cancelLog.NoiDungDoi))
+            {
+                <div><span class="text-muted">Lý do:</span> @cancelLog.NoiDungDoi</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(cancelLog.NhanVienDoi))
+            {
+                <div><span class="text-muted">Người thực hiện:</span> @cancelLog.NhanVienDoi</div>
+            }
         </div>
     </div>
 }
 
-@* Nếu đã hủy: hiện lý do *@
-@if (Model.TrangThai == 5 && Model.TrangThaiDonHangs != null)
+@* ====== BANNER: HOÀN HÀNG THÀNH CÔNG ====== *@
+@if (isReturnDone && returnDoneLog != null)
 {
-    var cancelLog = Model.TrangThaiDonHangs
-        .Where(x => x.TrangThai == 5)
-        .OrderByDescending(x => x.NgayChuyen)
-        .FirstOrDefault();
-
-    if (cancelLog != null)
-    {
-        <div class="alert alert-danger d-flex align-items-center">
-            <i class="fa fa-circle-xmark me-2"></i>
-            <div>
-                <div>
-                    <strong>Đơn hàng đã bị hủy.</strong>
-                    <span class="text-muted">Thời gian:</span> @cancelLog.NgayChuyen.ToString("dd/MM/yyyy HH:mm")
-                </div>
-                @if (!string.IsNullOrWhiteSpace(cancelLog.NoiDungDoi))
-                {
-                    <div><span class="text-muted">Lý do:</span> @cancelLog.NoiDungDoi</div>
-                }
-                @if (!string.IsNullOrWhiteSpace(cancelLog.NhanVienDoi))
-                {
-                    <div><span class="text-muted">Người thực hiện:</span> @cancelLog.NhanVienDoi</div>
-                }
-            </div>
+    <div class="alert alert-success d-flex align-items-start">
+        <i class="fa fa-rotate-left me-2 mt-1"></i>
+        <div>
+            <div><strong>Hoàn hàng thành công</strong>.</div>
+            <div class="text-muted">Thời gian: @returnDoneLog.NgayChuyen.ToString("dd/MM/yyyy HH:mm")</div>
+            @if (!string.IsNullOrWhiteSpace(returnDoneLog.NoiDungDoi))
+            {
+                <div><span class="text-muted">Ghi chú:</span> @returnDoneLog.NoiDungDoi</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(returnDoneLog.NhanVienDoi))
+            {
+                <div><span class="text-muted">Người xác nhận:</span> @returnDoneLog.NhanVienDoi</div>
+            }
         </div>
-    }
+    </div>
 }
 
-<!-- Stepper -->
-<div class="order-head mb-4">
-    <div class="stepper">
-        @for (int i = 0; i < steps.Length; i++)
-        {
-            var cls = i < active ? "step done" : i == active ? "step active" : "step";
-            <div class="@cls">
-                <div class="dot">@((i + 1))</div>
-                <div>@steps[i]</div>
-            </div>
-        }
-    </div>
-</div>
+@* Khi đã hủy hoặc đã hoàn xong -> chỉ hiển thị banner trên, KHÔNG stepper *@
+@if (!(isCanceled || isReturnDone))
+{
+    <!-- Nếu muốn giữ stepper cũ, bạn có thể chèn lại ở đây -->
+}
 
 <!-- Thông tin & chi tiết -->
 <div class="card card-soft shadow-sm border-0">
@@ -241,8 +185,8 @@
                 </form>
             }
 
-            @* ====== NÚT HOÀN HÀNG: chỉ hiện khi ĐÃ THANH TOÁN (3) và chưa gửi yêu cầu trước đó ====== *@
-            @if (Model.TrangThai == 3 && !hasReturnRequest)
+            @* Nút HOÀN HÀNG: chỉ hiện khi ĐÃ THANH TOÁN (3) và chưa hoàn xong *@
+            @if (Model.TrangThai == 3)
             {
                 <form asp-action="HoanHang" asp-controller="DonHang" method="post" class="d-inline"
                       onsubmit="return confirm('Xác nhận gửi yêu cầu hoàn hàng cho đơn @Model.Ma_HoaDon ?');">
@@ -253,41 +197,6 @@
                     </button>
                 </form>
             }
-            @* ====== HẾT NÚT HOÀN HÀNG ====== *@
         </div>
     </div>
 </div>
-
-@section Scripts {
-    <script>
-        const steps = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(steps));
-        const id = '@Model.ID_HoaDon';
-
-        function applyStep(status){
-            const active = Math.max(0, Math.min(steps.length-1, status));
-            for(let i=0;i<steps.length;i++){
-                const container = document.querySelectorAll('.step')[i];
-                if(!container) continue;
-                container.className = (i<active) ? 'step done' : (i===active ? 'step active' : 'step');
-            }
-            const badge = document.querySelector('.badge-soft');
-            if (badge) badge.innerHTML = '<i class="fa-solid fa-circle me-1"></i>' + steps[active];
-        }
-
-        async function poll(){
-            try{
-                const r = await fetch(`/HoaDon/Status?id=${encodeURIComponent(id)}`, { credentials:'same-origin' });
-                if(!r.ok) return;
-                const d = await r.json();
-                if(d && d.ok){
-                    applyStep(d.status);
-                    const up = document.getElementById('updated');
-                    if (up) up.textContent = (d.updatedAt || '').replace('T',' ').substring(0,16);
-                }
-            }catch(_){}
-        }
-        setInterval(poll, 10000);
-        document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) poll(); });
-        poll();
-    </script>
-}

@@ -10,6 +10,7 @@
         3 => "💳 Chờ thanh toán",
         4 => "🎉 Hoàn thành",
         5 => "❌ Đã hủy",
+        7 => "↩️ Hoàn hàng thành công",
         _ => "❔ Không rõ"
     };
 
@@ -21,6 +22,7 @@
         3 => "badge bg-secondary",
         4 => "badge bg-success",
         5 => "badge bg-danger",
+        7 => "badge bg-success",
         _ => "badge bg-dark"
     };
 }
@@ -85,7 +87,7 @@ else
                                     <i class="fa fa-location-dot"></i> Theo dõi
                                 </a>
 
-                                @if (o.TrangThai <= 1)  // chỉ cho hủy khi còn sớm
+                                @if (o.TrangThai <= 1)
                                 {
                                     <form asp-action="Huy" method="post" class="d-inline"
                                           onsubmit="return confirm('Hủy đơn @o.Ma_HoaDon ?');">
@@ -105,7 +107,6 @@ else
     </div>
 }
 
-<!-- Nút quay lại shop -->
 <div class="text-center mt-4">
     <a class="btn btn-lg btn-success rounded-pill px-4 shadow"
        asp-controller="Shop" asp-action="Index">

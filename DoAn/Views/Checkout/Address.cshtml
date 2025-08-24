@@ -1,6 +1,7 @@
 ﻿@model DoAn.ViewModel.CheckoutAddressVM
 @{
     ViewData["Title"] = "Chọn địa chỉ";
+    var carriedLines = (string)ViewBag.Lines ?? Context.Request.Query["lines"].ToString();
 }
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
@@ -99,6 +100,7 @@
         <form asp-action="UseAddress" method="post" class="mb-5">
             @Html.AntiForgeryToken()
             <input type="hidden" id="addressId" name="addressId" value="@Model.SelectedAddressId" />
+            <input type="hidden" name="lines" value="@carriedLines" />
             <button class="btn btn-brand px-4">Tiếp tục</button>
         </form>
 
@@ -118,6 +120,7 @@
     <h5 class="section-title"><i class="fa-solid fa-plus me-2"></i>Thêm địa chỉ mới</h5>
     <form asp-action="AddAddress" method="post" class="row g-3">
         @Html.AntiForgeryToken()
+        <input type="hidden" name="lines" value="@carriedLines" />
         <div class="col-md-6">
             <label class="form-label">Họ tên người nhận</label>
             <input class="form-control" name="HoTen" placeholder="VD: Nguyễn Văn A" />
