@@ -18,5 +18,15 @@ namespace DoAn.ViewModel
 
         // tồn kho của biến thể (để clamp số lượng)
         public int TonKho { get; set; }
+
+        // ===== THÊM MỚI =====
+        // Danh sách khuyến mãi áp dụng (nếu bạn cần lấy chi tiết để tính toán)
+        public ICollection<DoAn.Models.ChiTietKhuyenMai>? ChiTietKhuyenMais { get; set; }
+
+        // Giá đã áp dụng khuyến mãi (nếu có)
+        public decimal GiaSauKhuyenMai { get; set; }
+
+        // % giảm giá (0 nếu không có KM)
+        public int GiamPhanTram { get; set; }
     }
 }

@@ -1,168 +1,89 @@
 ﻿using DoAn.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace DoAn.Controllers
 {
-    public class VouchersController : Controller
+    public class VoucherController : Controller
     {
         private readonly DoAnDbContext _context;
-
-        public VouchersController(DoAnDbContext context)
+        public VoucherController(DoAnDbContext context)
         {
             _context = context;
         }
 
-        // GET: Vouchers
+        // Danh sách voucher
         public async Task<IActionResult> Index()
         {
-            var vouchers = await _context.Vouchers
+            var list = await _context.Vouchers
                 .Include(v => v.TaiKhoan)
                 .ToListAsync();
-            return View(vouchers);
+            return View(list);
         }
 
-        // GET: Vouchers/Details/5
-        public async Task<IActionResult> Details(Guid? id)
-        {
-            if (id == null) return NotFound();
+        // Tạo mới
+        public IActionResult Create() => View();
 
-            var voucher = await _context.Vouchers
-                .Include(v => v.TaiKhoan)
-                .FirstOrDefaultAsync(v => v.ID_Voucher == id);
-
-            return voucher == null ? NotFound() : View(voucher);
-        }
-
-        // GET: Vouchers/Create
-        public IActionResult Create()
-        {
-            LoadTaiKhoanDropdown();
-            return View();
-        }
-
-        // POST: Vouchers/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Ma_Voucher,Ten_Voucher,NgayTao,NgayHetHan,KieuGiamGia,GiaTriGiam,GiaTriToiThieu,GiaTriToiDa,SoLuong,TrangThai,MoTa,ID_TaiKhoan")] Voucher voucher)
+        public async Task<IActionResult> Create(Voucher model)
         {
-            // Validate nghiệp vụ
-            if (voucher.NgayTao >= voucher.NgayHetHan)
-            {
-                ModelState.AddModelError(nameof(voucher.NgayHetHan), "⚠️ Ngày hết hạn phải lớn hơn ngày tạo.");
-            }
-
-            if (voucher.GiaTriGiam > voucher.GiaTriToiDa)
-            {
-                ModelState.AddModelError(nameof(voucher.GiaTriGiam), "⚠️ Giá trị giảm không được lớn hơn giá trị tối đa.");
-            }
-
-            if (voucher.GiaTriToiThieu > voucher.GiaTriToiDa)
-            {
-                ModelState.AddModelError(nameof(voucher.GiaTriToiThieu), "⚠️ Giá trị tối thiểu không được lớn hơn giá trị tối đa.");
-            }
-
             if (ModelState.IsValid)
             {
-                voucher.ID_Voucher = Guid.NewGuid();
-                _context.Add(voucher);
+                // chuẩn hóa mã
+                model.Ma_Voucher = model.Ma_Voucher.Trim().ToUpper();
+                model.ID_Voucher = Guid.NewGuid();
+                model.NgayTao = DateTime.Now;
+                model.TrangThai = 1;
+
+                _context.Vouchers.Add(model);
                 await _context.SaveChangesAsync();
+                TempData["Success"] = "Tạo voucher thành công!";
                 return RedirectToAction(nameof(Index));
             }
-
-            LoadTaiKhoanDropdown(voucher.ID_TaiKhoan);
-            return View(voucher);
+            return View(model);
         }
 
-        // GET: Vouchers/Edit/5
-        public async Task<IActionResult> Edit(Guid? id)
+        // Sửa voucher
+        public async Task<IActionResult> Edit(Guid id)
         {
-            if (id == null) return NotFound();
-
             var voucher = await _context.Vouchers.FindAsync(id);
             if (voucher == null) return NotFound();
-
-            LoadTaiKhoanDropdown(voucher.ID_TaiKhoan);
             return View(voucher);
         }
 
-        // POST: Vouchers/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, [Bind("ID_Voucher,Ma_Voucher,Ten_Voucher,NgayTao,NgayHetHan,KieuGiamGia,GiaTriGiam,GiaTriToiThieu,GiaTriToiDa,SoLuong,TrangThai,MoTa,ID_TaiKhoan")] Voucher voucher)
+        public async Task<IActionResult> Edit(Guid id, Voucher model)
         {
-            if (id != voucher.ID_Voucher) return NotFound();
-
-            if (voucher.NgayTao >= voucher.NgayHetHan)
-                ModelState.AddModelError("", "⚠️ Ngày hết hạn phải lớn hơn ngày tạo.");
-
+            if (id != model.ID_Voucher) return NotFound();
             if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Update(voucher);
+                    _context.Update(model);
                     await _context.SaveChangesAsync();
+                    TempData["Success"] = "Cập nhật voucher thành công!";
                     return RedirectToAction(nameof(Index));
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!VoucherExists(voucher.ID_Voucher)) return NotFound();
-                    throw;
+                    return NotFound();
                 }
             }
-
-            LoadTaiKhoanDropdown(voucher.ID_TaiKhoan);
-            return View(voucher);
+            return View(model);
         }
 
-        // GET: Vouchers/Delete/5
-        public async Task<IActionResult> Delete(Guid? id)
-        {
-            if (id == null) return NotFound();
-
-            var voucher = await _context.Vouchers
-                .Include(v => v.TaiKhoan)
-                .FirstOrDefaultAsync(v => v.ID_Voucher == id);
-
-            return voucher == null ? NotFound() : View(voucher);
-        }
-
-        // POST: Vouchers/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(Guid id)
+        // Xóa voucher
+        public async Task<IActionResult> Delete(Guid id)
         {
             var voucher = await _context.Vouchers.FindAsync(id);
-            if (voucher == null)
-            {
-                return NotFound();
-            }
-
-            // ✅ Không xóa, chỉ cập nhật trạng thái thành "Hết hạn"
-            voucher.TrangThai = (int)Voucher.TrangThaiVoucher.HetHan;
-
-            _context.Update(voucher);
+            if (voucher == null) return NotFound();
+            _context.Vouchers.Remove(voucher);
             await _context.SaveChangesAsync();
-
+            TempData["Success"] = "Xóa voucher thành công!";
             return RedirectToAction(nameof(Index));
-        }
-
-        private void LoadTaiKhoanDropdown(Guid? selectedId = null)
-        {
-            var taiKhoans = _context.TaiKhoans
-                .Select(t => new { t.ID_TaiKhoan, t.Uername })
-                .ToList();
-
-            ViewData["ID_TaiKhoan"] = new SelectList(taiKhoans, "ID_TaiKhoan", "Username", selectedId);
-        }
-
-        private bool VoucherExists(Guid id)
-        {
-            return _context.Vouchers.Any(v => v.ID_Voucher == id);
         }
     }
 }
+

@@ -468,7 +468,7 @@
 <!-- ===== HEADER giống Shop (kèm Xin chào + Đăng xuất) ===== -->
 <header class="shp-header">
     <div class="container py-2 shp-topbar d-flex justify-content-between align-items-center">
-        <div class="d-none d-md-flex gap-3"></div>
+        <div></div>
         <div class="d-flex gap-3 align-items-center">
             @if (!string.IsNullOrEmpty(username))
             {
@@ -477,33 +477,28 @@
             }
             else
             {
-                <a class="text-white text-decoration-none" href="/TaiKhoan/Register">Đăng Ký</a>
+                <a class="text-white" href="/TaiKhoan/Register">Đăng Ký</a>
                 <span class="text-white-50">|</span>
-                <a class="text-white text-decoration-none" href="/TaiKhoan/Login">Đăng Nhập</a>
+                <a class="text-white" href="/TaiKhoan/Login">Đăng Nhập</a>
             }
         </div>
     </div>
-    <div class="container py-3">
-        <div class="d-flex align-items-center gap-3">
-            <a href="~/" class="shp-brand">
-                <img src="~/images/logo.png" alt="Logo" />
-                <span>ShopPerfume</span>
-            </a>
-            <form asp-controller="Shop" asp-action="Index" method="get" class="flex-grow-1 shp-search">
-                <input name="search" class="form-control" placeholder="Tìm kiếm sản phẩm..." />
-                <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
-            </form>
-            <div class="shp-icons d-flex align-items-center">
-                <a href="/GioHang/Index">
-                    <i class="fa-solid fa-cart-shopping fa-lg"></i>
-                    <span class="badge" id="cart-badge" style="display:none">0</span>
-                </a>
-            </div>
-        </div>
+    <div class="container py-3 d-flex align-items-center gap-3">
+        <a href="~/" class="shp-brand">
+            <img src="~/images/logo.png" alt="Logo" />
+            <span>ShopPerfume</span>
+        </a>
+        <form asp-controller="Shop" asp-action="Index" method="get" class="flex-grow-1 shp-search">
+            <input name="search" class="form-control" placeholder="Tìm kiếm sản phẩm..." />
+            <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </form>
+        <a href="/GioHang/Index" class="position-relative">
+            <i class="fa-solid fa-cart-shopping fa-lg"></i>
+            <span class="badge" id="cart-badge" style="display:none">0</span>
+        </a>
     </div>
 </header>
 
-<!-- ===== CART ===== -->
 <div class="cart-wrap">
     <div class="cart-title">Giỏ hàng</div>
 
@@ -528,13 +523,15 @@
             <div class="shop-top">
                 <input type="checkbox" class="chk" id="chkShop" />
                 <div class="shop-name">Giỏ hàng của bạn</div>
-                <div class="ms-auto"><a href="#" class="voucher-link" onclick="event.preventDefault()">Thêm Mã giảm giá</a></div>
+                <div class="ms-auto"><a href="#" class="voucher-link">Thêm Mã giảm giá</a></div>
             </div>
 
             @foreach (var i in Model.Items)
             {
                 var lineId = i.ChiTietGioHangId;
-                <div class="cart-row" data-line="@lineId" data-unit="@i.DonGia" data-stock="@i.TonKho">
+                var soLuong = Math.Max(1, i.SoLuong);
+
+                <div class="cart-row" data-line="@lineId" data-unit="@i.GiaSauKhuyenMai" data-stock="@i.TonKho">
                     <div><input type="checkbox" class="chk chk-item" data-line="@lineId" /></div>
 
                     <div class="prod">
@@ -542,10 +539,6 @@
                         <div>
                             <div class="pname">@i.TenSanPham</div>
                             <div class="pmeta">
-                                @if (!string.IsNullOrWhiteSpace(i.ThuongHieu))
-                                {
-                                    @i.ThuongHieu <span> • </span>
-                                }
                                 @i.TheTich
                                 @if (i.TonKho <= 5)
                                 {
@@ -555,11 +548,18 @@
                         </div>
                     </div>
 
-                    <div class="price text-end">@i.DonGia.ToString("n0") đ</div>
+                    <div class="price text-end">
+                        <span class="fw-bold">@i.GiaSauKhuyenMai.ToString("n0") đ</span>
+                        @if (i.GiamPhanTram > 0)
+                        {
+                            <span class="text-muted text-decoration-line-through ms-1">@i.DonGia.ToString("n0") đ</span>
+                            <span class="badge bg-danger ms-1">-@i.GiamPhanTram%</span>
+                        }
+                    </div>
 
                     <div class="qty-box">
                         <button type="button" onclick="stepQty('@lineId', -1)">-</button>
-                        <input type="number" min="1" value="@Math.Max(1, i.SoLuong)" id="qty-@lineId" oninput="qtyChanged('@lineId')" />
+                        <input type="number" min="1" value="@soLuong" id="qty-@lineId" oninput="qtyChanged('@lineId')" />
                         <button type="button" onclick="stepQty('@lineId', 1)">+</button>
                     </div>
 

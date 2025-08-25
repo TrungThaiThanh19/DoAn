@@ -58,7 +58,7 @@
             @* ADMIN: thấy full menu *@
             @if (User.IsInRole("admin"))
             {
-                <a href="/Admin/ThongKe" class="nav-item nav-link">
+                <a href="/ThongKe/Index" class="nav-item nav-link">
                     <i class="fa fa-chart-bar me-2"></i>Thống kê
                 </a>
 
@@ -93,8 +93,8 @@
                     <span><i class="fa fa-bullhorn me-2"></i> Khuyến mãi</span>
                 </a>
                 <div class="collapse submenu" id="collapseKhuyenMai">
-                    <a href="/Admin/KhuyenMai" class="nav-link">Quản lý khuyến mãi</a>
-                    <a href="/Voucher" class="nav-link">Quản lý voucher</a>
+                    <a href="/KhuyenMai/Index" class="nav-link">Quản lý khuyến mãi</a>
+                    <a href="/Voucher/Index" class="nav-link">Quản lý voucher</a>
                 </div>
             }
             @* NHÂN VIÊN: chỉ Hóa đơn + POS *@

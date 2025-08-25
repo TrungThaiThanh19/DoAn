@@ -1,6 +1,5 @@
 ﻿@model IEnumerable<DoAn.Models.SanPham>
 @using Microsoft.AspNetCore.Http
-
 @{
     ViewData["Title"] = "Danh sách sản phẩm";
     var username = Context.Session.GetString("Username");
@@ -316,19 +315,34 @@
 
                 if (ctBan?.ChiTietKhuyenMais != null)
                 {
-                    var now = DateTime.Now;
-                    var km = ctBan.ChiTietKhuyenMais
-                    .Where(x => x.KhuyenMai != null && x.KhuyenMai.TrangThai == 1
-                    && x.KhuyenMai.NgayBatDau <= now && x.KhuyenMai.NgayHetHan >= now
-                    && x.GiaSauGiam > 0)
-                    .OrderBy(x => x.GiaSauGiam)
-                    .FirstOrDefault();
-
-                    if (km != null && km.GiaSauGiam < giaGoc)
+                    var now = DateTime.UtcNow.AddHours(7);
+                    foreach (var ctkm in ctBan.ChiTietKhuyenMais)
                     {
-                        giaHienThi = km.GiaSauGiam;
-                        giamPhanTram = (int)Math.Round((1 - (giaHienThi / giaGoc)) * 100M);
-                        giamPhanTram = Math.Clamp(giamPhanTram, 0, 100);
+                        var km = ctkm.KhuyenMai;
+                        if (km == null) continue;
+                        if (km.TrangThai != 1 || now < km.NgayBatDau || now > km.NgayHetHan) continue;
+
+                        decimal discount = 0M;
+                        var kieu = (km.KieuGiamGia ?? "").Trim().ToLowerInvariant();
+
+                        if (kieu == "percent")
+                        {
+                            var pct = Math.Clamp(km.GiaTriGiam, 0, 100);
+                            discount = giaGoc * (pct / 100m);
+                            if (km.GiaTriToiDa > 0 && discount > km.GiaTriToiDa) discount = km.GiaTriToiDa;
+                        }
+                        else if (kieu == "fixed")
+                        {
+                            discount = Math.Min(giaGoc, Math.Max(0, km.GiaTriGiam));
+                        }
+
+                        var price = Math.Max(0, giaGoc - discount);
+                        if (price < giaHienThi) giaHienThi = price;
+                    }
+
+                    if (giaHienThi < giaGoc)
+                    {
+                        giamPhanTram = (int)Math.Clamp(Math.Round((1 - (giaHienThi / giaGoc)) * 100M), 0, 100);
                     }
                 }
 
@@ -356,12 +370,6 @@
                                     <i class="fa-solid fa-cart-plus"></i>
                                 </button>
                             }
-                            else
-                            {
-                                <button class="cart-fab" disabled title="Chưa có biến thể">
-                                    <i class="fa-solid fa-cart-plus"></i>
-                                </button>
-                            }
                         </div>
                         <div class="card-body text-center">
                             <h6 class="card-title mb-2 text-truncate">@sp.Ten_SanPham</h6>
@@ -384,104 +392,107 @@
 <div id="toast-container"></div>
 
 <!-- ====== FOOTER ====== -->
-<style>
-    .site-footer {
-        background: #fff;
-        border-top: 1px solid #e5e7eb;
-        margin-top: 36px;
-    }
+<footer class="site-footer">
+    
+</footer>
+@* <style> *@
+@*     .site-footer { *@
+@*         background: #fff; *@
+@*         border-top: 1px solid #e5e7eb; *@
+@*         margin-top: 36px; *@
+@*     } *@
 
-        .site-footer .ft-wrap {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 28px 12px 36px;
-        }
+@*         .site-footer .ft-wrap { *@
+@*             max-width: 1200px; *@
+@*             margin: 0 auto; *@
+@*             padding: 28px 12px 36px; *@
+@*         } *@
 
-    .ft-grid {
-        display: grid;
-        grid-template-columns: 1.2fr 1.2fr 1.1fr 1.2fr;
-        gap: 28px;
-    }
+@*     .ft-grid { *@
+@*         display: grid; *@
+@*         grid-template-columns: 1.2fr 1.2fr 1.1fr 1.2fr; *@
+@*         gap: 28px; *@
+@*     } *@
 
-    .ft-col h6 {
-        font-weight: 800;
-        font-size: 14px;
-        color: #111827;
-        margin-bottom: 14px;
-        text-transform: uppercase;
-        letter-spacing: .4px;
-    }
+@*     .ft-col h6 { *@
+@*         font-weight: 800; *@
+@*         font-size: 14px; *@
+@*         color: #111827; *@
+@*         margin-bottom: 14px; *@
+@*         text-transform: uppercase; *@
+@*         letter-spacing: .4px; *@
+@*     } *@
 
-    .ft-col ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
+@*     .ft-col ul { *@
+@*         list-style: none; *@
+@*         padding: 0; *@
+@*         margin: 0; *@
+@*     } *@
 
-    .ft-col li {
-        margin: 8px 0;
-    }
+@*     .ft-col li { *@
+@*         margin: 8px 0; *@
+@*     } *@
 
-    .ft-col a {
-        color: #334155;
-        text-decoration: none;
-        font-size: 14px;
-    }
+@*     .ft-col a { *@
+@*         color: #334155; *@
+@*         text-decoration: none; *@
+@*         font-size: 14px; *@
+@*     } *@
 
-        .ft-col a:hover {
-            color: #ef4444;
-        }
+@*         .ft-col a:hover { *@
+@*             color: #ef4444; *@
+@*         } *@
 
-    .pay-grid, .ship-grid {
-        display: grid;
-        grid-template-columns: repeat(3,minmax(0,1fr));
-        gap: 10px;
-        margin-top: 10px;
-    }
+@*     .pay-grid, .ship-grid { *@
+@*         display: grid; *@
+@*         grid-template-columns: repeat(3,minmax(0,1fr)); *@
+@*         gap: 10px; *@
+@*         margin-top: 10px; *@
+@*     } *@
 
-    .badge-tile {
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 8px 10px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        background: #fff;
-    }
+@*     .badge-tile { *@
+@*         border: 1px solid #e5e7eb; *@
+@*         border-radius: 8px; *@
+@*         padding: 8px 10px; *@
+@*         display: flex; *@
+@*         align-items: center; *@
+@*         gap: 8px; *@
+@*         background: #fff; *@
+@*     } *@
 
-        .badge-tile i {
-            font-size: 18px;
-        }
+@*         .badge-tile i { *@
+@*             font-size: 18px; *@
+@*         } *@
 
-    .social a {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin: 10px 0;
-        color: #334155;
-        text-decoration: none;
-    }
+@*     .social a { *@
+@*         display: flex; *@
+@*         align-items: center; *@
+@*         gap: 10px; *@
+@*         margin: 10px 0; *@
+@*         color: #334155; *@
+@*         text-decoration: none; *@
+@*     } *@
 
-    .social i {
-        width: 20px;
-        text-align: center;
-    }
+@*     .social i { *@
+@*         width: 20px; *@
+@*         text-align: center; *@
+@*     } *@
 
-    .app-btns img {
-        height: 36px;
-        width: auto;
-        display: block;
-        margin-bottom: 8px;
-    }
+@*     .app-btns img { *@
+@*         height: 36px; *@
+@*         width: auto; *@
+@*         display: block; *@
+@*         margin-bottom: 8px; *@
+@*     } *@
 
-    .qr {
-        width: 120px;
-        height: 120px;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        background: #fff url('https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://yourdomain.example') center/cover no-repeat;
-    }
-</style>
+@*     .qr { *@
+@*         width: 120px; *@
+@*         height: 120px; *@
+@*         border: 1px solid #e5e7eb; *@
+@*         border-radius: 8px; *@
+@*         background: #fff url('https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://yourdomain.example') center/cover no-repeat; *@
+@*     } *@
+@* </style> *@
 
 <footer class="site-footer">
     <div class="ft-wrap">

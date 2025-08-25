@@ -234,20 +234,7 @@
                     @Model.ThuongHieu?.Ten_ThuongHieu • @Model.GioiTinh?.Ten_GioiTinh • @Model.QuocGia?.Ten_QuocGia
                 </div>
 
-                <div class="mb-2">
-                    <span class="chip">Hương đầu: @Model.HuongDau</span>
-                    <span class="chip">Hương giữa: @Model.HuongGiua</span>
-                    <span class="chip">Hương cuối: @Model.HuongCuoi</span>
-                    <span class="chip">Lưu hương: @Model.ThoiGianLuuHuong giờ</span>
-                    <span class="chip">Tồn kho: @totalQty</span>
-                </div>
-
-                <!-- Mô tả -->
-                <div class="desc-card p-3 mb-3">
-                    <div class="desc-title mb-2">Mô tả</div>
-                    <div class="text-muted">@Model.MoTa</div>
-                </div>
-
+                <!-- Thông tin khác giữ nguyên -->
                 <!-- Bảng biến thể -->
                 <div class="table-responsive">
                     <table class="table table-sm table-variants">
@@ -264,25 +251,41 @@
                         <tbody>
                             @foreach (var ct in Model.SanPhamChiTiets.OrderBy(c => c.GiaBan))
                             {
-                                var now = DateTime.Now;
+                                var now = DateTime.UtcNow.AddHours(7);
                                 decimal giaGoc = ct.GiaBan;
                                 decimal giaHienThi = giaGoc;
                                 int giamPhanTram = 0;
 
-                                var km = ct.ChiTietKhuyenMais?
-                                .Where(x => x.KhuyenMai != null
-                                && x.KhuyenMai.TrangThai == 1
-                                && x.KhuyenMai.NgayBatDau <= now
-                                && x.KhuyenMai.NgayHetHan >= now
-                                && x.GiaSauGiam > 0)
-                                .OrderBy(x => x.GiaSauGiam)
-                                .FirstOrDefault();
-
-                                if (km != null && km.GiaSauGiam < giaGoc)
+                                if (ct.ChiTietKhuyenMais != null)
                                 {
-                                    giaHienThi = km.GiaSauGiam;
-                                    giamPhanTram = (int)Math.Round((1 - (giaHienThi / giaGoc)) * 100M);
-                                    giamPhanTram = Math.Clamp(giamPhanTram, 0, 100);
+                                    foreach (var ctkm in ct.ChiTietKhuyenMais)
+                                    {
+                                        var km = ctkm.KhuyenMai;
+                                        if (km == null) continue;
+                                        if (km.TrangThai != 1 || now < km.NgayBatDau || now > km.NgayHetHan) continue;
+
+                                        decimal discount = 0M;
+                                        var kieu = (km.KieuGiamGia ?? "").Trim().ToLowerInvariant();
+
+                                        if (kieu == "percent")
+                                        {
+                                            var pct = Math.Clamp(km.GiaTriGiam, 0, 100);
+                                            discount = giaGoc * (pct / 100m);
+                                            if (km.GiaTriToiDa > 0 && discount > km.GiaTriToiDa) discount = km.GiaTriToiDa;
+                                        }
+                                        else if (kieu == "fixed")
+                                        {
+                                            discount = Math.Min(giaGoc, Math.Max(0, km.GiaTriGiam));
+                                        }
+
+                                        var price = Math.Max(0, giaGoc - discount);
+                                        if (price < giaHienThi) giaHienThi = price;
+                                    }
+
+                                    if (giaHienThi < giaGoc)
+                                    {
+                                        giamPhanTram = (int)Math.Clamp(Math.Round((1 - (giaHienThi / giaGoc)) * 100M), 0, 100);
+                                    }
                                 }
 
                                 <tr>
@@ -302,7 +305,6 @@
                         </tbody>
                     </table>
                 </div>
-
                 <a asp-action="Index" class="btn btn-outline-secondary mt-2">← Quay lại cửa hàng</a>
             </div>
         </div>
@@ -348,7 +350,7 @@
             .then(async r => {
               if (r.status === 200){
                 showToast('Đã thêm vào giỏ hàng!', true);
-                await refreshCartCount();               // <== cập nhật badge
+                await refreshCartCount();               
                 return;
               }
               if (r.status === 401) throw new Error('Bạn cần đăng nhập.');

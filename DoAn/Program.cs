@@ -1,4 +1,5 @@
-﻿using DoAn.Models;
+﻿using DoAn.IService;
+using DoAn.Models;
 using DoAn.Service;
 using DoAn.Service.IService;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -38,6 +39,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 // DI khác
 builder.Services.AddScoped<IGioHangService, GioHangService>();
+builder.Services.AddScoped<IStatisticsService, StatisticsService>();
+builder.Services.AddScoped<IKhuyenMaiService, KhuyenMaiService>();
 
 var app = builder.Build();
 

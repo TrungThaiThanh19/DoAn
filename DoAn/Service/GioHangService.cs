@@ -30,33 +30,88 @@ namespace DoAn.Service
         {
             var cart = await GetOrCreateCartAsync(khachHangId);
 
-            var items = await _db.ChiTietGioHangs
+            // Bước 1: lấy dữ liệu thô từ DB
+            var lines = await _db.ChiTietGioHangs
                 .AsNoTracking()
                 .Where(x => x.ID_GioHang == cart.ID_GioHang)
                 .Include(x => x.SanPhamChiTiet)!.ThenInclude(spct => spct.SanPham)!.ThenInclude(sp => sp.ThuongHieu)
                 .Include(x => x.SanPhamChiTiet)!.ThenInclude(spct => spct.TheTich)
-                .Select(x => new GioHangItemVMD
+                .Include(x => x.SanPhamChiTiet)!.ThenInclude(spct => spct.ChiTietKhuyenMais)!.ThenInclude(ctkm => ctkm.KhuyenMai)
+                .ToListAsync();
+
+            // Bước 2: xử lý bằng LINQ to Objects
+            var items = lines.Select(x =>
+            {
+                var spct = x.SanPhamChiTiet!;
+                var sp = spct.SanPham!;
+
+                decimal giaGoc = spct.GiaBan;
+                decimal giaHienThi = giaGoc;
+                int giamPhanTram = 0;
+
+                var now = DateTime.UtcNow.AddHours(7);
+                var validKM = spct.ChiTietKhuyenMais?
+                    .Where(ctkm => ctkm.KhuyenMai != null
+                                && ctkm.KhuyenMai.TrangThai == 1
+                                && ctkm.KhuyenMai.NgayBatDau <= now
+                                && ctkm.KhuyenMai.NgayHetHan >= now)
+                    .ToList();
+
+                if (validKM != null && validKM.Any())
+                {
+                    foreach (var kmct in validKM)
+                    {
+                        var km = kmct.KhuyenMai!;
+                        decimal discount = 0;
+                        var kieu = (km.KieuGiamGia ?? "").Trim().ToLowerInvariant();
+
+                        if (kieu == "percent")
+                        {
+                            var pct = Math.Clamp(km.GiaTriGiam, 0, 100);
+                            discount = giaGoc * (pct / 100m);
+                            if (km.GiaTriToiDa > 0 && discount > km.GiaTriToiDa) discount = km.GiaTriToiDa;
+                        }
+                        else if (kieu == "fixed")
+                        {
+                            discount = Math.Min(giaGoc, Math.Max(0, km.GiaTriGiam));
+                        }
+
+                        var price = Math.Max(0, giaGoc - discount);
+                        if (price < giaHienThi) giaHienThi = price;
+                    }
+
+                    if (giaHienThi < giaGoc)
+                    {
+                        giamPhanTram = (int)Math.Clamp(
+                            Math.Round((1 - (giaHienThi / giaGoc)) * 100M),
+                            0, 100);
+                    }
+                }
+
+                return new GioHangItemVMD
                 {
                     ChiTietGioHangId = x.ID_ChiTietGioHang,
-                    SanPhamChiTietId = x.ID_SanPhamChiTiet,
+                    SanPhamChiTietId = spct.ID_SanPhamChiTiet,
+                    TenSanPham = sp.Ten_SanPham,
+                    ThuongHieu = sp.ThuongHieu?.Ten_ThuongHieu,
+                    TheTich = spct.TheTich?.DonVi,
+                    HinhAnh = string.IsNullOrWhiteSpace(sp.HinhAnh) ? "/images/no-image.png" : sp.HinhAnh,
 
-                    TenSanPham = x.SanPhamChiTiet!.SanPham!.Ten_SanPham,
-                    ThuongHieu = x.SanPhamChiTiet!.SanPham!.ThuongHieu != null
-                                ? x.SanPhamChiTiet!.SanPham!.ThuongHieu.Ten_ThuongHieu : null,
-                    TheTich = x.SanPhamChiTiet!.TheTich != null ? x.SanPhamChiTiet!.TheTich.DonVi : null,
-                    HinhAnh = string.IsNullOrWhiteSpace(x.SanPhamChiTiet!.SanPham!.HinhAnh)
-                                ? "/images/no-image.png"
-                                : x.SanPhamChiTiet!.SanPham!.HinhAnh,
-
-                    DonGia = x.SanPhamChiTiet!.GiaBan,
+                    DonGia = giaGoc,
                     SoLuong = x.SoLuong,
-                    ThanhTien = x.SoLuong * x.SanPhamChiTiet!.GiaBan,
-                    TonKho = x.SanPhamChiTiet!.SoLuong
-                })
-                .ToListAsync();
+                    ThanhTien = giaHienThi * x.SoLuong,
+                    TonKho = spct.SoLuong,
+
+                    GiaSauKhuyenMai = giaHienThi,
+                    GiamPhanTram = giamPhanTram,
+                    ChiTietKhuyenMais = validKM
+                };
+            }).ToList();
 
             return new GioHangVMD { Items = items };
         }
+
+
 
         public async Task AddItemAsync(Guid khachHangId, Guid sanPhamChiTietId, int soLuong)
         {
