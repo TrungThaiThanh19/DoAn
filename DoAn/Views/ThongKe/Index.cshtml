@@ -1,0 +1,432 @@
+﻿@model DoAn.ViewModel.StatsDashboardVM
+@{
+    ViewData["Title"] = "Thống kê";
+    string Currency(decimal v) => string.Format("{0:N0} đ", v);
+    string? Q(string key) => Context.Request.Query[key].FirstOrDefault();
+    string QueryMulti(string key) => string.Join("&", Context.Request.Query[key].Select(x => $"{key}={x}"));
+
+    // Lấy tham số hiện tại để tái sử dụng khi gọi API/Export
+    var from = Q("from");
+    var to = Q("to");
+    var topN = Q("topN") ?? "5";
+    var statusParams = Context.Request.Query["status"].ToArray(); // mảng string
+    string StatusQueryPairs() => string.Join("&", statusParams.Select(s => $"status={s}"));
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<style>
+    .kpi-card .label {
+        color: #6b7280;
+        font-size: .9rem;
+    }
+
+    .kpi-card .value {
+        font-weight: 800;
+        font-size: 1.25rem;
+    }
+
+    .card-shadow {
+        border: 0;
+        box-shadow: 0 4px 24px rgba(0,0,0,.06);
+    }
+
+    .table thead th {
+        white-space: nowrap;
+    }
+
+    .sticky-tools {
+        position: sticky;
+        top: .5rem;
+        z-index: 2;
+    }
+</style>
+
+<div class="container-fluid py-3">
+
+    <!-- Tiêu đề + Tools -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="mb-0">Thống kê tổng quan</h2>
+        <div class="sticky-tools d-flex gap-2">
+            @{
+                var exportHref = Url.Action("ExportKpiCsv", "ThongKe") + "?" +
+                (string.IsNullOrEmpty(from) ? "" : $"from={from}&") +
+                (string.IsNullOrEmpty(to) ? "" : $"to={to}&") +
+                StatusQueryPairs() + (string.IsNullOrEmpty(StatusQueryPairs()) ? "" : "&") +
+                $"topN={topN}";
+            }
+            <a class="btn btn-outline-secondary" href="@exportHref">
+                <i class="bi bi-download"></i> Xuất KPI CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Bộ lọc -->
+    <form method="get" class="card card-shadow mb-3">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-6 col-md-3">
+                    <label class="form-label">Từ ngày</label>
+                    <input type="date" class="form-control" name="from" value="@from" />
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label">Đến ngày</label>
+                    <input type="date" class="form-control" name="to" value="@to" />
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label d-block">Trạng thái tính là hoàn tất</label>
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        @{
+                            // Gợi ý: 3 = Đã thanh toán, 4 = Thành công (tuỳ hệ thống)
+                            var known = new[] { "3", "4" };
+                            foreach (var s in known)
+                            {
+                                var isChecked = statusParams.Contains(s) || (!statusParams.Any() && s == "4");
+                                var id = $"st_{s}";
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" name="status" id="@id" value="@s" @(isChecked ? "checked" : "") />
+                                    <label class="form-check-label" for="@id">@s</label>
+                                </div>
+                            }
+                        }
+                    </div>
+                    <div class="form-text">Nếu không chọn gì, mặc định tính 4.</div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label">Top sản phẩm</label>
+                    <input type="number" min="3" max="50" step="1" class="form-control" name="topN" value="@topN" />
+                </div>
+                <div class="col-6 col-md-1 text-end">
+                    <button class="btn btn-primary w-100">
+                        Lọc
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- KPI -->
+    <div class="row g-3 mb-3">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-shadow kpi-card">
+                <div class="card-body">
+                    <div class="label">Doanh thu</div>
+                    <div class="value">@Currency(Model.KPI.DoanhThu)</div>
+                    <div class="small text-secondary">Phụ thu: @Currency(Model.KPI.PhuThu) &nbsp;•&nbsp; Giảm giá: @Currency(Model.KPI.GiamGiaKM_Voucher)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-shadow kpi-card">
+                <div class="card-body">
+                    <div class="label">Lợi nhuận gộp (ước tính)</div>
+                    <div class="value">@Currency(Model.KPI.LoiNhuanGop)</div>
+                    <div class="small text-secondary">Hoàn tiền trả hàng: @Currency(Model.KPI.HoanTienTraHang)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-shadow kpi-card">
+                <div class="card-body">
+                    <div class="label">Đơn hoàn tất</div>
+                    <div class="value">@Model.KPI.DonHoanTat</div>
+                    <div class="small text-secondary">Khoảng thời gian đang lọc</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-shadow kpi-card">
+                <div class="card-body">
+                    <div class="label">KH mới (năm nay)</div>
+                    <div class="value">@Model.KPI.KhachHangMoi</div>
+                    <div class="small text-secondary">Tổng số theo tháng</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row g-3 mb-3">
+        <!-- Doanh thu theo ngày (BAR) -->
+        <div class="col-lg-6">
+            <div class="card card-shadow h-100">
+                <div class="card-body">
+                    <h5 class="card-title mb-1">Doanh thu theo ngày</h5>
+                    <div class="small text-secondary mb-2">Nguồn: GET /ThongKe/RevenueDaily</div>
+                    <div class="mb-2">
+                        <span class="text-muted">Tổng:</span>
+                        <strong id="dailyTotal">—</strong>
+                    </div>
+                    <div id="dailyEmpty" class="text-center text-secondary py-4 d-none">Không có dữ liệu trong khoảng lọc.</div>
+                    <canvas id="dailyChart" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Doanh thu theo tháng (BAR) -->
+        <div class="col-lg-6">
+            <div class="card card-shadow h-100">
+                <div class="card-body">
+                    <h5 class="card-title mb-1">Doanh thu theo tháng (năm hiện tại)</h5>
+                    <div class="small text-secondary mb-2">Nguồn: GET /ThongKe/RevenueMonthly</div>
+                    <div class="mb-2">
+                        <span class="text-muted">Tổng:</span>
+                        <strong id="monthlyTotal">—</strong>
+                    </div>
+                    <div id="monthlyEmpty" class="text-center text-secondary py-4 d-none">Không có dữ liệu.</div>
+                    <canvas id="monthlyChart" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top sản phẩm -->
+    <div class="card card-shadow mb-3">
+        <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h5 class="mb-0">Top sản phẩm bán chạy</h5>
+                <span class="text-secondary small">Top @topN</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Sản phẩm</th>
+                            <th>Thể tích</th>
+                            <th class="text-end">Số lượng</th>
+                            <th class="text-end">Doanh thu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.TopProducts?.Any() == true)
+                        {
+                            foreach (var p in Model.TopProducts)
+                            {
+                                <tr>
+                                    <td>@p.TenSanPham</td>
+                                    <td>@p.TheTich</td>
+                                    <td class="text-end">@p.SoLuong</td>
+                                    <td class="text-end">@Currency(p.DoanhThu)</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="4" class="text-center text-secondary py-3">Chưa có dữ liệu trong khoảng lọc.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theo thương hiệu & giới tính -->
+    <div class="row g-3 mb-3">
+        <div class="col-lg-6">
+            <div class="card card-shadow h-100">
+                <div class="card-body">
+                    <h5 class="mb-3">Doanh số theo thương hiệu</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Thương hiệu</th>
+                                    <th class="text-end">Số lượng</th>
+                                    <th class="text-end">Doanh thu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.SalesByBrand?.Any() == true)
+                                {
+                                    foreach (var b in Model.SalesByBrand)
+                                    {
+                                        <tr>
+                                            <td>@b.TenThuongHieu</td>
+                                            <td class="text-end">@b.SoLuong</td>
+                                            <td class="text-end">@Currency(b.DoanhThu)</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="3" class="text-center text-secondary py-3">Chưa có dữ liệu.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card card-shadow h-100">
+                <div class="card-body">
+                    <h5 class="mb-3">Doanh số theo giới tính</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Giới tính</th>
+                                    <th class="text-end">Số lượng</th>
+                                    <th class="text-end">Doanh thu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.SalesByGender?.Any() == true)
+                                {
+                                    foreach (var g in Model.SalesByGender)
+                                    {
+                                        <tr>
+                                            <td>@g.TenGioiTinh</td>
+                                            <td class="text-end">@g.SoLuong</td>
+                                            <td class="text-end">@Currency(g.DoanhThu)</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="3" class="text-center text-secondary py-3">Chưa có dữ liệu.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hiệu suất nhân viên -->
+    <div class="card card-shadow">
+        <div class="card-body">
+            <h5 class="mb-3">Hiệu suất nhân viên</h5>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Nhân viên</th>
+                            <th class="text-end">Số đơn</th>
+                            <th class="text-end">Doanh thu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.SalesByStaff?.Any() == true)
+                        {
+                            foreach (var s in Model.SalesByStaff)
+                            {
+                                <tr>
+                                    <td>@s.TenNhanVien</td>
+                                    <td class="text-end">@s.SoDon</td>
+                                    <td class="text-end">@Currency(s.DoanhThu)</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="3" class="text-center text-secondary py-3">Chưa có dữ liệu.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@* <script> *@
+@*     // Giữ tham số hiện tại (from, to, status, topN) để gọi API *@
+@*     (function () { *@
+@*         const params = new URLSearchParams(window.location.search); *@
+@*         if (!params.has('status')) params.append('status', '4'); // mặc định 4 *@
+@*         window.__statsQuery = params; *@
+@*     })(); *@
+
+@*     const fmtMoney = v => new Intl.NumberFormat('vi-VN').format(v ?? 0) + ' đ'; *@
+
+@*     const dailyCtx = document.getElementById('dailyChart'); *@
+@*     const monthlyCtx = document.getElementById('monthlyChart'); *@
+@*     const dailyTotalEl = document.getElementById('dailyTotal'); *@
+@*     const monthlyTotalEl = document.getElementById('monthlyTotal'); *@
+@*     const dailyEmpty = document.getElementById('dailyEmpty'); *@
+@*     const monthlyEmpty = document.getElementById('monthlyEmpty'); *@
+
+@*     let dailyChart, monthlyChart; *@
+
+@*     // ---- Daily (BAR) *@
+@*     async function renderDaily() { *@
+@*         const params = new URLSearchParams(window.__statsQuery); *@
+@*         const url = `/ThongKe/RevenueDaily?${params.toString()}`; *@
+@*         const res = await fetch(url, { cache: 'no-store' }); *@
+@*         const data = await res.json(); // [{time, amount}] *@
+@*         const labels = data.map(x => x.time); *@
+@*                const values = data.map(x => x.amount ?? 0); *@
+
+@*         // tổng *@
+@*         const total = values.reduce((a, b) => a + (b ?? 0), 0); *@
+@*         if (dailyTotalEl) dailyTotalEl.textContent = fmtMoney(total); *@
+
+@*         // empty state *@
+@*         if (dailyEmpty) dailyEmpty.classList.toggle('d-none', values.some(v => (v ?? 0) > 0)); *@
+
+@*         if (dailyChart) dailyChart.destroy(); *@
+@*         dailyChart = new Chart(dailyCtx, { *@
+@*             type: 'bar', *@
+@*             data: { *@
+@*                 labels, *@
+@*                 datasets: [{ label: 'Doanh thu/ngày', data: values }] *@
+@*             }, *@
+@*             options: { *@
+@*                 responsive: true, maintainAspectRatio: false, *@
+@*                 interaction: { mode: 'index', intersect: false }, *@
+@*                 scales: { *@
+@*                     x: { ticks: { autoSkip: true, maxTicksLimit: 10 } }, *@
+@*                     y: { beginAtZero: true, ticks: { callback: v => fmtMoney(v) } } *@
+@*                 }, *@
+@*                 plugins: { *@
+@*                     legend: { display: false }, *@
+@*                     tooltip: { callbacks: { label: ctx => ' ' + fmtMoney(ctx.parsed.y) } } *@
+@*                 } *@
+@*             } *@
+@*         }); *@
+@*     } *@
+
+@*     // ---- Monthly (BAR) *@
+@*     async function renderMonthly() { *@
+@*         const keep = new URLSearchParams(); *@
+@*         (window.__statsQuery.getAll('status') || ['4']).forEach(s => keep.append('status', s)); *@
+@*         const url = `/ThongKe/RevenueMonthly?${keep.toString()}`; *@
+
+@*         const res = await fetch(url, { cache: 'no-store' }); *@
+@*         const data = await res.json(); // [{time, amount}] *@
+@*         const labels = data.map(x => x.time); *@
+@*         const values = data.map(x => x.amount ?? 0); *@
+
+@*         const total = values.reduce((a, b) => a + (b ?? 0), 0); *@
+@*         if (monthlyTotalEl) monthlyTotalEl.textContent = fmtMoney(total); *@
+
+@*         if (monthlyEmpty) monthlyEmpty.classList.toggle('d-none', values.some(v => (v ?? 0) > 0)); *@
+
+@*         if (monthlyChart) monthlyChart.destroy(); *@
+@*         monthlyChart = new Chart(monthlyCtx, { *@
+@*             type: 'bar', *@
+@*             data: { *@
+@*                 labels, *@
+@*                 datasets: [{ label: 'Doanh thu/tháng', data: values }] *@
+@*             }, *@
+@*             options: { *@
+@*                 responsive: true, maintainAspectRatio: false, *@
+@*                 interaction: { mode: 'index', intersect: false }, *@
+@*                 scales: { y: { beginAtZero: true, ticks: { callback: v => fmtMoney(v) } } }, *@
+@*                 plugins: { *@
+@*                     legend: { display: false }, *@
+@*                     tooltip: { callbacks: { label: ctx => ' ' + fmtMoney(ctx.parsed.y) } } *@
+@*                 } *@
+@*             } *@
+@*         }); *@
+@*     } *@
+
+@*     // Auto render khi vào trang *@
+@*     renderDaily(); *@
+@*     renderMonthly(); *@
+@* </script> *@
