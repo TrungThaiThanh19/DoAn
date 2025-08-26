@@ -1,0 +1,158 @@
+﻿@model DoAn.ViewModel.CheckoutAddressVM
+@{
+    ViewData["Title"] = "Chọn địa chỉ";
+    var carriedLines = (string)ViewBag.Lines ?? Context.Request.Query["lines"].ToString();
+}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+<style>
+    :root {
+        --brand: #ee4d2d;
+        --ink: #1f2937;
+        --line: #e5e7eb;
+    }
+
+    .page-head {
+        background: linear-gradient(180deg,#ff7043,#ff5a3c 45%,#ff4d2e);
+        color: #fff;
+    }
+
+    .wrap {
+        max-width: 980px;
+        margin: 16px auto 40px;
+    }
+
+    .badge-def {
+        display: inline-block;
+        background: #f1f5f9;
+        color: #0f172a;
+        border-radius: 6px;
+        padding: 2px 8px;
+        margin-left: 6px;
+        font-weight: 700
+    }
+
+    .addr-card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px;
+        transition: box-shadow .2s
+    }
+
+        .addr-card:hover {
+            box-shadow: 0 10px 24px rgba(0,0,0,.06)
+        }
+
+    .btn-brand {
+        background: linear-gradient(135deg,#ff6a3d,var(--brand));
+        color: #fff;
+        border: 0;
+        font-weight: 800
+    }
+
+    .section-title {
+        font-weight: 900;
+        color: #111827;
+        margin: 8px 0 12px
+    }
+
+    .smallmuted {
+        color: #64748b;
+        font-size: .95rem
+    }
+</style>
+
+<header class="page-head">
+    <div class="container py-3 d-flex align-items-center gap-3">
+        <a href="~/" class="text-white text-decoration-none fw-bold fs-4"><i class="fa-solid fa-bag-shopping me-2"></i>ShopPerfume</a>
+        <div class="ms-auto"><a href="/GioHang/Index" class="text-white text-decoration-none"><i class="fa-solid fa-cart-shopping me-1"></i>Giỏ hàng</a></div>
+    </div>
+</header>
+
+<div class="wrap container">
+    <h3 class="section-title"><i class="fa-solid fa-location-dot me-2"></i>Chọn địa chỉ nhận hàng</h3>
+
+    @if (Model.Addresses != null && Model.Addresses.Any())
+    {
+        <div class="vstack gap-2 mb-3">
+            @foreach (var a in Model.Addresses)
+            {
+                var full = $"{a.SoNha}, {a.Xa_Phuong}, {a.Quan_Huyen}, {a.Tinh_ThanhPho}";
+                <label class="addr-card d-flex align-items-center gap-3">
+                    <input class="form-check-input mt-0" type="radio" name="addr" value="@a.ID_DiaChiKhachHang"
+                    @(Model.SelectedAddressId == a.ID_DiaChiKhachHang ? "checked" : "") />
+                    <div class="w-100">
+                        <div class="d-flex justify-content-between">
+                            <div class="fw-bold">
+                                @full
+                                @if (a.DiaChiMacDinh)
+                                {
+                                    <span class="badge-def">Mặc định</span>
+                                }
+                            </div>
+                            <small class="smallmuted"><b>@(a.HoTen ?? "—")</b> • SĐT: @(a.SoDienThoai ?? "—")</small>
+                        </div>
+                    </div>
+                </label>
+            }
+        </div>
+
+        <form asp-action="UseAddress" method="post" class="mb-5">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="addressId" name="addressId" value="@Model.SelectedAddressId" />
+            <input type="hidden" name="lines" value="@carriedLines" />
+            <button class="btn btn-brand px-4">Tiếp tục</button>
+        </form>
+
+        <script>
+            document.querySelectorAll('input[name="addr"]').forEach(r=>{
+              r.addEventListener('change',e=>{
+                document.getElementById('addressId').value = e.target.value;
+              });
+            });
+        </script>
+    }
+    else
+    {
+        <div class="alert alert-info">Bạn chưa có địa chỉ nào. Thêm mới bên dưới.</div>
+    }
+
+    <h5 class="section-title"><i class="fa-solid fa-plus me-2"></i>Thêm địa chỉ mới</h5>
+    <form asp-action="AddAddress" method="post" class="row g-3">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="lines" value="@carriedLines" />
+        <div class="col-md-6">
+            <label class="form-label">Họ tên người nhận</label>
+            <input class="form-control" name="HoTen" placeholder="VD: Nguyễn Văn A" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Số điện thoại</label>
+            <input class="form-control" name="SoDienThoai" placeholder="VD: 09xxxxxxxx" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Số nhà, đường</label>
+            <input class="form-control" name="SoNha" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Xã/Phường</label>
+            <input class="form-control" name="Xa_Phuong" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Quận/Huyện</label>
+            <input class="form-control" name="Quan_Huyen" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Tỉnh/Thành phố</label>
+            <input class="form-control" name="Tinh_ThanhPho" />
+        </div>
+        <div class="col-12">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="MakeDefault" id="mkd" />
+                <label class="form-check-label" for="mkd">Đặt làm địa chỉ mặc định</label>
+            </div>
+        </div>
+        <div class="col-12">
+            <button class="btn btn-success">Lưu & dùng địa chỉ này</button>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,190 @@
+﻿@model DoAn.ViewModels.RegisterViewModel
+@{
+    ViewData["Title"] = "Đăng Ký";
+}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+<style>
+    :root {
+        --brand: #ee4d2d;
+    }
+
+    .auth-wrap {
+        min-height: calc(100vh - 64px);
+    }
+
+    /* ẢNH NỀN + OVERLAY */
+    .brand-side {
+        position: relative;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 24px;
+        min-height: 520px;
+        background-position: center;
+        background-size: cover;
+        background-repeat: no-repeat;
+        border-radius: 8px;
+        text-align: center;
+    }
+
+        .brand-side::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(0deg, rgba(0,0,0,.35), rgba(0,0,0,.35));
+            border-radius: 8px;
+        }
+
+    .brand-box {
+        max-width: 520px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .brand-logo {
+        width: 64px;
+        height: 64px;
+        border-radius: 14px;
+        background: #fff;
+        color: var(--brand);
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+    }
+
+    .form-side {
+        display: flex;
+        align-items: center;
+        padding: 48px 16px;
+    }
+
+    .register-card {
+        width: 100%;
+        max-width: 520px;
+        border: 0;
+        border-radius: 12px;
+        box-shadow: 0 12px 30px rgba(0,0,0,.08);
+    }
+
+    .btn-brand {
+        background: var(--brand);
+        border-color: var(--brand);
+    }
+
+        .btn-brand:hover {
+            filter: brightness(.95);
+        }
+
+    .form-control {
+        height: 44px;
+    }
+
+    a.link {
+        color: var(--brand);
+        text-decoration: none;
+    }
+
+        a.link:hover {
+            text-decoration: underline;
+        }
+</style>
+
+<div class="container-fluid auth-wrap">
+    <div class="row g-4 px-lg-5">
+        <!-- BÊN TRÁI: ẢNH NỀN -->
+        <div class="col-lg-7 d-none d-lg-block">
+            <div class="brand-side" style="background-image:url('@Url.Content("~/img/logo-nuoc-hoa.jpg")')">
+                <div class="brand-box">
+                    <div class="brand-logo">S</div>
+                    <h3 class="fw-bold mb-2">Tạo tài khoản mới</h3>
+                    <div>Nhận ưu đãi độc quyền & theo dõi đơn dễ dàng.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BÊN PHẢI: FORM -->
+        <div class="col-12 col-lg-5 form-side">
+            <div class="card register-card">
+                <div class="card-body p-4">
+                    <h4 class="mb-3">Đăng ký</h4>
+
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+                    }
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+                    }
+
+                    <form asp-action="Register" asp-controller="TaiKhoan" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <input asp-for="Username" class="form-control" placeholder="Tên đăng nhập (duy nhất)" />
+                                <span asp-validation-for="Username" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12">
+                                <input asp-for="Email" class="form-control" placeholder="Email" />
+                                <span asp-validation-for="Email" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <input asp-for="Password" type="password" class="form-control" placeholder="Mật khẩu" />
+                                <span asp-validation-for="Password" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="Nhập lại mật khẩu" />
+                                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12">
+                                <input asp-for="TenKhachHang" class="form-control" placeholder="Họ và tên" />
+                                <span asp-validation-for="TenKhachHang" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <select asp-for="GioiTinh" class="form-control">
+                                    <option value="">-- Chọn giới tính --</option>
+                                    <option value="Nam">Nam</option>
+                                    <option value="Nữ">Nữ</option>
+                                    <option value="Khác">Khác</option>
+                                </select>
+                                <span asp-validation-for="GioiTinh" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <input asp-for="SoDienThoai"
+                                       class="form-control"
+                                       inputmode="numeric"
+                                       maxlength="10"
+                                       pattern="^0(3|5|7|8|9)\d{8}$"
+                                       title="Nhập 10 số, bắt đầu 03/05/07/08/09 (vd: 0981234567)"
+                                       placeholder="Số điện thoại" />
+                                <span asp-validation-for="SoDienThoai" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12">
+                                <input asp-for="NgaySinh" type="date" class="form-control"
+                                       max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                <span asp-validation-for="NgaySinh" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-brand w-100 mt-3 mb-2">Đăng ký</button>
+
+                        <div class="text-center">
+                            Đã có tài khoản?
+                            <a class="link" asp-action="Login" asp-controller="TaiKhoan">Đăng nhập</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+ }

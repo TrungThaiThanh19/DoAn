@@ -1,0 +1,117 @@
+﻿@model List<DoAn.ViewModels.HoaDonViewModel>
+@{
+    ViewData["Title"] = "Quản lý hóa đơn";
+    var loaiHD = (ViewBag.LoaiHoaDon as string)?.Trim();
+    var trangThai = ViewBag.TrangThai as int?;
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2 class="mb-4">Quản lý hóa đơn</h2>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+<div class="btn-group mb-3">
+    <a class="btn btn-outline-secondary @(trangThai == null ? "active" : "")"
+       asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="">Tất cả</a>
+    <a class="btn btn-outline-secondary @(trangThai == 0 ? "active" : "")"
+       asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="0">Chờ xác nhận</a>
+    <a class="btn btn-outline-secondary @(trangThai == 1 ? "active" : "")"
+       asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="1">Xác nhận</a>
+    <a class="btn btn-outline-secondary @(trangThai == 2 ? "active" : "")"
+       asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="2">Vận chuyển</a>
+    <a class="btn btn-outline-secondary @(trangThai == 3 ? "active" : "")"
+       asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="3">Thanh toán</a>
+    <a class="btn btn-outline-secondary @(trangThai == 4 ? "active" : "")"
+       asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="4">Hoàn thành</a>
+    <a class="btn btn-outline-secondary @(trangThai == 5 ? "active" : "")"
+       asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="5">Hủy</a>
+</div>
+
+<!-- Lọc loại hóa đơn -->
+<form method="get" class="mb-4 d-flex align-items-center gap-2">
+    <label for="loaiHoaDon" class="me-1">Lọc loại hóa đơn:</label>
+    <select name="loaiHoaDon" id="loaiHoaDon" class="form-select w-auto" onchange="this.form.submit()">
+        <option value="">-- Tất cả --</option>
+
+        @* Tránh lỗi RZ1031: render option theo nhánh if thay vì C# trong attribute *@
+        @if (string.Equals(loaiHD, "online", StringComparison.OrdinalIgnoreCase))
+        {
+            <option value="online" selected>Online</option>
+        }
+        else
+        {
+            <option value="online">Online</option>
+        }
+
+        @if (string.Equals(loaiHD, "offline", StringComparison.OrdinalIgnoreCase))
+        {
+            <option value="offline" selected>Offline</option>
+        }
+        else
+        {
+            <option value="offline">Offline</option>
+        }
+    </select>
+</form>
+
+<!-- Bảng hóa đơn -->
+<table class="table table-striped table-bordered text-center align-middle">
+    <thead class="table-warning">
+        <tr>
+            <th>STT</th>
+            <th>Mã hóa đơn</th>
+            <th>Tên khách hàng</th>
+            <th>Nhân viên</th>
+            <th class="text-start">Loại</th>
+            <th>Ngày tạo</th>
+            <th>Tiền giảm</th>
+            <th>Tổng tiền</th>
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model != null && Model.Count > 0)
+        {
+            for (int i = 0; i < Model.Count; i++)
+            {
+                var item = Model[i];
+
+                // Chuẩn hoá loại: "online" => Online; còn lại (offline / tại quầy / rỗng) => Offline
+                var loaiRaw = (item.LoaiHoaDon ?? "").Trim().ToLower();
+                var isOnline = loaiRaw == "online";
+
+                <tr>
+                    <td>@(i + 1)</td>
+                    <td>@item.Ma_HoaDon</td>
+                    <td>@(string.IsNullOrWhiteSpace(item.HoTen) ? "Khách lẻ" : item.HoTen)</td>
+                    <td>@(string.IsNullOrWhiteSpace(item.NhanVienTen) ? "Không có" : item.NhanVienTen)</td>
+
+                    <td class="text-start">
+                        @if (isOnline)
+                        {
+                            <span><i class="fa-solid fa-circle text-success me-1"></i> Online</span>
+                        }
+                        else
+                        {
+                            <span><i class="fa-solid fa-circle text-danger me-1"></i> Offline</span>
+                        }
+                    </td>
+
+                    <td>@item.NgayTao.ToString("HH:mm:ss dd-MM-yyyy")</td>
+                    <td>@item.TienGiam.ToString("N0") VND</td>
+                    <td>@item.TongTienSauGiam.ToString("N0") VND</td>
+                    <td>@item.TrangThaiText</td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@item.ID_HoaDon" class="btn btn-warning btn-sm" title="Xem chi tiết">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr><td colspan="10" class="text-muted">Không có hóa đơn nào.</td></tr>
+        }
+    </tbody>
+</table>
