@@ -62,7 +62,16 @@
 
             <div class="col-md-6">
                 <label class="form-label">Thương hiệu</label>
-                @Html.DropDownList("idThuongHieu", (SelectList)ViewBag.ThuongHieuList, "-- Chọn --", new { @class = "form-select" })
+                <div class="d-flex">
+                    @Html.DropDownList("idThuongHieu", (SelectList)ViewBag.ThuongHieuList, "-- Chọn --",
+                             new { @class = "form-select", style = "flex: 7 1 0%;" })
+                    <a asp-action="CreateNew" asp-controller="Brands"
+                       class="btn btn-outline-primary btn-sm rounded-pill ms-2 d-flex align-items-center justify-content-center"
+                       style="flex: 3 1 0%; min-width: 0; white-space: nowrap; height:38px;"
+                       title="Thêm thương hiệu mới">
+                        <i class="bi bi-plus"></i> <span class="d-none d-md-inline ms-1">Thêm thương hiệu mới</span>
+                    </a>
+                </div>
                 <span class="text-danger">@Html.ValidationMessage("ID_ThuongHieu")</span>
             </div>
 
