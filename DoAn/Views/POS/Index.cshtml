@@ -833,10 +833,19 @@
 
 
         function capNhatTienThua() {
-            let tienKhachDua = toNumber(document.getElementById("tienKhachDua")?.value || 0);
+            let tienKhachDuaStr = document.getElementById("tienKhachDua")?.value ?? "";
+            let tienThuaEl = document.getElementById("tienThua");
+
+            if (tienKhachDuaStr.trim() === "") {
+                // Nếu chưa nhập tiền đưa thì tiền thừa = 0
+                tienThuaEl.innerText = toVn(0);
+                tienThuaEl.classList.remove('text-danger', 'text-success');
+                tienThuaEl.classList.add('text-success');
+                return;
+            }
+            let tienKhachDua = toNumber(tienKhachDuaStr);
             let tongCong = getTongCong();
             let tienThua = tienKhachDua - tongCong;
-            let tienThuaEl = document.getElementById("tienThua");
             tienThuaEl.innerText = toVn(tienThua);
 
             if (tienThua < 0) {
@@ -847,6 +856,7 @@
                 tienThuaEl.classList.add('text-success');
             }
         }
+
 
         function getTongCong() {
             // Tổng cộng = Tổng tiền hàng - ưu đãi + phụ thu
