@@ -4,14 +4,12 @@ using DoAn.Models;
 using DoAn.Service.IService;
 using DoAn.ViewModel;
 using DoAn.ViewModels.KhuyenMaiVM;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
 namespace DoAn.Controllers
 {
-    [Authorize(Roles = "admin,nhanvien")]
     public class KhuyenMaiController : Controller
     {
         private readonly IKhuyenMaiService _kmService;
@@ -60,6 +58,7 @@ namespace DoAn.Controllers
         public async Task<IActionResult> Create()
         {
             await LoadSPCTListAsync();
+            await LoadBrandListAsync(); // nạp brand
             return View(new KhuyenMaiFormVM
             {
                 NgayBatDau = Now(),
@@ -75,10 +74,29 @@ namespace DoAn.Controllers
         public async Task<IActionResult> Create(KhuyenMaiFormVM m)
         {
             await ValidateFormAsync(m);
+
+            // Nếu không chọn brand và cũng không chọn SPCT => báo lỗi
+            if (m.ThuongHieuId == null && (m.SanPhamChiTietIds == null || !m.SanPhamChiTietIds.Any()))
+                ModelState.AddModelError(nameof(m.SanPhamChiTietIds), "Hãy chọn thương hiệu hoặc chọn ít nhất một SPCT.");
+
             if (!ModelState.IsValid)
             {
                 await LoadSPCTListAsync(m.SanPhamChiTietIds);
+                await LoadBrandListAsync(m.ThuongHieuId);
                 return View(m);
+            }
+
+            // Gom SPCT theo brand + chọn tay
+            var targetIds = new HashSet<Guid>(m.SanPhamChiTietIds ?? Enumerable.Empty<Guid>());
+            if (m.ThuongHieuId.HasValue)
+            {
+                var byBrand = await _db.SanPhamChiTiets
+                    .AsNoTracking()
+                    .Include(spct => spct.SanPham)
+                    .Where(spct => spct.SanPham.ID_ThuongHieu == m.ThuongHieuId.Value)
+                    .Select(spct => spct.ID_SanPhamChiTiet)
+                    .ToListAsync();
+                foreach (var id in byBrand) targetIds.Add(id);
             }
 
             var km = new KhuyenMai
@@ -95,7 +113,7 @@ namespace DoAn.Controllers
                 TrangThai = m.TrangThai
             };
 
-            await _kmService.AddAsync(km, m.SanPhamChiTietIds ?? Enumerable.Empty<Guid>());
+            await _kmService.AddAsync(km, targetIds);
 
             TempData["Success"] = "Tạo khuyến mãi thành công.";
             return RedirectToAction(nameof(Index));
@@ -119,10 +137,12 @@ namespace DoAn.Controllers
                 NgayBatDau = km.NgayBatDau,
                 NgayHetHan = km.NgayHetHan,
                 TrangThai = km.TrangThai,
-                SanPhamChiTietIds = km.ChiTietKhuyenMais?.Select(c => c.ID_SanPhamChiTiet).ToList() ?? new()
+                SanPhamChiTietIds = km.ChiTietKhuyenMais?.Select(c => c.ID_SanPhamChiTiet).ToList() ?? new(),
+                ThuongHieuId = null // default
             };
 
             await LoadSPCTListAsync(vm.SanPhamChiTietIds);
+            await LoadBrandListAsync(vm.ThuongHieuId);
             return View(vm);
         }
 
@@ -130,9 +150,14 @@ namespace DoAn.Controllers
         public async Task<IActionResult> Edit(KhuyenMaiFormVM m)
         {
             await ValidateFormAsync(m);
+
+            if (m.ThuongHieuId == null && (m.SanPhamChiTietIds == null || !m.SanPhamChiTietIds.Any()))
+                ModelState.AddModelError(nameof(m.SanPhamChiTietIds), "Hãy chọn thương hiệu hoặc chọn ít nhất một SPCT.");
+
             if (!ModelState.IsValid)
             {
                 await LoadSPCTListAsync(m.SanPhamChiTietIds);
+                await LoadBrandListAsync(m.ThuongHieuId);
                 return View(m);
             }
 
@@ -149,7 +174,19 @@ namespace DoAn.Controllers
             exist.NgayHetHan = m.NgayHetHan;
             exist.TrangThai = m.TrangThai;
 
-            await _kmService.UpdateAsync(exist, m.SanPhamChiTietIds ?? Enumerable.Empty<Guid>());
+            var targetIds = new HashSet<Guid>(m.SanPhamChiTietIds ?? Enumerable.Empty<Guid>());
+            if (m.ThuongHieuId.HasValue)
+            {
+                var byBrand = await _db.SanPhamChiTiets
+                    .AsNoTracking()
+                    .Include(spct => spct.SanPham)
+                    .Where(spct => spct.SanPham.ID_ThuongHieu == m.ThuongHieuId.Value)
+                    .Select(spct => spct.ID_SanPhamChiTiet)
+                    .ToListAsync();
+                foreach (var id in byBrand) targetIds.Add(id);
+            }
+
+            await _kmService.UpdateAsync(exist, targetIds);
 
             TempData["Success"] = "Cập nhật khuyến mãi thành công.";
             return RedirectToAction(nameof(Index));
@@ -191,25 +228,33 @@ namespace DoAn.Controllers
 
             ViewBag.SanPhamChiTietList = new MultiSelectList(
                 spcts,
-                "ID_SanPhamChiTiet",   // value field
-                "Ten",                 // text field
-                selectedIds            // selected values
+                "ID_SanPhamChiTiet",
+                "Ten",
+                selectedIds
             );
+        }
+
+        private async Task LoadBrandListAsync(Guid? selected = null)
+        {
+            var brands = await _db.ThuongHieus
+                .AsNoTracking()
+                .OrderBy(x => x.Ten_ThuongHieu)
+                .Select(x => new { x.ID_ThuongHieu, x.Ten_ThuongHieu })
+                .ToListAsync();
+
+            ViewBag.BrandList = new SelectList(brands, "ID_ThuongHieu", "Ten_ThuongHieu", selected);
         }
 
         private async Task ValidateFormAsync(KhuyenMaiFormVM m)
         {
-            // Trùng mã
             var trungMa = await _db.KhuyenMais
                 .AnyAsync(x => x.Ma_KhuyenMai == m.Ma_KhuyenMai && x.ID_KhuyenMai != m.ID_KhuyenMai);
             if (trungMa)
                 ModelState.AddModelError(nameof(m.Ma_KhuyenMai), "Mã khuyến mãi đã tồn tại.");
 
-            // Ngày
             if (m.NgayHetHan <= m.NgayBatDau)
                 ModelState.AddModelError(nameof(m.NgayHetHan), "Ngày hết hạn phải sau ngày bắt đầu.");
 
-            // Giá trị
             if (IsPercent(m.KieuGiamGia))
             {
                 if (m.GiaTriGiam <= 0 || m.GiaTriGiam > 100)

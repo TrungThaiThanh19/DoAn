@@ -12,6 +12,7 @@ namespace DoAn.Controllers
         private readonly DoAnDbContext _db;
         private readonly IGioHangService _cart;
 
+        // Trạng thái biến thể
         private const int TrangThaiConBan = 1;
         private const int TrangThaiHetHang = 0;
 
@@ -158,7 +159,7 @@ namespace DoAn.Controllers
             return View(vm);
         }
 
-        // ===== B3: ĐẶT HÀNG (TRỪ KHO + SET TRẠNG THÁI THEO TỒN) =====
+        // ===== B3: ĐẶT HÀNG — KHÔNG TRỪ KHO  =====
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> PlaceOrder(PlaceOrderPost dto, string? lines)
@@ -196,91 +197,53 @@ namespace DoAn.Controllers
                 return RedirectToAction(nameof(Review), new { addressId = dto.AddressId, lines });
             }
 
-            await using var tx = await _db.Database.BeginTransactionAsync();
-            try
+            // 👉 Chỉ tạo hóa đơn + chi tiết, KHÔNG trừ kho
+            var subtotal = items.Sum(x => x.ThanhTien);
+            var hd = new HoaDon
             {
-                // 1) Trừ kho + set trạng thái theo tồn (atomic)
-                foreach (var i in items)
-                {
-                    var affected = await _db.SanPhamChiTiets
-                        .Where(v => v.ID_SanPhamChiTiet == i.SanPhamChiTietId
-                                    && v.TrangThai == TrangThaiConBan
-                                    && v.SoLuong >= i.SoLuong)
-                        .ExecuteUpdateAsync(setters => setters
-                            .SetProperty(v => v.SoLuong, v => v.SoLuong - i.SoLuong)
-                            .SetProperty(v => v.TrangThai, v => (v.SoLuong - i.SoLuong) > 0 ? TrangThaiConBan : TrangThaiHetHang)
-                        );
+                ID_HoaDon = Guid.NewGuid(),
+                Ma_HoaDon = "HD" + DateTime.Now.ToString("yyyyMMddHHmmss"),
+                ID_KhachHang = khId,
+                HoTen = dto.ReceiverName,
+                Sdt_NguoiNhan = dto.Phone,
+                DiaChi = $"{addr.SoNha}, {addr.Xa_Phuong}, {addr.Quan_Huyen}, {addr.Tinh_ThanhPho}",
+                HinhThucThanhToan = dto.PaymentMethod,
+                PhuongThucNhanHang = "Giao hàng",
+                TongTienTruocGiam = subtotal,
+                TongTienSauGiam = subtotal + dto.ShippingFee,
+                PhuThu = dto.ShippingFee,
+                LoaiHoaDon = "Online",
+                TrangThai = 0, // ⏳ Chờ xác nhận
+                NgayTao = DateTime.Now
+            };
+            _db.HoaDons.Add(hd);
 
-                    if (affected == 0)
-                    {
-                        await tx.RollbackAsync();
-                        TempData["OrderError"] =
-                            $"Sản phẩm \"{i.TenSanPham} ({i.TheTich})\" không đủ hàng. Vui lòng cập nhật giỏ hàng.";
-                        return RedirectToAction(nameof(Review), new { addressId = dto.AddressId, lines });
-                    }
-                }
-
-                // 2) Đồng bộ lại các biến thể vừa trừ kho nếu tồn <= 0
-                var ids = items.Select(x => x.SanPhamChiTietId).ToList();
-                await _db.SanPhamChiTiets
-                    .Where(v => ids.Contains(v.ID_SanPhamChiTiet) && v.SoLuong <= 0 && v.TrangThai != TrangThaiHetHang)
-                    .ExecuteUpdateAsync(s => s.SetProperty(v => v.TrangThai, TrangThaiHetHang));
-
-                // 3) Tạo hóa đơn + chi tiết từ items đã chọn
-                var subtotal = items.Sum(x => x.ThanhTien);
-                var hd = new HoaDon
-                {
-                    ID_HoaDon = Guid.NewGuid(),
-                    Ma_HoaDon = "HD" + DateTime.Now.ToString("yyyyMMddHHmmss"),
-                    ID_KhachHang = khId,
-                    HoTen = dto.ReceiverName,
-                    Sdt_NguoiNhan = dto.Phone,
-                    DiaChi = $"{addr.SoNha}, {addr.Xa_Phuong}, {addr.Quan_Huyen}, {addr.Tinh_ThanhPho}",
-                    HinhThucThanhToan = dto.PaymentMethod,
-                    PhuongThucNhanHang = "Giao hàng",
-                    TongTienTruocGiam = subtotal,
-                    TongTienSauGiam = subtotal + dto.ShippingFee,
-                    PhuThu = dto.ShippingFee,
-                    LoaiHoaDon = "Online",
-                    TrangThai = 0, // Chờ xác nhận
-                    NgayTao = DateTime.Now
-                };
-                _db.HoaDons.Add(hd);
-
-                foreach (var i in items)
-                {
-                    _db.HoaDonChiTiets.Add(new HoaDonChiTiet
-                    {
-                        ID_HoaDonChiTiet = Guid.NewGuid(),
-                        ID_HoaDon = hd.ID_HoaDon,
-                        ID_SanPhamChiTiet = i.SanPhamChiTietId,
-                        SoLuong = i.SoLuong,
-                        DonGia = i.DonGia
-                    });
-                }
-
-                await _db.SaveChangesAsync();
-                await tx.CommitAsync();
-
-                // 4) Dọn giỏ: nếu có lines -> chỉ xóa các dòng đã mua; nếu không -> xóa toàn bộ như cũ
-                if (selectedIds != null && selectedIds.Count > 0)
-                {
-                    foreach (var lineId in selectedIds)
-                        await _cart.RemoveItemAsync(khId, lineId);
-                }
-                else
-                {
-                    await _cart.ClearAsync(khId);
-                }
-
-                return RedirectToAction(nameof(Success), new { id = hd.ID_HoaDon });
-            }
-            catch
+            foreach (var i in items)
             {
-                await tx.RollbackAsync();
-                TempData["OrderError"] = "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại.";
-                return RedirectToAction(nameof(Review), new { addressId = dto.AddressId, lines });
+                _db.HoaDonChiTiets.Add(new HoaDonChiTiet
+                {
+                    ID_HoaDonChiTiet = Guid.NewGuid(),
+                    ID_HoaDon = hd.ID_HoaDon,
+                    ID_SanPhamChiTiet = i.SanPhamChiTietId,
+                    SoLuong = i.SoLuong,
+                    DonGia = i.DonGia
+                });
             }
+
+            await _db.SaveChangesAsync();
+
+            // 4) Dọn giỏ: nếu có lines -> chỉ xóa các dòng đã mua; nếu không -> xóa toàn bộ như cũ
+            if (selectedIds != null && selectedIds.Count > 0)
+            {
+                foreach (var lineId in selectedIds)
+                    await _cart.RemoveItemAsync(khId, lineId);
+            }
+            else
+            {
+                await _cart.ClearAsync(khId);
+            }
+
+            return RedirectToAction(nameof(Success), new { id = hd.ID_HoaDon });
         }
 
         public async Task<IActionResult> Success(Guid id)

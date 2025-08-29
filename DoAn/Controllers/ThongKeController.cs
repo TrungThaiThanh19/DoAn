@@ -117,30 +117,33 @@ namespace DoAn.Controllers
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> ExportKpiCsv(
-            DateTime? from,
-            DateTime? to,
-            [FromQuery] int[]? status,
-            CancellationToken ct = default)
+    DateTime? from,
+    DateTime? to,
+    [FromQuery] int[]? status,
+    CancellationToken ct = default)
         {
             if (from.HasValue && to.HasValue && from.Value.Date > to.Value.Date)
                 (from, to) = (to, from);
 
             var vm = await _stats.BuildDashboardAsync(from, to, status, topN: 5, ct);
 
-            // Tạo nội dung CSV
+            // Áp công thức mới: Lợi nhuận = Tổng tiền - Giá nhập - Chi phí vận chuyển
+            var loiNhuan = vm.KPI.DoanhThu - vm.KPI.TongGiaNhap - vm.KPI.ChiPhiVanChuyen;
+
             var sb = new StringBuilder();
             sb.AppendLine("ChiSo,GiáTrị");
             sb.AppendLine($"DoanhThu,{vm.KPI.DoanhThu}");
-            sb.AppendLine($"LoiNhuanGop,{vm.KPI.LoiNhuanGop}");
+            sb.AppendLine($"TongGiaNhap,{vm.KPI.TongGiaNhap}");
+            sb.AppendLine($"ChiPhiVanChuyen,{vm.KPI.ChiPhiVanChuyen}");
+            sb.AppendLine($"LoiNhuan,{loiNhuan}"); // <-- thay vì LoiNhuanGop
+
             sb.AppendLine($"DonHoanTat,{vm.KPI.DonHoanTat}");
             sb.AppendLine($"KhachHangMoi,{vm.KPI.KhachHangMoi}");
             sb.AppendLine($"GiamGiaKM_Voucher,{vm.KPI.GiamGiaKM_Voucher}");
             sb.AppendLine($"PhuThu,{vm.KPI.PhuThu}");
             sb.AppendLine($"HoanTienTraHang,{vm.KPI.HoanTienTraHang}");
 
-            // Tên file CSV có from/to để dễ nhận diện
             var fileName = $"kpi_{(from?.ToString("yyyyMMdd") ?? "auto")}_{(to?.ToString("yyyyMMdd") ?? "auto")}.csv";
-
             return File(Encoding.UTF8.GetBytes(sb.ToString()), "text/csv", fileName);
         }
     }

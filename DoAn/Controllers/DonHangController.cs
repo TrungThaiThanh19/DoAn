@@ -113,32 +113,18 @@ namespace DoAn.Controllers
                 return RedirectToAction("Index");
             }
 
+            // Giữ nguyên điều kiện chặn hủy như bạn đang dùng
             if (hd.TrangThai >= 2 || hd.TrangThai == TT_HUY || hd.TrangThai == TT_HOAN_HANG_THANH_CONG)
             {
                 TempData["Error"] = "Đơn đã sang giai đoạn xử lý, không thể hủy.";
                 return RedirectToAction("Track", new { id });
             }
 
-            // Cộng trả kho
-            var lines = await _db.HoaDonChiTiets
-                .Include(ct => ct.SanPhamChiTiet)
-                .Where(ct => ct.ID_HoaDon == id)
-                .ToListAsync();
-
-            foreach (var ct in lines)
-            {
-                if (ct.SanPhamChiTiet == null) continue;
-
-                // tên thuộc tính lưu tồn: SoLuong (mặc định)
-                ct.SanPhamChiTiet.SoLuong += ct.SoLuong;
-                if (ct.SanPhamChiTiet.SoLuong > 0 && ct.SanPhamChiTiet.TrangThai == 0)
-                    ct.SanPhamChiTiet.TrangThai = 1;
-            }
-
+            // ❗THEO YÊU CẦU: Hủy đơn KHÔNG cộng lại kho (bỏ toàn bộ logic cộng tồn)
+            // -> chỉ cập nhật trạng thái + ghi log
             hd.TrangThai = TT_HUY;
             hd.NgayCapNhat = DateTime.Now;
 
-            // log lý do hủy
             _db.TrangThaiDonHangs.Add(new TrangThaiDonHang
             {
                 ID_TrangThaiDonHang = Guid.NewGuid(),
@@ -222,14 +208,12 @@ namespace DoAn.Controllers
 
             if (hd == null) return NotFound();
 
-            // Chỉ nên cho accept khi đơn đã thanh toán hoặc đang xử lý tương đương
             if (hd.TrangThai == TT_HUY || hd.TrangThai == TT_HOAN_HANG_THANH_CONG)
             {
                 TempData["Error"] = "Đơn đã hủy hoặc đã hoàn xong.";
                 return RedirectToAction("Track", new { id });
             }
 
-            // Cộng trả kho
             foreach (var ct in hd.HoaDonChiTiets)
             {
                 if (ct.SanPhamChiTiet == null) continue;
@@ -238,11 +222,9 @@ namespace DoAn.Controllers
                     ct.SanPhamChiTiet.TrangThai = 1;
             }
 
-            // Set trạng thái hoàn thành hoàn hàng
             hd.TrangThai = TT_HOAN_HANG_THANH_CONG;
             hd.NgayCapNhat = DateTime.Now;
 
-            // Log
             _db.TrangThaiDonHangs.Add(new TrangThaiDonHang
             {
                 ID_TrangThaiDonHang = Guid.NewGuid(),

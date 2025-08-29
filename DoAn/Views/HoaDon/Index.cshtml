@@ -4,11 +4,15 @@
     var loaiHD = (ViewBag.LoaiHoaDon as string)?.Trim();
     var trangThai = ViewBag.TrangThai as int?;
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    string Money(decimal v) => string.Format("{0:N0} VND", v);
 }
 
-<h2 class="mb-4">Quản lý hóa đơn</h2>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
+<h2 class="mb-3">Quản lý hóa đơn</h2>
+
+<!-- Tabs trạng thái -->
 <div class="btn-group mb-3">
     <a class="btn btn-outline-secondary @(trangThai == null ? "active" : "")"
        asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="">Tất cả</a>
@@ -27,12 +31,11 @@
 </div>
 
 <!-- Lọc loại hóa đơn -->
-<form method="get" class="mb-4 d-flex align-items-center gap-2">
-    <label for="loaiHoaDon" class="me-1">Lọc loại hóa đơn:</label>
+<form method="get" class="mb-3 d-flex align-items-center gap-2">
+    <label for="loaiHoaDon">Lọc loại hóa đơn:</label>
     <select name="loaiHoaDon" id="loaiHoaDon" class="form-select w-auto" onchange="this.form.submit()">
         <option value="">-- Tất cả --</option>
 
-        @* Tránh lỗi RZ1031: render option theo nhánh if thay vì C# trong attribute *@
         @if (string.Equals(loaiHD, "online", StringComparison.OrdinalIgnoreCase))
         {
             <option value="online" selected>Online</option>
@@ -53,7 +56,7 @@
     </select>
 </form>
 
-<!-- Bảng hóa đơn -->
+<!-- Bảng dữ liệu -->
 <table class="table table-striped table-bordered text-center align-middle">
     <thead class="table-warning">
         <tr>
@@ -64,6 +67,7 @@
             <th class="text-start">Loại</th>
             <th>Ngày tạo</th>
             <th>Tiền giảm</th>
+            <th>Phụ thu</th>
             <th>Tổng tiền</th>
             <th>Trạng thái</th>
             <th>Thao tác</th>
@@ -75,10 +79,7 @@
             for (int i = 0; i < Model.Count; i++)
             {
                 var item = Model[i];
-
-                // Chuẩn hoá loại: "online" => Online; còn lại (offline / tại quầy / rỗng) => Offline
-                var loaiRaw = (item.LoaiHoaDon ?? "").Trim().ToLower();
-                var isOnline = loaiRaw == "online";
+                var isOnline = string.Equals(item.LoaiHoaDon?.Trim(), "online", StringComparison.OrdinalIgnoreCase);
 
                 <tr>
                     <td>@(i + 1)</td>
@@ -98,12 +99,31 @@
                     </td>
 
                     <td>@item.NgayTao.ToString("HH:mm:ss dd-MM-yyyy")</td>
-                    <td>@item.TienGiam.ToString("N0") VND</td>
-                    <td>@item.TongTienSauGiam.ToString("N0") VND</td>
-                    <td>@item.TrangThaiText</td>
+
+                    <!-- Tiền giảm (khuyến mãi/voucher) -->
+                    <td>@Money(item.TienGiam)</td>
+
+                    <!-- Phụ thu / phí vận chuyển -->
+                    <td>@Money(item.PhuThu)</td>
+
+                    <!-- Tổng phải thu (đã gồm ship) -->
+                    <td>@Money(item.TongTienSauGiam)</td>
+
                     <td>
-                        <a asp-action="Details" asp-route-id="@item.ID_HoaDon" class="btn btn-warning btn-sm" title="Xem chi tiết">
-                            <i class="bi bi-eye"></i>
+                        @item.TrangThaiText
+                        @* Dấu hiệu: khách đã gửi yêu cầu hoàn (chưa hoàn tiền) *@
+                        @if (item.HasReturnRequest && !item.HasReturnDone)
+                        {
+                            <span class="badge rounded-pill bg-warning text-dark ms-1" title="Khách đã gửi yêu cầu hoàn hàng">
+                                <i class="fa-solid fa-rotate-left me-1"></i>Y/c hoàn
+                            </span>
+                        }
+                    </td>
+
+                    <td>
+                        <a asp-action="Details" asp-route-id="@item.ID_HoaDon"
+                           class="btn btn-warning btn-sm" title="Xem chi tiết">
+                            <i class="fa-regular fa-eye"></i>
                         </a>
                     </td>
                 </tr>
@@ -111,7 +131,7 @@
         }
         else
         {
-            <tr><td colspan="10" class="text-muted">Không có hóa đơn nào.</td></tr>
+            <tr><td colspan="11" class="text-muted">Không có hóa đơn nào.</td></tr>
         }
     </tbody>
 </table>

@@ -10,18 +10,12 @@
     var isOnline = loai == "online";
     var isCanceled = Model.TrangThai == 5;
 
-    // ===== Hoàn hàng =====
-    var hasYeuCauHoan = Model.TrangThaiDonHangs?.Any(x => x.TrangThai == 6) ?? false;   // KH đã bấm "Hoàn hàng"
-    var hasReturnDone = Model.TraHangs?.Any(x => x.TrangThai == 3) ?? false;            // ĐÃ HOÀN TIỀN => coi như ĐÃ HOÀN HÀNG
-    // CHỈ SỬA DÒNG NÀY: phải có hasYeuCauHoan mới cho tạo phiếu
+    // ---- HOÀN HÀNG (thêm lại) ----
+    var hasYeuCauHoan = Model.TrangThaiDonHangs?.Any(x => x.TrangThai == 6) ?? false; // KH bấm "Hoàn hàng"
+    var hasReturnDone = Model.TraHangs?.Any(x => x.TrangThai == 3) ?? false;          // 3 = đã hoàn tiền
+    // chỉ cho tạo phiếu khi KH đã yêu cầu + đơn ở 3|4
     var canReturn = !isCanceled && !hasReturnDone && hasYeuCauHoan && (Model.TrangThai == 3 || Model.TrangThai == 4);
     var phieuMoi = Model.TraHangs?.OrderByDescending(x => x.NgayTao).FirstOrDefault();
-
-    decimal subtotal = Model.HoaDonChiTiets?.Sum(x => x.SoLuong * x.DonGia) ?? 0m;
-    decimal shipping = Model.PhuThu ?? 0m;
-    decimal total = Model.TongTienSauGiam != 0 ? Model.TongTienSauGiam : subtotal + shipping;
-    string Currency(decimal v) => string.Format("{0:N0} VND", v);
-
     string ReturnStatusText(int s) => s switch
     {
         0 => "Yêu cầu",
@@ -31,6 +25,12 @@
         9 => "Từ chối",
         _ => "Không rõ"
     };
+
+    // ---- TIỀN HÀNG / GIẢM GIÁ ----
+    decimal lineSubtotal = Model.HoaDonChiTiets?.Sum(x => x.SoLuong * x.DonGia) ?? 0m; // tổng theo DonGia (giá gốc)
+    decimal shipping = Model.PhuThu ?? 0m;
+    decimal total = Model.TongTienSauGiam != 0 ? Model.TongTienSauGiam : (lineSubtotal + shipping);
+    string Currency(decimal v) => string.Format("{0:N0} VND", v);
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
@@ -121,12 +121,22 @@
     .total-row td {
         font-weight: 800
     }
+    /* hiển thị giá trước/sau giảm */
+    .price-cell .price-old {
+        color: #6b7280;
+        text-decoration: line-through;
+        margin-bottom: 2px
+    }
+
+    .price-cell .price-new {
+        font-weight: 700;
+        display: inline-block
+    }
 </style>
 
 <div class="container py-3">
     <div class="d-flex align-items-center justify-content-between mb-3">
         <h2 class="page-title mb-0">Chi tiết đơn hàng: @Model.Ma_HoaDon</h2>
-
         @if (isCanceled)
         {
             <span class="badge bg-danger"><i class="fa-solid fa-ban me-1"></i>ĐÃ HỦY</span>
@@ -141,6 +151,15 @@
         }
     </div>
 
+    @* Banner: Khách đã yêu cầu hoàn *@
+    @if (!isCanceled && !hasReturnDone && hasYeuCauHoan)
+    {
+        <div class="alert alert-warning d-flex align-items-center mb-3">
+            <i class="fa-solid fa-rotate-left me-2"></i>
+            <div><strong>Khách hàng đã gửi yêu cầu hoàn hàng.</strong> Vui lòng tạo phiếu hoàn và xử lý.</div>
+        </div>
+    }
+
     @if (TempData["Error"] != null)
     {
         <div class="alert alert-danger">@TempData["Error"]</div>
@@ -148,15 +167,6 @@
     @if (TempData["Success"] != null)
     {
         <div class="alert alert-success">@TempData["Success"]</div>
-    }
-
-    @* Banner: khách đã yêu cầu hoàn *@
-    @if (!isCanceled && !hasReturnDone && hasYeuCauHoan)
-    {
-        <div class="alert alert-warning d-flex align-items-center mb-3">
-            <i class="fa-solid fa-rotate-left me-2"></i>
-            <div><strong>Khách hàng đã gửi yêu cầu hoàn hàng.</strong> Vui lòng tạo phiếu hoàn và xử lý.</div>
-        </div>
     }
 
     @if (!isCanceled)
@@ -192,7 +202,7 @@
                 </form>
             }
 
-            @* Nút "Hoàn tất cả": chỉ enable khi canReturn == true *@
+            @* Nút HOÀN TẤT CẢ (chỉ cho 3|4 & đã có yêu cầu) *@
             @if (!hasReturnDone && (Model.TrangThai == 3 || Model.TrangThai == 4))
             {
                 if (canReturn)
@@ -211,10 +221,13 @@
                 }
             }
 
-            <button type="button" class="btn btn-outline-danger px-4 py-2"
-                    data-bs-toggle="modal" data-bs-target="#cancelModal">
-                <i class="fa-solid fa-ban me-1"></i> Hủy đơn
-            </button>
+            @if (Model.TrangThai == 0 || Model.TrangThai == 1)
+            {
+                <button type="button" class="btn btn-outline-danger px-4 py-2"
+                        data-bs-toggle="modal" data-bs-target="#cancelModal">
+                    <i class="fa-solid fa-ban me-1"></i> Hủy đơn
+                </button>
+            }
         </div>
     }
 
@@ -253,16 +266,37 @@
                         <div class="col-6"><div class="text-muted">Loại hóa đơn</div><div class="fw-bold">@Model.LoaiHoaDon</div></div>
                         <div class="col-6"><div class="text-muted">Hình thức thanh toán</div><div class="fw-bold">@Model.HinhThucThanhToan</div></div>
                     </div>
+
                     <hr />
                     <h5 class="fw-bold mb-3"><i class="fa-solid fa-box-open me-2"></i>Sản phẩm</h5>
+
                     <div class="table-responsive">
+                        @{
+                            Func<object?, string[], decimal> ReadDec = (obj, props) =>
+                            {
+                                if (obj == null) return 0m;
+                                var t = obj.GetType();
+                                foreach (var name in props)
+                                {
+                                    var p = t.GetProperty(name);
+                                    if (p != null)
+                                    {
+                                        var val = p.GetValue(obj);
+                                        if (val != null) { try { return Convert.ToDecimal(val); } catch { } }
+                                    }
+                                }
+                                return 0m;
+                            };
+                            decimal sumGoc = 0m, sumSale = 0m;
+                        }
+
                         <table class="table table-hover align-middle">
                             <thead>
                                 <tr>
                                     <th style="width:56px">#</th>
                                     <th>Tên sản phẩm</th>
                                     <th class="text-center" style="width:120px">Số lượng</th>
-                                    <th class="text-end" style="width:160px">Đơn giá</th>
+                                    <th class="text-end" style="width:220px">Đơn giá</th>
                                     <th class="text-end" style="width:180px">Thành tiền</th>
                                 </tr>
                             </thead>
@@ -272,13 +306,44 @@
                                     var idx = 1;
                                     foreach (var item in Model.HoaDonChiTiets)
                                     {
-                                        var ten = item.SanPhamChiTiet?.SanPham?.Ten_SanPham ?? "(Chưa nạp tên sản phẩm)";
+                                        var spct = item.SanPhamChiTiet;
+                                        var sp = spct?.SanPham;
+
+                                        var giaGoc = ReadDec(sp, new[] { "GiaNiemYet", "GiaGoc", "GiaBan", "Gia" });
+                                        var giaSale = ReadDec(sp, new[] { "GiaSale", "GiaKhuyenMai", "GiaSauGiam", "GiaKM" });
+                                        var ptGiam = ReadDec(sp, new[] { "PhanTramGiam", "TiLeGiam", "DiscountPercent" });
+
+                                        if (giaGoc <= 0) giaGoc = item.DonGia;
+                                        if (giaSale <= 0 && ptGiam > 0 && giaGoc > 0) giaSale = Math.Round(giaGoc * (1 - ptGiam / 100m), 0);
+                                        if (giaSale <= 0) giaSale = item.DonGia;
+
+                                        var lineTotalGoc = giaGoc * item.SoLuong;
+                                        var lineTotalSale = giaSale * item.SoLuong;
+                                        sumGoc += lineTotalGoc; sumSale += lineTotalSale;
+
+                                        var ten = sp?.Ten_SanPham ?? "(Chưa nạp tên sản phẩm)";
                                         <tr>
                                             <td>@idx</td>
                                             <td><div class="fw-bold">@ten</div></td>
                                             <td class="text-center">@item.SoLuong</td>
-                                            <td class="text-end">@Currency(item.DonGia)</td>
-                                            <td class="text-end">@Currency(item.SoLuong * item.DonGia)</td>
+                                            <td class="text-end price-cell">
+                                                @if (giaSale < giaGoc)
+                                                {
+                                                    <div class="price-old">@Currency(giaGoc)</div>
+                                                    <div class="price-new">
+                                                        @Currency(giaSale)
+                                                        @if (ptGiam > 0)
+                                                        {
+                                                            <span class="badge bg-danger ms-1">-@ptGiam.ToString("0.#")%</span>
+                                                        }
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="price-new">@Currency(giaSale)</div>
+                                                }
+                                            </td>
+                                            <td class="text-end price-cell">@Currency(lineTotalSale)</td>
                                         </tr>
                                         idx++;
                                     }
@@ -289,7 +354,14 @@
                                 }
                             </tbody>
                             <tfoot>
-                                <tr><td colspan="4" class="text-end text-muted">Tạm tính</td><td class="text-end">@Currency(subtotal)</td></tr>
+                                @{
+                                    var lineDiscount = Math.Max(0m, sumGoc - sumSale);
+                                    var orderDiscount = Math.Max(0m, (sumSale + shipping) - total);
+                                    var discount = lineDiscount + orderDiscount;
+                                    var subtotalDisplay = sumGoc > 0m ? sumGoc : lineSubtotal;
+                                }
+                                <tr><td colspan="4" class="text-end text-muted">Tạm tính (trước giảm)</td><td class="text-end">@Currency(subtotalDisplay)</td></tr>
+                                <tr><td colspan="4" class="text-end text-muted">Giảm giá</td><td class="text-end">-@Currency(discount)</td></tr>
                                 <tr><td colspan="4" class="text-end text-muted">Phụ thu</td><td class="text-end">@Currency(shipping)</td></tr>
                                 <tr class="total-row"><td colspan="4" class="text-end">Tổng thanh toán</td><td class="text-end">@Currency(total)</td></tr>
                             </tfoot>
@@ -303,10 +375,7 @@
             <div class="card card-soft h-100">
                 <div class="card-body">
                     <h5 class="fw-bold mb-3"><i class="fa-regular fa-user me-2"></i>Thông tin người nhận</h5>
-                    <div class="mb-2">
-                        <div class="text-muted">Khách hàng</div>
-                        <div class="fw-bold">@(!string.IsNullOrWhiteSpace(Model.HoTen) ? Model.HoTen : "Khách lẻ")</div>
-                    </div>
+                    <div class="mb-2"><div class="text-muted">Khách hàng</div><div class="fw-bold">@(!string.IsNullOrWhiteSpace(Model.HoTen) ? Model.HoTen : "Khách lẻ")</div></div>
                     <div class="mb-2"><div class="text-muted">SĐT</div><div class="fw-bold">@Model.Sdt_NguoiNhan</div></div>
                     <div class="mb-2"><div class="text-muted">Địa chỉ</div><div class="fw-bold">@Model.DiaChi</div></div>
 
@@ -329,6 +398,7 @@
                         }
                     </div>
 
+                    @* Card: Phiếu hoàn gần nhất *@
                     @if (phieuMoi != null)
                     {
                         <hr />
@@ -369,32 +439,38 @@
     </div>
 </div>
 
-@* Modal HỦY ĐƠN *@
-<div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="post" asp-action="HuyDon" asp-controller="HoaDon">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@Model.ID_HoaDon" />
-                <div class="modal-header">
-                    <h5 class="modal-title text-danger">Hủy đơn hàng</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <label class="form-label">Lý do hủy</label>
-                    <textarea name="lyDo" class="form-control" rows="4" required placeholder="Ví dụ: Hết hàng biến thể X; không đủ tồn kho..."></textarea>
-                    <small class="text-muted">Lý do sẽ được lưu trong lịch sử đơn hàng và hiển thị cho khách hàng.</small>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="submit" class="btn btn-danger">Xác nhận hủy</button>
-                </div>
-            </form>
+@* Modal HỦY ĐƠN (0 hoặc 1) *@
+@if (Model.TrangThai == 0 || Model.TrangThai == 1)
+{
+    <div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" asp-action="HuyDon" asp-controller="HoaDon">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.ID_HoaDon" />
+                    <div class="modal-header">
+                        <h5 class="modal-title text-danger">Hủy đơn hàng</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label class="form-label">Lý do hủy</label>
+                        <textarea name="lyDo" class="form-control" rows="4" required placeholder="Ví dụ: Khách đổi ý, hết hàng..."></textarea>
+                        @if (Model.TrangThai == 1)
+                        {
+                            <small class="text-muted d-block mt-2">Lưu ý: Hệ thống sẽ tự <b>cộng trả tồn kho</b> đã giữ cho đơn này.</small>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                        <button type="submit" class="btn btn-danger">Xác nhận hủy</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</div>
+}
 
-@* Modal HOÀN TẤT CẢ *@
+@* Modal TẠO PHIẾU HOÀN TẤT CẢ *@
 @if (canReturn)
 {
     <div class="modal fade" id="returnAllModal" tabindex="-1" aria-hidden="true">
@@ -410,9 +486,7 @@
                     <div class="modal-body">
                         <label class="form-label">Lý do (tuỳ chọn)</label>
                         <textarea name="lyDo" class="form-control" rows="3" placeholder="Ví dụ: Khách yêu cầu trả toàn bộ, hàng lỗi..."></textarea>
-                        <small class="text-muted d-block mt-2">
-                            Hệ thống sẽ tự tính số lượng hoàn cho <strong>toàn bộ sản phẩm</strong> chưa được hoàn trước đó.
-                        </small>
+                        <small class="text-muted d-block mt-2">Hệ thống sẽ tự tính số lượng hoàn cho <strong>toàn bộ sản phẩm</strong> chưa được hoàn trước đó.</small>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>

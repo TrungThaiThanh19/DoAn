@@ -1,16 +1,21 @@
 ﻿@model DoAn.ViewModel.StatsDashboardVM
 @{
     ViewData["Title"] = "Thống kê";
+
     string Currency(decimal v) => string.Format("{0:N0} đ", v);
     string? Q(string key) => Context.Request.Query[key].FirstOrDefault();
-    string QueryMulti(string key) => string.Join("&", Context.Request.Query[key].Select(x => $"{key}={x}"));
 
-    // Lấy tham số hiện tại để tái sử dụng khi gọi API/Export
-    var from = Q("from");
-    var to = Q("to");
+    // Mặc định: from = hôm nay, to = ngày mai
+    var from = Q("from") ?? DateTime.Today.ToString("yyyy-MM-dd");
+    var to = Q("to") ?? DateTime.Today.AddDays(1).ToString("yyyy-MM-dd");
+
+    var statusParams = Context.Request.Query["status"].ToArray();
+    string StatusQueryPairs() =>
+        statusParams.Any()
+        ? string.Join("&", statusParams.Select(s => $"status={s}"))
+        : "status=4";
+
     var topN = Q("topN") ?? "5";
-    var statusParams = Context.Request.Query["status"].ToArray(); // mảng string
-    string StatusQueryPairs() => string.Join("&", statusParams.Select(s => $"status={s}"));
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
@@ -43,6 +48,11 @@
         top: .5rem;
         z-index: 2;
     }
+
+    .chart-wrapper {
+        height: 300px;
+    }
+    /* FIX: giữ chiều cao cố định */
 </style>
 
 <div class="container-fluid py-3">
@@ -80,7 +90,6 @@
                     <label class="form-label d-block">Trạng thái tính là hoàn tất</label>
                     <div class="d-flex align-items-center gap-3 flex-wrap">
                         @{
-                            // Gợi ý: 3 = Đã thanh toán, 4 = Thành công (tuỳ hệ thống)
                             var known = new[] { "3", "4" };
                             foreach (var s in known)
                             {
@@ -100,9 +109,7 @@
                     <input type="number" min="3" max="50" step="1" class="form-control" name="topN" value="@topN" />
                 </div>
                 <div class="col-6 col-md-1 text-end">
-                    <button class="btn btn-primary w-100">
-                        Lọc
-                    </button>
+                    <button class="btn btn-primary w-100">Lọc</button>
                 </div>
             </div>
         </div>
@@ -115,15 +122,15 @@
                 <div class="card-body">
                     <div class="label">Doanh thu</div>
                     <div class="value">@Currency(Model.KPI.DoanhThu)</div>
-                    <div class="small text-secondary">Phụ thu: @Currency(Model.KPI.PhuThu) &nbsp;•&nbsp; Giảm giá: @Currency(Model.KPI.GiamGiaKM_Voucher)</div>
+                    <div class="small text-secondary">Phụ thu: @Currency(Model.KPI.PhuThu) • Giảm giá: @Currency(Model.KPI.GiamGiaKM_Voucher)</div>
                 </div>
             </div>
         </div>
         <div class="col-sm-6 col-xl-3">
             <div class="card card-shadow kpi-card">
                 <div class="card-body">
-                    <div class="label">Lợi nhuận gộp (ước tính)</div>
-                    <div class="value">@Currency(Model.KPI.LoiNhuanGop)</div>
+                    <div class="label">Lợi nhuận (sau chi phí VC)</div>
+                    <div class="value">@Currency(Model.KPI.LoiNhuan)</div>
                     <div class="small text-secondary">Hoàn tiền trả hàng: @Currency(Model.KPI.HoanTienTraHang)</div>
                 </div>
             </div>
@@ -133,7 +140,7 @@
                 <div class="card-body">
                     <div class="label">Đơn hoàn tất</div>
                     <div class="value">@Model.KPI.DonHoanTat</div>
-                    <div class="small text-secondary">Khoảng thời gian đang lọc</div>
+                    <div class="small text-secondary">Trong khoảng lọc</div>
                 </div>
             </div>
         </div>
@@ -142,7 +149,7 @@
                 <div class="card-body">
                     <div class="label">KH mới (năm nay)</div>
                     <div class="value">@Model.KPI.KhachHangMoi</div>
-                    <div class="small text-secondary">Tổng số theo tháng</div>
+                    <div class="small text-secondary">Theo tháng</div>
                 </div>
             </div>
         </div>
@@ -150,34 +157,27 @@
 
     <!-- Charts -->
     <div class="row g-3 mb-3">
-        <!-- Doanh thu theo ngày (BAR) -->
+        <!-- Daily -->
         <div class="col-lg-6">
             <div class="card card-shadow h-100">
                 <div class="card-body">
                     <h5 class="card-title mb-1">Doanh thu theo ngày</h5>
                     <div class="small text-secondary mb-2">Nguồn: GET /ThongKe/RevenueDaily</div>
-                    <div class="mb-2">
-                        <span class="text-muted">Tổng:</span>
-                        <strong id="dailyTotal">—</strong>
-                    </div>
-                    <div id="dailyEmpty" class="text-center text-secondary py-4 d-none">Không có dữ liệu trong khoảng lọc.</div>
-                    <canvas id="dailyChart" height="150"></canvas>
+                    <div class="mb-2"><span class="text-muted">Tổng:</span> <strong id="dailyTotal">—</strong></div>
+                    <div id="dailyEmpty" class="text-center text-secondary py-4 d-none">Không có dữ liệu.</div>
+                    <div class="chart-wrapper"><canvas id="dailyChart"></canvas></div>
                 </div>
             </div>
         </div>
-
-        <!-- Doanh thu theo tháng (BAR) -->
+        <!-- Monthly -->
         <div class="col-lg-6">
             <div class="card card-shadow h-100">
                 <div class="card-body">
-                    <h5 class="card-title mb-1">Doanh thu theo tháng (năm hiện tại)</h5>
+                    <h5 class="card-title mb-1">Doanh thu theo tháng</h5>
                     <div class="small text-secondary mb-2">Nguồn: GET /ThongKe/RevenueMonthly</div>
-                    <div class="mb-2">
-                        <span class="text-muted">Tổng:</span>
-                        <strong id="monthlyTotal">—</strong>
-                    </div>
+                    <div class="mb-2"><span class="text-muted">Tổng:</span> <strong id="monthlyTotal">—</strong></div>
                     <div id="monthlyEmpty" class="text-center text-secondary py-4 d-none">Không có dữ liệu.</div>
-                    <canvas id="monthlyChart" height="150"></canvas>
+                    <div class="chart-wrapper"><canvas id="monthlyChart"></canvas></div>
                 </div>
             </div>
         </div>
@@ -192,14 +192,7 @@
             </div>
             <div class="table-responsive">
                 <table class="table table-sm align-middle">
-                    <thead>
-                        <tr>
-                            <th>Sản phẩm</th>
-                            <th>Thể tích</th>
-                            <th class="text-end">Số lượng</th>
-                            <th class="text-end">Doanh thu</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Sản phẩm</th><th>Thể tích</th><th class="text-end">Số lượng</th><th class="text-end">Doanh thu</th></tr></thead>
                     <tbody>
                         @if (Model.TopProducts?.Any() == true)
                         {
@@ -215,7 +208,7 @@
                         }
                         else
                         {
-                            <tr><td colspan="4" class="text-center text-secondary py-3">Chưa có dữ liệu trong khoảng lọc.</td></tr>
+                            <tr><td colspan="4" class="text-center text-secondary py-3">Chưa có dữ liệu.</td></tr>
                         }
                     </tbody>
                 </table>
@@ -231,13 +224,7 @@
                     <h5 class="mb-3">Doanh số theo thương hiệu</h5>
                     <div class="table-responsive">
                         <table class="table table-sm align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Thương hiệu</th>
-                                    <th class="text-end">Số lượng</th>
-                                    <th class="text-end">Doanh thu</th>
-                                </tr>
-                            </thead>
+                            <thead><tr><th>Thương hiệu</th><th class="text-end">Số lượng</th><th class="text-end">Doanh thu</th></tr></thead>
                             <tbody>
                                 @if (Model.SalesByBrand?.Any() == true)
                                 {
@@ -266,13 +253,7 @@
                     <h5 class="mb-3">Doanh số theo giới tính</h5>
                     <div class="table-responsive">
                         <table class="table table-sm align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Giới tính</th>
-                                    <th class="text-end">Số lượng</th>
-                                    <th class="text-end">Doanh thu</th>
-                                </tr>
-                            </thead>
+                            <thead><tr><th>Giới tính</th><th class="text-end">Số lượng</th><th class="text-end">Doanh thu</th></tr></thead>
                             <tbody>
                                 @if (Model.SalesByGender?.Any() == true)
                                 {
@@ -303,13 +284,7 @@
             <h5 class="mb-3">Hiệu suất nhân viên</h5>
             <div class="table-responsive">
                 <table class="table table-sm align-middle">
-                    <thead>
-                        <tr>
-                            <th>Nhân viên</th>
-                            <th class="text-end">Số đơn</th>
-                            <th class="text-end">Doanh thu</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Nhân viên</th><th class="text-end">Số đơn</th><th class="text-end">Doanh thu</th></tr></thead>
                     <tbody>
                         @if (Model.SalesByStaff?.Any() == true)
                         {
@@ -334,99 +309,63 @@
 
 </div>
 
-@* <script> *@
-@*     // Giữ tham số hiện tại (from, to, status, topN) để gọi API *@
-@*     (function () { *@
-@*         const params = new URLSearchParams(window.location.search); *@
-@*         if (!params.has('status')) params.append('status', '4'); // mặc định 4 *@
-@*         window.__statsQuery = params; *@
-@*     })(); *@
+<script>
+    const FROM = encodeURIComponent("@from");
+    const TO   = encodeURIComponent("@to");
+    const STATUS_QUERY = "@Html.Raw(StatusQueryPairs())";
+    const fmtMoney = v => new Intl.NumberFormat('vi-VN').format(v ?? 0) + ' đ';
 
-@*     const fmtMoney = v => new Intl.NumberFormat('vi-VN').format(v ?? 0) + ' đ'; *@
+    const dailyCtx = document.getElementById('dailyChart');
+    const monthlyCtx = document.getElementById('monthlyChart');
+    const dailyTotalEl = document.getElementById('dailyTotal');
+    const monthlyTotalEl = document.getElementById('monthlyTotal');
+    const dailyEmpty = document.getElementById('dailyEmpty');
+    const monthlyEmpty = document.getElementById('monthlyEmpty');
 
-@*     const dailyCtx = document.getElementById('dailyChart'); *@
-@*     const monthlyCtx = document.getElementById('monthlyChart'); *@
-@*     const dailyTotalEl = document.getElementById('dailyTotal'); *@
-@*     const monthlyTotalEl = document.getElementById('monthlyTotal'); *@
-@*     const dailyEmpty = document.getElementById('dailyEmpty'); *@
-@*     const monthlyEmpty = document.getElementById('monthlyEmpty'); *@
+    let dailyChart, monthlyChart;
 
-@*     let dailyChart, monthlyChart; *@
+    async function renderDaily() {
+      const qs = `from=${FROM}&to=${TO}&${STATUS_QUERY}`;
+      const res = await fetch(`/ThongKe/RevenueDaily?${qs}`, { cache: 'no-store' });
+      const data = await res.json();
+      const labels = data.map(x => x.time);
+      const values = data.map(x => x.amount ?? 0);
+      const total = values.reduce((a,b)=>a+(b??0),0);
+      if (dailyTotalEl) dailyTotalEl.textContent = fmtMoney(total);
+      if (dailyEmpty) dailyEmpty.classList.toggle('d-none', values.some(v => (v??0)>0));
+      if (dailyChart) dailyChart.destroy();
+      dailyChart = new Chart(dailyCtx, {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Doanh thu/ngày', data: values }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          scales: { y: { beginAtZero: true, ticks: { callback: v => fmtMoney(v) } } },
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmtMoney(c.parsed.y) } } }
+        }
+      });
+    }
 
-@*     // ---- Daily (BAR) *@
-@*     async function renderDaily() { *@
-@*         const params = new URLSearchParams(window.__statsQuery); *@
-@*         const url = `/ThongKe/RevenueDaily?${params.toString()}`; *@
-@*         const res = await fetch(url, { cache: 'no-store' }); *@
-@*         const data = await res.json(); // [{time, amount}] *@
-@*         const labels = data.map(x => x.time); *@
-@*                const values = data.map(x => x.amount ?? 0); *@
+    async function renderMonthly() {
+      const res = await fetch(`/ThongKe/RevenueMonthly?${STATUS_QUERY}`, { cache: 'no-store' });
+      const data = await res.json();
+      const labels = data.map(x => x.time);
+      const values = data.map(x => x.amount ?? 0);
+      const total = values.reduce((a,b)=>a+(b??0),0);
+      if (monthlyTotalEl) monthlyTotalEl.textContent = fmtMoney(total);
+      if (monthlyEmpty) monthlyEmpty.classList.toggle('d-none', values.some(v => (v??0)>0));
+      if (monthlyChart) monthlyChart.destroy();
+      monthlyChart = new Chart(monthlyCtx, {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Doanh thu/tháng', data: values }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          scales: { y: { beginAtZero: true, ticks: { callback: v => fmtMoney(v) } } },
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmtMoney(c.parsed.y) } } }
+        }
+      });
+    }
 
-@*         // tổng *@
-@*         const total = values.reduce((a, b) => a + (b ?? 0), 0); *@
-@*         if (dailyTotalEl) dailyTotalEl.textContent = fmtMoney(total); *@
-
-@*         // empty state *@
-@*         if (dailyEmpty) dailyEmpty.classList.toggle('d-none', values.some(v => (v ?? 0) > 0)); *@
-
-@*         if (dailyChart) dailyChart.destroy(); *@
-@*         dailyChart = new Chart(dailyCtx, { *@
-@*             type: 'bar', *@
-@*             data: { *@
-@*                 labels, *@
-@*                 datasets: [{ label: 'Doanh thu/ngày', data: values }] *@
-@*             }, *@
-@*             options: { *@
-@*                 responsive: true, maintainAspectRatio: false, *@
-@*                 interaction: { mode: 'index', intersect: false }, *@
-@*                 scales: { *@
-@*                     x: { ticks: { autoSkip: true, maxTicksLimit: 10 } }, *@
-@*                     y: { beginAtZero: true, ticks: { callback: v => fmtMoney(v) } } *@
-@*                 }, *@
-@*                 plugins: { *@
-@*                     legend: { display: false }, *@
-@*                     tooltip: { callbacks: { label: ctx => ' ' + fmtMoney(ctx.parsed.y) } } *@
-@*                 } *@
-@*             } *@
-@*         }); *@
-@*     } *@
-
-@*     // ---- Monthly (BAR) *@
-@*     async function renderMonthly() { *@
-@*         const keep = new URLSearchParams(); *@
-@*         (window.__statsQuery.getAll('status') || ['4']).forEach(s => keep.append('status', s)); *@
-@*         const url = `/ThongKe/RevenueMonthly?${keep.toString()}`; *@
-
-@*         const res = await fetch(url, { cache: 'no-store' }); *@
-@*         const data = await res.json(); // [{time, amount}] *@
-@*         const labels = data.map(x => x.time); *@
-@*         const values = data.map(x => x.amount ?? 0); *@
-
-@*         const total = values.reduce((a, b) => a + (b ?? 0), 0); *@
-@*         if (monthlyTotalEl) monthlyTotalEl.textContent = fmtMoney(total); *@
-
-@*         if (monthlyEmpty) monthlyEmpty.classList.toggle('d-none', values.some(v => (v ?? 0) > 0)); *@
-
-@*         if (monthlyChart) monthlyChart.destroy(); *@
-@*         monthlyChart = new Chart(monthlyCtx, { *@
-@*             type: 'bar', *@
-@*             data: { *@
-@*                 labels, *@
-@*                 datasets: [{ label: 'Doanh thu/tháng', data: values }] *@
-@*             }, *@
-@*             options: { *@
-@*                 responsive: true, maintainAspectRatio: false, *@
-@*                 interaction: { mode: 'index', intersect: false }, *@
-@*                 scales: { y: { beginAtZero: true, ticks: { callback: v => fmtMoney(v) } } }, *@
-@*                 plugins: { *@
-@*                     legend: { display: false }, *@
-@*                     tooltip: { callbacks: { label: ctx => ' ' + fmtMoney(ctx.parsed.y) } } *@
-@*                 } *@
-@*             } *@
-@*         }); *@
-@*     } *@
-
-@*     // Auto render khi vào trang *@
-@*     renderDaily(); *@
-@*     renderMonthly(); *@
-@* </script> *@
+    document.addEventListener('DOMContentLoaded', () => { renderDaily(); renderMonthly(); });
+</script>

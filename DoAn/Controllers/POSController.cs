@@ -504,7 +504,7 @@ namespace DoAn.Controllers
                         ID_Voucher = voucher?.ID_Voucher,
                         LoaiHoaDon = "Offline",
                         NgayTao = DateTime.Now,
-                        TrangThai = 1 // Đã thanh toán
+                        TrangThai = 1,
                     };
 
                     // Tạo chi tiết hóa đơn + trừ tồn kho
@@ -548,9 +548,10 @@ namespace DoAn.Controllers
                     .Include(hd => hd.HoaDonChiTiets)
                     .ThenInclude(ct => ct.SanPhamChiTiet)
                     .ThenInclude(spct => spct.TheTich)
+                    .Include(hd => hd.NhanVien)
                     .FirstOrDefaultAsync(hd => hd.ID_HoaDon == hoaDon.ID_HoaDon);
 
-                var fileName = XuatHoaDonPdf(hoaDonDayDu); // hoaDon là object đã thanh toán
+                var fileName = XuatHoaDonPdf(hoaDonDayDu, model.TienKhachDua ?? 0, model.TienThua ?? 0); // hoaDon là object đã thanh toán
                 var fileUrl = Url.Content($"~/hoadon/{fileName}");
 
                 // Trả kết quả thành công kèm mã hóa đơn
@@ -572,89 +573,173 @@ namespace DoAn.Controllers
         }
 
 
-        public string XuatHoaDonPdf(HoaDon hoaDon)
+        public string XuatHoaDonPdf(HoaDon hoaDon, decimal tienKhachDua, decimal tienThua)
         {
             QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
             var maHoaDon = hoaDon.Ma_HoaDon;
             var fileName = $"{maHoaDon}.pdf";
             var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/hoadon", fileName);
 
-            // Nếu chưa có thư mục thì tạo
             var dir = Path.GetDirectoryName(filePath);
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
-            // Tính lại tiền ưu đãi đúng logic (đặc biệt khi có phụ thu)
             decimal uuDai = hoaDon.TongTienTruocGiam - hoaDon.TongTienSauGiam + (hoaDon.PhuThu ?? 0);
 
-            // Render PDF
             var document = Document.Create(container =>
             {
                 container.Page(page =>
                 {
-                    page.Margin(40);
+                    page.Margin(32);
                     page.Size(PageSizes.A4);
 
-                    page.Header()
-                        .Text($"HÓA ĐƠN THANH TOÁN\nMã hóa đơn: {maHoaDon}")
-                        .FontSize(20).Bold().AlignCenter();
+                    page.Header().AlignCenter().Text("HÓA ĐƠN THANH TOÁN")
+                        .FontSize(22).Bold().FontColor(Colors.Blue.Darken2);
 
-                    page.Content()
-                        .PaddingVertical(10)
-                        .Column(col =>
+                    page.Content().Column(col =>
+                    {
+                        col.Item().PaddingTop(28).Row(row =>
                         {
-                            col.Item().Text($"Ngày mua: {hoaDon.NgayTao:dd/MM/yyyy HH:mm}");
-                            col.Item().Text($"Tên khách hàng: {hoaDon.HoTen ?? "Khách lẻ"}");
-                            col.Item().Text($"Số điện thoại: {hoaDon.Sdt_NguoiNhan}");
-                            col.Item().Text($"Email: {hoaDon.Email ?? ""}");
-                            col.Item().Text($"Địa chỉ: {hoaDon.DiaChi}");
-                            col.Item().Text($"Phương thức thanh toán: {hoaDon.HinhThucThanhToan ?? ""}");
-                            col.Item().Text($"Phương thức nhận hàng: {hoaDon.PhuongThucNhanHang ?? ""}");
-                            if (!string.IsNullOrEmpty(hoaDon.GhiChu))
-                                col.Item().Text($"Ghi chú: {hoaDon.GhiChu}");
-
-                            col.Item().LineHorizontal(1);
-
-                            // Chi tiết hóa đơn
-                            col.Item().Table(tbl =>
+                            // Cột trái: Thông tin khách hàng
+                            row.RelativeColumn().Stack(stack =>
                             {
-                                tbl.ColumnsDefinition(cols =>
-                                {
-                                    cols.RelativeColumn();
-                                    cols.RelativeColumn();
-                                    cols.RelativeColumn();
-                                    cols.RelativeColumn();
-                                });
+                                stack.Item().Text("Thông tin khách hàng")
+                                    .Bold().FontSize(13).FontColor(Colors.Blue.Darken2);
 
-                                tbl.Header(header =>
+                                stack.Item().Text(txt =>
                                 {
-                                    header.Cell().Text("Sản phẩm").Bold();
-                                    header.Cell().Text("Thể tích").Bold();
-                                    header.Cell().Text("Số lượng").Bold();
-                                    header.Cell().Text("Thành tiền").AlignRight();
+                                    txt.Span("Tên khách: ").SemiBold();
+                                    txt.Span($"{hoaDon.HoTen ?? "Khách vãng lai"}");
                                 });
-
-                                foreach (var ct in hoaDon.HoaDonChiTiets)
+                                stack.Item().Text(txt =>
                                 {
-                                    tbl.Cell().Text(ct.SanPhamChiTiet?.SanPham?.Ten_SanPham ?? "");
-                                    tbl.Cell().Text($"{ct.SanPhamChiTiet?.TheTich?.GiaTri:0.#}{ct.SanPhamChiTiet?.TheTich?.DonVi}");
-                                    tbl.Cell().Text(ct.SoLuong.ToString());
-                                    tbl.Cell().Text($"{(ct.SoLuong * ct.DonGia):n0} đ").AlignRight();
-                                }
+                                    txt.Span("Địa chỉ: ").SemiBold();
+                                    txt.Span($"{hoaDon.DiaChi ?? ""}");
+                                });
+                                stack.Item().Text(txt =>
+                                {
+                                    txt.Span("Email: ").SemiBold();
+                                    txt.Span($"{hoaDon.Email ?? ""}");
+                                });
+                                stack.Item().Text(txt =>
+                                {
+                                    txt.Span("SĐT: ").SemiBold();
+                                    txt.Span($"{hoaDon.Sdt_NguoiNhan ?? ""}");
+                                });
                             });
 
-                            col.Item().LineHorizontal(1);
-                            col.Item().AlignRight().Text($"Tổng tiền: {hoaDon.TongTienTruocGiam:n0} đ");
-                            col.Item().AlignRight().Text($"Ưu đãi: {uuDai:n0} đ");
-                            col.Item().AlignRight().Text($"Phụ thu: {(hoaDon.PhuThu ?? 0):n0} đ");
-                            col.Item().AlignRight().Text($"Tổng cộng: {hoaDon.TongTienSauGiam:n0} đ").Bold();
+                            // Cột phải: Thông tin hóa đơn
+                            row.RelativeColumn().Stack(stack =>
+                            {
+                                stack.Item().Text("Thông tin hóa đơn")
+                                    .Bold().FontSize(13).FontColor(Colors.Blue.Darken2);
+
+                                stack.Item().Text(txt =>
+                                {
+                                    txt.Span("Mã hóa đơn: ").SemiBold();
+                                    txt.Span($"{maHoaDon}");
+                                });
+                                stack.Item().Text(txt =>
+                                {
+                                    txt.Span("Ngày tạo: ").SemiBold();
+                                    txt.Span($"{hoaDon.NgayTao:dd/MM/yyyy HH:mm}");
+                                });
+                                stack.Item().Text(txt =>
+                                {
+                                    txt.Span("Phương thức thanh toán: ").SemiBold();
+                                    txt.Span($"{hoaDon.HinhThucThanhToan ?? ""}");
+                                });
+                                stack.Item().Text(txt =>
+                                {
+                                    txt.Span("Phương thức nhận hàng: ").SemiBold();
+                                    txt.Span($"{hoaDon.PhuongThucNhanHang ?? ""}");
+                                });
+                                if (!string.IsNullOrWhiteSpace(hoaDon.GhiChu))
+                                {
+                                    stack.Item().Text(txt =>
+                                    {
+                                        txt.Span("Ghi chú: ").SemiBold();
+                                        txt.Span($"{hoaDon.GhiChu}");
+                                    });
+                                }
+                            });
                         });
 
-                    page.Footer().Text("Cảm ơn quý khách!").AlignCenter();
+                        col.Item().PaddingVertical(12);
+
+                        // Bảng hóa đơn
+                        col.Item().Table(tbl =>
+                        {
+                            tbl.ColumnsDefinition(cols =>
+                            {
+                                cols.RelativeColumn(2);
+                                cols.RelativeColumn();
+                                cols.RelativeColumn();
+                                cols.RelativeColumn();
+                                cols.RelativeColumn();
+                            });
+
+                            tbl.Header(header =>
+                            {
+                                header.Cell().Element(CellStyleHeader).Text("Sản phẩm");
+                                header.Cell().Element(CellStyleHeader).Text("Thể tích");
+                                header.Cell().Element(CellStyleHeader).AlignCenter().Text("Số lượng");
+                                header.Cell().Element(CellStyleHeader).AlignRight().Text("Đơn giá");
+                                header.Cell().Element(CellStyleHeader).AlignRight().Text("Thành tiền");
+                            });
+
+                            foreach (var ct in hoaDon.HoaDonChiTiets)
+                            {
+                                tbl.Cell().Element(CellStyle).Text(ct.SanPhamChiTiet?.SanPham?.Ten_SanPham ?? "");
+                                tbl.Cell().Element(CellStyle).Text($"{ct.SanPhamChiTiet?.TheTich?.GiaTri:0.#}{ct.SanPhamChiTiet?.TheTich?.DonVi}");
+                                tbl.Cell().Element(CellStyle).AlignCenter().Text(ct.SoLuong.ToString());
+                                tbl.Cell().Element(CellStyle).AlignRight().Text($"{ct.DonGia:n0} đ");
+                                tbl.Cell().Element(CellStyle).AlignRight().Text($"{(ct.SoLuong * ct.DonGia):n0} đ").Bold();
+                            }
+
+                            tbl.Cell().ColumnSpan(4).AlignRight().Element(CellStyleFooter).Text("Tổng tiền hàng:");
+                            tbl.Cell().AlignRight().Element(CellStyleFooter).Text($"{hoaDon.TongTienTruocGiam:n0} đ");
+
+                            tbl.Cell().ColumnSpan(4).AlignRight().Element(CellStyleFooter).Text("Ưu đãi giảm giá:");
+                            tbl.Cell().AlignRight().Element(CellStyleFooter).Text($"{uuDai:n0} đ");
+
+                            tbl.Cell().ColumnSpan(4).AlignRight().Element(CellStyleFooter).Text("Phụ thu:");
+                            tbl.Cell().AlignRight().Element(CellStyleFooter).Text($"{(hoaDon.PhuThu ?? 0):n0} đ");
+
+                            tbl.Cell().ColumnSpan(4).AlignRight().Element(CellStyleFooter).Text("TỔNG CỘNG:");
+                            tbl.Cell().AlignRight().Element(CellStyleFooter).Text($"{hoaDon.TongTienSauGiam:n0} đ").FontColor(Colors.Red.Darken2).FontSize(13).Bold();
+
+                            tbl.Cell().ColumnSpan(4).AlignRight().Element(CellStyleFooter).Text("Tiền khách đưa:");
+                            tbl.Cell().AlignRight().Element(CellStyleFooter).Text($"{tienKhachDua:n0} đ");
+
+                            tbl.Cell().ColumnSpan(4).AlignRight().Element(CellStyleFooter).Text("Tiền thừa trả khách:");
+                            tbl.Cell().AlignRight().Element(CellStyleFooter).Text($"{tienThua:n0} đ").FontColor(Colors.Green.Darken2).Bold();
+                        });
+                    });
+
+                    page.Footer().AlignCenter().Text("Cảm ơn quý khách đã mua hàng!")
+                        .Italic().FontSize(11).FontColor(Colors.Grey.Darken1);
                 });
             });
 
             document.GeneratePdf(filePath);
             return fileName;
+
+            IContainer CellStyle(IContainer container) => container
+                .PaddingVertical(3)
+                .PaddingHorizontal(4)
+                .BorderBottom(0.5f)
+                .BorderColor(Colors.Grey.Lighten2);
+
+            IContainer CellStyleHeader(IContainer container) => container
+                .DefaultTextStyle(x => x.SemiBold().FontSize(11).FontColor(Colors.Blue.Medium))
+                .Background(Colors.Grey.Lighten4)
+                .PaddingVertical(4)
+                .PaddingHorizontal(4);
+
+            IContainer CellStyleFooter(IContainer container) => container
+                .DefaultTextStyle(x => x.Bold().FontSize(11))
+                .PaddingVertical(3)
+                .PaddingHorizontal(4);
         }
 
 
@@ -677,6 +762,8 @@ namespace DoAn.Controllers
             public decimal? PhuThu { get; set; }
             public string? GhiChu { get; set; }
             public Guid? ID_Voucher { get; set; }
+            public decimal? TienKhachDua { get; set; }   // chỉ để nhận giá trị truyền vào, không lưu DB
+            public decimal? TienThua { get; set; }
             public List<HoaDonChiTietRequest> HoaDonChiTiets { get; set; }
         }
 

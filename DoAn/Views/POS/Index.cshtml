@@ -85,7 +85,7 @@
                         <tbody id="danhSachSanPham">
                             @foreach (var sp in sanPhamList)
                             {
-                                <tr style="cursor:pointer" onclick="loadBienThe('@sp.ID_SanPham')">
+                                <tr style="cursor:pointer" onclick="loadBienThe('@sp.ID_SanPham')" data-id="@sp.ID_SanPham">
                                     <td><img src="@sp.HinhAnh" class="img-thumbnail" style="width: 60px;" /></td>
                                     <td>@sp.Ma_SanPham</td>
                                     <td>@sp.Ten_SanPham</td>
@@ -200,6 +200,14 @@
                     <span>Tổng cộng:</span>
                     <span id="tongCong">0 đ</span>
                 </div>
+                <div class="mb-2 d-flex justify-content-between align-items-center">
+                    <span>Tiền khách đưa:</span>
+                    <input class="form-control" type="text" id="tienKhachDua" placeholder="Nhập số tiền khách đưa..." style="width: 150px;" autocomplete="off" />
+                </div>
+                <div class="mb-2 d-flex justify-content-between">
+                    <span>Tiền thừa trả khách:</span>
+                    <span id="tienThua" class="fw-bold text-success">0 đ</span>
+                </div>
             </div>
         </div>
 
@@ -210,6 +218,34 @@
 </div>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+    .selected-invoice-row {
+        background-color: #ffe6b3 !important;
+        font-weight: bold;
+        color: #ad5600;
+    }
+</style>
+<style>
+    .selected-row {
+        background-color: #ffe6b3 !important;
+        font-weight: bold;
+        color: #ad5600;
+    }
+</style>
+<style>
+    #tienThua.text-danger {
+        color: #e53935 !important;
+        font-weight: bold;
+    }
+
+    #tienThua.text-success {
+        color: #00897b !important;
+        font-weight: bold;
+    }
+</style>
+
+
+
 
 @section Scripts {
     <script>
@@ -241,7 +277,15 @@
         }
 
         // Load biến thể theo sản phẩm
+        let selectedSanPhamId = null;
         function loadBienThe(idSanPham) {
+            selectedSanPhamId = idSanPham;
+            document.querySelectorAll("#danhSachSanPham tr").forEach(tr => {
+                tr.classList.remove('selected-row');
+                if (tr.getAttribute('data-id') === idSanPham) {
+                    tr.classList.add('selected-row');
+                }
+            });
             fetch(`/POS/GetVariantsByProductId?idSanPham=${idSanPham}`)
                 .then(res => res.json())
                 .then(data => {
@@ -271,6 +315,7 @@
                     document.getElementById("danhSachBienThe").innerHTML =
                         `<tr><td colspan="4" class="text-danger">Không thể tải biến thể.</td></tr>`;
                 });
+
         }
 
         async function themVaoHoaDonCho(index) {
@@ -378,6 +423,12 @@
                     <td colspan="4" class="text-end">Tổng cộng:</td>
                     <td colspan="2">${tongTien.toLocaleString("vi-VN")} đ</td>
                 </tr>`;
+            document.querySelectorAll('#danhSachHoaDonCho tr[data-id]').forEach(tr => {
+                tr.classList.remove('selected-invoice-row');
+                if (tr.getAttribute('data-id') === idHoaDon) {
+                    tr.classList.add('selected-invoice-row');
+                }
+            });
 
             // Cập nhật chi tiết thanh toán
             let uuDai = window.currentVoucherValue || 0;
@@ -527,6 +578,7 @@
             document.getElementById("uuDaiGiamGia").innerText = toVn(uuDai);
             document.getElementById("phuThuDisplay").innerText = toVn(phuThu);
             document.getElementById("tongCong").innerText = toVn(tongTien - uuDai + phuThu);
+            capNhatTienThua();
         }
 
 
@@ -599,6 +651,11 @@
             // Ưu đãi MGG
             let uuDai = window.currentVoucherValue || 0;
 
+            let tienKhachDuaInput = document.getElementById("tienKhachDua");
+            let tienKhachDuaStr = tienKhachDuaInput?.value?.trim() || "";
+            let tienKhachDua = toNumber(tienKhachDuaStr);
+            let tongCong = getTongCong();
+
             // Đóng gói payload đúng DTO
             const payload = {
                 ID_HoaDon: idHoaDonCho,
@@ -612,8 +669,22 @@
                 PhuThu: phuThu,
                 GhiChu: ghiChu,
                 ID_Voucher: idVoucher,
-                HoaDonChiTiets: chiTietList
+                HoaDonChiTiets: chiTietList,
+                TienKhachDua: tienKhachDua,
+                TienThua: tienKhachDua - tongCong
             };
+
+        if (tienKhachDuaStr === "" || isNaN(tienKhachDua) || tienKhachDua < 0) {
+            showError("Vui lòng nhập số tiền khách đưa");
+            tienKhachDuaInput.focus();
+            return;
+        }
+        if (tienKhachDua < tongCong) {
+            showError("Tiền khách đưa chưa đủ để thanh toán");
+            tienKhachDuaInput.focus();
+            return;
+        }
+
 
             // Gửi request
             const btn = document.getElementById("btnThanhToan");
@@ -636,14 +707,14 @@
                         <b>File hóa đơn:</b> <a href="${data.fileUrl}" download target="_blank">${data.fileName}</a>
                         `,
                     });
-                            if (data.fileUrl) {
-            const link = document.createElement('a');
-            link.href = data.fileUrl;
-            link.download = data.fileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+                if (data.fileUrl) {
+                    const link = document.createElement('a');
+                    link.href = data.fileUrl;
+                    link.download = data.fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    }
                     // Reset form
                     idHoaDonCho = null;
                     dsChiTietHoaDon = [];
@@ -659,6 +730,9 @@
                     document.querySelector('[name="phuThu"]').value = "";
                     document.querySelector('[name="maGiamGia"]').value = "";
                     document.querySelector('[name="phuongThucThanhToan"]').selectedIndex = 0;
+                    document.getElementById("tienKhachDua").value = "";
+                    document.getElementById("tienThua").innerText = "0 đ";
+
 
                     // Clear luôn danh sách biến thể đang hiển thị sau khi thanh toán thành công
                     const tbodyBienThe = document.getElementById("danhSachBienThe");
@@ -758,6 +832,42 @@
         }
 
 
+        function capNhatTienThua() {
+            let tienKhachDuaStr = document.getElementById("tienKhachDua")?.value ?? "";
+            let tienThuaEl = document.getElementById("tienThua");
+
+            if (tienKhachDuaStr.trim() === "") {
+                // Nếu chưa nhập tiền đưa thì tiền thừa = 0
+                tienThuaEl.innerText = toVn(0);
+                tienThuaEl.classList.remove('text-danger', 'text-success');
+                tienThuaEl.classList.add('text-success');
+                return;
+            }
+            let tienKhachDua = toNumber(tienKhachDuaStr);
+            let tongCong = getTongCong();
+            let tienThua = tienKhachDua - tongCong;
+            tienThuaEl.innerText = toVn(tienThua);
+
+            if (tienThua < 0) {
+                tienThuaEl.classList.add('text-danger');
+                tienThuaEl.classList.remove('text-success');
+            } else {
+                tienThuaEl.classList.remove('text-danger');
+                tienThuaEl.classList.add('text-success');
+            }
+        }
+
+
+        function getTongCong() {
+            // Tổng cộng = Tổng tiền hàng - ưu đãi + phụ thu
+            let tongTienHang = getTongTienHang();
+            let uuDai = window.currentVoucherValue || 0;
+            let phuThu = toNumber(document.querySelector('[name="phuThu"]')?.value || 0);
+            return tongTienHang - uuDai + phuThu;
+        }
+
+
+
         document.addEventListener("DOMContentLoaded", () => {
             loadHoaDonCho();
 
@@ -786,6 +896,16 @@
                         e.target.value = "";
                         capNhatChiTietThanhToan(getTongTienHang(), window.currentVoucherValue || 0, 0);
                     }
+                });
+            }
+
+            const inputTienKhach = document.getElementById("tienKhachDua");
+            if (inputTienKhach) {
+                inputTienKhach.addEventListener("input", function(e){
+                    // Chỉ cho nhập số
+                    let value = e.target.value.replace(/[^0-9.,]/g, "");
+                    if (value !== e.target.value) e.target.value = value;
+                    capNhatTienThua();
                 });
             }
         });

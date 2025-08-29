@@ -35,5 +35,7 @@ namespace DoAn.ViewModels.KhuyenMaiVM
 
         // Gắn SPCT
         public List<Guid> SanPhamChiTietIds { get; set; } = new();
+
+        public Guid? ThuongHieuId { get; set; }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace DoAn.ViewModel
+﻿using DoAn.ViewModels;
+
+namespace DoAn.ViewModel
 {
     public class StatsDashboardVM
     {

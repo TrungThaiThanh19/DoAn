@@ -1,5 +1,4 @@
 ﻿using DoAn.Models;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +6,6 @@ using System.Text.RegularExpressions;
 
 namespace DoAn.Controllers
 {
-    [Authorize(Roles = "admin")]
     public class ProductsController : Controller
     {
         private readonly DoAnDbContext _context;
@@ -307,8 +305,8 @@ namespace DoAn.Controllers
             // Danh sách dropdown trạng thái
             ViewBag.TrangThaiList = new SelectList(new[]
             {
-                new { Value = 2, Text = "Tạm ngừng kinh doanh" },
-                new { Value = 1, Text = "Còn hàng" }
+                new { Value = 1, Text = "Còn hàng" },
+                new { Value = 2, Text = "Tạm ngừng kinh doanh" }
             }, "Value", "Text", bienThe.TrangThai);
 
             return View(bienThe);
@@ -326,8 +324,8 @@ namespace DoAn.Controllers
             ViewBag.TrangThaiList = new SelectList(new[]
             {
 				// Tạm thời ngừng bán để chờ dịp sale
-				new { Value = 2, Text = "Tạm ngừng kinh doanh" },
-                new { Value = 1, Text = "Còn hàng" }
+				new { Value = 1, Text = "Còn hàng" },
+                new { Value = 2, Text = "Tạm ngừng kinh doanh" }
             }, "Value", "Text", trangThai);
 
             // Parse dữ liệu
@@ -410,8 +408,8 @@ namespace DoAn.Controllers
 
                 ViewBag.TrangThaiList = new SelectList(new[]
                 {
-                    new { Value = 2, Text = "Tạm ngừng kinh doanh" },
-                    new { Value = 1, Text = "Còn hàng" }
+                    new { Value = 1, Text = "Còn hàng" },
+                    new { Value = 2, Text = "Tạm ngừng kinh doanh" }
                 }, "Value", "Text", trangThai);
 
                 return View(bienThe);

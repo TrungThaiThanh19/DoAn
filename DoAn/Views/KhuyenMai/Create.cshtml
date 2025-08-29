@@ -58,7 +58,18 @@
             <textarea asp-for="MoTa" rows="2" class="form-control"></textarea>
         </div>
 
-        <!-- CHỌN SPCT: MultiSelectList -->
+        <!-- COMBOBOX chọn thương hiệu -->
+        <div class="col-md-6">
+            <label class="form-label">Áp dụng cho THƯƠNG HIỆU</label>
+            <select asp-for="ThuongHieuId"
+                    asp-items="(SelectList)ViewBag.BrandList"
+                    class="form-select">
+                <option value="">-- Không chọn --</option>
+            </select>
+            <span class="form-text">Chọn 1 thương hiệu để áp dụng khuyến mãi cho toàn bộ SPCT thuộc thương hiệu đó.</span>
+        </div>
+
+        <!-- CHỌN SPCT -->
         <div class="col-12">
             <label class="form-label">Áp dụng cho biến thể (SPCT)</label>
             <select asp-for="SanPhamChiTietIds"

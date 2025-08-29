@@ -1,12 +1,11 @@
-﻿using DoAn.Models;
-using Microsoft.AspNetCore.Authorization;
+﻿
+using DoAn.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 
 namespace DoAn.Controllers
 {
-    [Authorize(Roles = "admin")]
     public class BrandsController : Controller
     {
         private readonly DoAnDbContext _context;
@@ -145,5 +144,52 @@ namespace DoAn.Controllers
             return RedirectToAction("Index");
         }
 
+
+        [HttpGet]
+        public IActionResult CreateNew()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateNew(string maThuongHieu, string tenThuongHieu)
+        {
+            ModelState.Clear();
+
+            if (string.IsNullOrWhiteSpace(maThuongHieu))
+                ModelState.AddModelError("MaThuongHieu", "Mã thương hiệu không được để trống");
+
+            else if (_context.ThuongHieus.Any(x => x.Ma_ThuongHieu.ToLower() == maThuongHieu.Trim().ToLower()))
+                ModelState.AddModelError("MaThuongHieu", "Mã thương hiệu đã tồn tại");
+
+            if (string.IsNullOrWhiteSpace(tenThuongHieu))
+                ModelState.AddModelError("TenThuongHieu", "Tên thương hiệu không được để trống");
+
+            else if (!Regex.IsMatch(tenThuongHieu, @"^[\p{L}\s]+$"))
+                ModelState.AddModelError("TenThuongHieu", "Tên thương hiệu chỉ được chứa chữ cái");
+
+            else if (_context.ThuongHieus.Any(x => x.Ten_ThuongHieu.ToLower() == tenThuongHieu.Trim().ToLower()))
+                ModelState.AddModelError("TenThuongHieu", "Tên thương hiệu đã tồn tại");
+
+            if (!ModelState.IsValid)
+            {
+                ViewBag.MaThuongHieu = maThuongHieu;
+                ViewBag.TenThuongHieu = tenThuongHieu;
+                return View();
+            }
+
+            var thuongHieu = new ThuongHieu
+            {
+                ID_ThuongHieu = Guid.NewGuid(),
+                Ma_ThuongHieu = maThuongHieu.Trim(),
+                Ten_ThuongHieu = tenThuongHieu.Trim(),
+                TrangThai = 1
+            };
+
+            _context.ThuongHieus.Add(thuongHieu);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Create", "Products");
+        }
     }
 }

@@ -203,6 +203,7 @@ namespace DoAn.Controllers
         }
 
         // ============= XÁC NHẬN HOÀN TIỀN =============
+        // ============= XÁC NHẬN HOÀN TIỀN =============
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> XacNhanHoanTien(Guid traHangId, string? ghiChu)
@@ -218,25 +219,33 @@ namespace DoAn.Controllers
                 return RedirectToAction("Details", "HoaDon", new { id = phieu.ID_HoaDon });
             }
 
+            // 1) Cập nhật phiếu
             phieu.TrangThai = ReturnStatus.DaHoanTien;
             phieu.NhanVienXuLy = User?.Identity?.Name ?? "system";
             if (!string.IsNullOrWhiteSpace(ghiChu))
                 phieu.GhiChu = AppendNote(phieu.GhiChu, ghiChu);
 
+            // 2) CHUYỂN TRẠNG THÁI ĐƠN -> "7: Hoàn hàng thành công"
+            var hd = phieu.HoaDon!;
+            hd.TrangThai = 7; // TT_HOAN_HANG_THANH_CONG
+            hd.NgayCapNhat = DateTime.Now;
+
+            // 3) Ghi log rõ ràng (trạng thái 7)
             _context.TrangThaiDonHangs.Add(new TrangThaiDonHang
             {
                 ID_TrangThaiDonHang = Guid.NewGuid(),
-                ID_HoaDon = phieu.ID_HoaDon,
-                TrangThai = phieu.HoaDon.TrangThai,
+                ID_HoaDon = hd.ID_HoaDon,
+                TrangThai = 7,
                 NgayChuyen = DateTime.Now,
                 NhanVienDoi = phieu.NhanVienXuLy,
-                NoiDungDoi = $"Đã hoàn tiền {phieu.TongTienHoan:N0} VND cho phiếu {phieu.ID_TraHang.ToString()[..8]}."
+                NoiDungDoi = $"Đã hoàn tiền {phieu.TongTienHoan:N0} VND (phiếu {phieu.ID_TraHang.ToString()[..8]})."
             });
 
             await _context.SaveChangesAsync();
-            TempData["Success"] = "Đã xác nhận hoàn tiền.";
+            TempData["Success"] = "Đã xác nhận hoàn tiền và cập nhật đơn: Hoàn hàng thành công.";
             return RedirectToAction("Details", "HoaDon", new { id = phieu.ID_HoaDon });
         }
+
 
         // ============= TỪ CHỐI YÊU CẦU =============
         [HttpPost]
