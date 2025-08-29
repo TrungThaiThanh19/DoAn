@@ -186,7 +186,7 @@ namespace DoAn.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Server = LAPTOP-8CVDJNS6; Database = DoAn5; Trusted_Connection=True; TrustServerCertificate=True");
+                optionsBuilder.UseSqlServer("Server=DESKTOP-0O61DM6\\TRUNGTT;Database=nhomduan;Trusted_Connection=True;TrustServerCertificate=True");
             }
         }
     }

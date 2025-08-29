@@ -58,26 +58,32 @@
             <textarea asp-for="MoTa" rows="2" class="form-control"></textarea>
         </div>
 
-        <!-- COMBOBOX chọn thương hiệu -->
+        <!-- CHỌN THƯƠNG HIỆU -->
         <div class="col-md-6">
             <label class="form-label">Áp dụng cho THƯƠNG HIỆU</label>
-            <select asp-for="ThuongHieuId"
+            <select id="brandSelect"
+                    asp-for="ThuongHieuId"
                     asp-items="(SelectList)ViewBag.BrandList"
                     class="form-select">
                 <option value="">-- Không chọn --</option>
             </select>
-            <span class="form-text">Chọn 1 thương hiệu để áp dụng khuyến mãi cho toàn bộ SPCT thuộc thương hiệu đó.</span>
+            <small id="brandHelp" class="form-text d-block mt-1">
+                Chọn 1 thương hiệu để áp dụng cho toàn bộ SPCT thuộc thương hiệu đó.
+            </small>
         </div>
 
         <!-- CHỌN SPCT -->
-        <div class="col-12">
+        <div class="col-12" id="spctWrap">
             <label class="form-label">Áp dụng cho biến thể (SPCT)</label>
-            <select asp-for="SanPhamChiTietIds"
+            <select id="spctSelect"
+                    asp-for="SanPhamChiTietIds"
                     asp-items="(Microsoft.AspNetCore.Mvc.Rendering.MultiSelectList)ViewBag.SanPhamChiTietList"
                     multiple
-                    class="form-select" style="min-height: 280px">
+                    class="form-select" style="min-height:280px">
             </select>
-            <span class="form-text">Giữ Ctrl (hoặc Cmd) để chọn nhiều.</span>
+            <small id="spctHelp" class="form-text d-block mt-1">
+                Bạn có thể chọn nhiều SPCT khi KHÔNG chọn thương hiệu.
+            </small>
         </div>
     </div>
 
@@ -89,4 +95,45 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const brand = document.getElementById('brandSelect');
+            const spct  = document.getElementById('spctSelect');
+            const help  = document.getElementById('spctHelp'); // nếu có
+            const urlSpct = '@Url.Action("SpctByBrand", "KhuyenMai")';
+
+            async function reloadSpctOptions(brandId) {
+                const url = brandId ? `${urlSpct}?brandId=${brandId}` : urlSpct;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                spct.innerHTML = '';
+                for (const it of data) {
+                    const opt = document.createElement('option');
+                    opt.value = it.id;
+                    opt.textContent = it.text;
+                    spct.appendChild(opt);
+                }
+            }
+
+            async function sync() {
+                const hasBrand = !!brand.value;
+                await reloadSpctOptions(brand.value);  // nạp đúng danh sách theo thương hiệu
+
+                // Nếu giữ logic “chọn thương hiệu ⇒ áp dụng cho toàn bộ SPCT của thương hiệu”
+                // thì nên khóa SPCT (chỉ hiển thị cho biết):
+                spct.disabled = hasBrand;
+                if (hasBrand) for (const o of spct.options) o.selected = false;
+
+                if (help) {
+                    help.textContent = hasBrand
+                      ? "Đã chọn thương hiệu ⇒ KM áp dụng cho toàn bộ SPCT của thương hiệu; ô dưới chỉ hiển thị danh sách."
+                      : "Bạn có thể chọn nhiều SPCT khi KHÔNG chọn thương hiệu.";
+                }
+            }
+
+            brand.addEventListener('change', sync);
+            sync(); // chạy lần đầu
+        })();
+    </script>
 }
