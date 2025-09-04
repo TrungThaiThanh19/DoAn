@@ -116,7 +116,7 @@ namespace DoAn.Controllers
 		public async Task<IActionResult> DanhSachHoaDonCho()
 		{
 			var ds = await _context.HoaDons
-				.Where(x => x.TrangThai == 0)
+				.Where(x => x.TrangThai == 0 && x.LoaiHoaDon == "Offline") // Chỉ lấy hóa đơn chờ offline và chưa thanh toán
 				.OrderByDescending(x => x.NgayTao)
 				.Select(x => new
 				{
