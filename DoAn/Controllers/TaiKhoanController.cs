@@ -176,5 +176,64 @@ namespace DoAn.Controllers
                 default: return RedirectToAction("Index", "Home");
             }
         }
+
+
+        // GET: /TaiKhoan/ForgotPassword
+        [AllowAnonymous]
+        public IActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        // POST: /TaiKhoan/ForgotPassword
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            // 1. Tìm trong bảng KhachHang
+            var khachHang = await _context.KhachHangs
+                .Include(kh => kh.TaiKhoan)
+                .FirstOrDefaultAsync(kh =>
+                    kh.Email == model.Email &&
+                    kh.SoDienThoai == model.SoDienThoai);
+
+            // 2. Nếu không có, tìm trong bảng NhanVien
+            var nhanVien = khachHang == null
+                ? await _context.NhanViens
+                    .Include(nv => nv.TaiKhoan)
+                    .FirstOrDefaultAsync(nv =>
+                        nv.Email == model.Email &&
+                        nv.SoDienThoai == model.SoDienThoai)
+                : null;
+
+            if (khachHang == null && nhanVien == null)
+            {
+                ModelState.AddModelError("", "Thông tin không chính xác. Vui lòng kiểm tra lại.");
+                return View(model);
+            }
+
+            // 3. Xác nhận mật khẩu mới trùng nhau
+            if (model.NewPassword != model.ConfirmPassword)
+            {
+                ModelState.AddModelError("ConfirmPassword", "Mật khẩu xác nhận không khớp.");
+                return View(model);
+            }
+
+            // 4. Cập nhật mật khẩu (hiện tại đang lưu plain text)
+            if (khachHang != null)
+                khachHang.TaiKhoan.Password = model.NewPassword;
+            else if (nhanVien != null)
+                nhanVien.TaiKhoan.Password = model.NewPassword;
+
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Đổi mật khẩu thành công! Vui lòng đăng nhập.";
+            return RedirectToAction("Login", "TaiKhoan");
+        }
+
+
     }
 }

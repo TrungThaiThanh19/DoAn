@@ -1,34 +1,38 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace DoAn.ViewModels
+namespace DoAn.Validators
 {
-    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
-    public sealed class BirthDateAttribute : ValidationAttribute
+    public class BirthDateAttribute : ValidationAttribute
     {
-        public int MinAge { get; }
-        public int MaxAge { get; }
+        private readonly int _minAge;
+        private readonly int _maxAge;
 
         public BirthDateAttribute(int minAge, int maxAge)
         {
-            MinAge = minAge;
-            MaxAge = maxAge;
+            _minAge = minAge;
+            _maxAge = maxAge;
         }
 
         protected override ValidationResult IsValid(object value, ValidationContext validationContext)
         {
-            // Để [Required] xử lý null/empty
-            if (value is not DateTime dob) return ValidationResult.Success;
+            if (value == null)
+                return new ValidationResult("Ngày sinh không được để trống.");
 
-            var today = DateTime.Today;
-            if (dob > today)
-                return new ValidationResult(ErrorMessage ?? "Ngày sinh không được ở tương lai.");
+            DateTime birthDate = (DateTime)value;
+            DateTime today = DateTime.Today;
 
-            var age = today.Year - dob.Year;
-            if (dob.Date > today.AddYears(-age)) age--;
+            if (birthDate > today)
+                return new ValidationResult("Ngày sinh không được ở tương lai.");
 
-            if (age < MinAge || age > MaxAge)
-                return new ValidationResult(ErrorMessage ?? $"Tuổi phải trong khoảng {MinAge}–{MaxAge}.");
+            int age = today.Year - birthDate.Year;
+            if (birthDate.Date > today.AddYears(-age)) age--;
+
+            if (age < _minAge)
+                return new ValidationResult($"Bạn chưa đủ {_minAge} tuổi để đăng ký, vui lòng nhờ người giám hộ.");
+
+            if (age > _maxAge)
+                return new ValidationResult("Ngày sinh không hợp lệ, vui lòng kiểm tra lại.");
 
             return ValidationResult.Success;
         }

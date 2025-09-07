@@ -113,6 +113,7 @@ namespace DoAn.Controllers
             return RedirectToAction(nameof(Review), new { addressId = model.ID_DiaChiKhachHang, lines });
         }
 
+
         // ===== B2: REVIEW =====
         // THÊM tham số lines để hiển thị đúng các dòng đã tick (nếu có)
         public async Task<IActionResult> Review(Guid addressId, string? lines)

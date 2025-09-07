@@ -110,15 +110,26 @@
                     <td>@Money(item.TongTienSauGiam)</td>
 
                     <td>
-                        @item.TrangThaiText
-                        @* Dấu hiệu: khách đã gửi yêu cầu hoàn (chưa hoàn tiền) *@
-                        @if (item.HasReturnRequest && !item.HasReturnDone)
+                        @if (!isOnline)
                         {
-                            <span class="badge rounded-pill bg-warning text-dark ms-1" title="Khách đã gửi yêu cầu hoàn hàng">
-                                <i class="fa-solid fa-rotate-left me-1"></i>Y/c hoàn
-                            </span>
+                            <!-- Offline thì luôn là thành công -->
+                            <span class="text-success fw-bold">Thành công</span>
+                        }
+                        else
+                        {
+                            <!-- Online thì hiển thị theo trạng thái thực tế -->
+                            @item.TrangThaiText
+
+                            @* Dấu hiệu: khách đã gửi yêu cầu hoàn (chưa hoàn tiền) *@
+                            @if (item.HasReturnRequest && !item.HasReturnDone)
+                            {
+                                <span class="badge rounded-pill bg-warning text-dark ms-1" title="Khách đã gửi yêu cầu hoàn hàng">
+                                    <i class="fa-solid fa-rotate-left me-1"></i>Y/c hoàn
+                                </span>
+                            }
                         }
                     </td>
+
 
                     <td>
                         <a asp-action="Details" asp-route-id="@item.ID_HoaDon"

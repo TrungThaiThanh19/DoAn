@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using DoAn.Validators;
+using System.ComponentModel.DataAnnotations;
 
 namespace DoAn.ViewModels
 {
@@ -42,12 +43,12 @@ namespace DoAn.ViewModels
         [DataType(DataType.PhoneNumber)]
         // 10 số, bắt đầu 03/05/07/08/09
         [RegularExpression(@"^0(3|5|7|8|9)\d{8}$",
-            ErrorMessage = "Số điện thoại phải có 10 số và bắt đầu bằng 03/05/07/08/09 (vd: 0981234567).")]
+            ErrorMessage = "Số điện thoại phải có 10 số và bắt đầu bằng 03/05/07/08/09 ")]
         public string SoDienThoai { get; set; }
 
         [Required(ErrorMessage = "Ngày sinh không được để trống.")]
         [DataType(DataType.Date)]
-        [BirthDate(13, 120, ErrorMessage = "Tuổi phải trong khoảng 13–120 và ngày sinh không được ở tương lai.")]
+        [BirthDate(13, 120, ErrorMessage = "Ngày sinh không hợp lệ.")]
         [Display(Name = "Ngày sinh")]
         public DateTime NgaySinh { get; set; }
     }

@@ -134,16 +134,24 @@
             <input class="form-control" name="SoNha" />
         </div>
         <div class="col-md-6">
-            <label class="form-label">Xã/Phường</label>
-            <input class="form-control" name="Xa_Phuong" />
+            <label class="form-label">Tỉnh/Thành phố</label>
+            <select class="form-select" id="TinhThanhPho" name="Tinh_ThanhPho">
+                <option value="">-- Chọn Tỉnh/Thành phố --</option>
+            </select>
         </div>
+
         <div class="col-md-6">
             <label class="form-label">Quận/Huyện</label>
-            <input class="form-control" name="Quan_Huyen" />
+            <select class="form-select" id="QuanHuyen" name="Quan_Huyen">
+                <option value="">-- Chọn Quận/Huyện --</option>
+            </select>
         </div>
+
         <div class="col-md-6">
-            <label class="form-label">Tỉnh/Thành phố</label>
-            <input class="form-control" name="Tinh_ThanhPho" />
+            <label class="form-label">Xã/Phường</label>
+            <select class="form-select" id="XaPhuong" name="Xa_Phuong">
+                <option value="">-- Chọn Xã/Phường --</option>
+            </select>
         </div>
         <div class="col-12">
             <div class="form-check">
@@ -156,3 +164,54 @@
         </div>
     </form>
 </div>
+<script>
+    // Load tỉnh/thành
+    fetch("https://provinces.open-api.vn/api/?depth=1")
+        .then(res => res.json())
+        .then(data => {
+            let tinhSelect = document.getElementById("TinhThanhPho");
+            data.forEach(item => {
+                let opt = document.createElement("option");
+                opt.value = item.name;
+                opt.dataset.code = item.code;
+                opt.textContent = item.name;
+                tinhSelect.appendChild(opt);
+            });
+        });
+
+    // Khi chọn Tỉnh => load Quận/Huyện
+    document.getElementById("TinhThanhPho").addEventListener("change", function () {
+        let code = this.selectedOptions[0].dataset.code;
+        fetch(`https://provinces.open-api.vn/api/p/${code}?depth=2`)
+            .then(res => res.json())
+            .then(data => {
+                let qhSelect = document.getElementById("QuanHuyen");
+                qhSelect.innerHTML = "<option value=''>-- Chọn Quận/Huyện --</option>";
+                document.getElementById("XaPhuong").innerHTML = "<option value=''>-- Chọn Xã/Phường --</option>";
+                data.districts.forEach(d => {
+                    let opt = document.createElement("option");
+                    opt.value = d.name;
+                    opt.dataset.code = d.code;
+                    opt.textContent = d.name;
+                    qhSelect.appendChild(opt);
+                });
+            });
+    });
+
+    // Khi chọn Quận/Huyện => load Xã/Phường
+    document.getElementById("QuanHuyen").addEventListener("change", function () {
+        let code = this.selectedOptions[0].dataset.code;
+        fetch(`https://provinces.open-api.vn/api/d/${code}?depth=2`)
+            .then(res => res.json())
+            .then(data => {
+                let xpSelect = document.getElementById("XaPhuong");
+                xpSelect.innerHTML = "<option value=''>-- Chọn Xã/Phường --</option>";
+                data.wards.forEach(w => {
+                    let opt = document.createElement("option");
+                    opt.value = w.name;
+                    opt.textContent = w.name;
+                    xpSelect.appendChild(opt);
+                });
+            });
+    });
+</script>
