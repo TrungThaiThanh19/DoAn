@@ -10,7 +10,7 @@ namespace DoAn.ViewModels
         public decimal ChiPhiVanChuyen { get; set; }
         public decimal HoanTienTraHang { get; set; }
 
-        public decimal LoiNhuan => DoanhThu - TongGiaNhap - ChiPhiVanChuyen;
+        public decimal LoiNhuan => DoanhThu - TongGiaNhap - ChiPhiVanChuyen; 
 
         public int DonHoanTat { get; set; }
         public int KhachHangMoi { get; set; }

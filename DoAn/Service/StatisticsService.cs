@@ -160,7 +160,7 @@ namespace DoAn.Service
             }
             vm.RevenueDaily = daily;
 
-            // ===== Doanh thu theo THÁNG (năm hiện tại) =====
+            // ===== Doanh thu theo THÁNG (năm hiện tại) ===== 
             int year = DateTime.Now.Year;
             var monthly = new List<RevenuePointVM>();
             for (int m = 1; m <= 12; m++)

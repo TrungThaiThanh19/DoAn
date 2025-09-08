@@ -121,7 +121,7 @@ namespace DoAn.Controllers
     DateTime? to,
     [FromQuery] int[]? status,
     CancellationToken ct = default)
-        {
+        { 
             if (from.HasValue && to.HasValue && from.Value.Date > to.Value.Date)
                 (from, to) = (to, from);
 

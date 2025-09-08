@@ -17,7 +17,7 @@ namespace DoAn.Models
         public string? Email { get; set; }
 
         public string? Sdt_NguoiNhan { get; set; }
-
+         
         public string? DiaChi { get; set; }
 
         [Required]
