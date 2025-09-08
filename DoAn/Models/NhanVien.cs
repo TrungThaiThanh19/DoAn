@@ -18,6 +18,7 @@ namespace DoAn.Models
         [Required(ErrorMessage = "Ngày sinh không được để trống")]
         [DataType(DataType.Date)]
         [Display(Name = "Ngày sinh")]
+        [MinimumAge(18, ErrorMessage = "Nhân viên phải đủ 18 tuổi trở lên")]
         public DateTime NgaySinh { get; set; }
 
         [Required(ErrorMessage = "Email không được để trống")]
@@ -33,7 +34,7 @@ namespace DoAn.Models
         public string GioiTinh { get; set; }
 
         [Required(ErrorMessage = "Số điện thoại không được để trống")]
-        [Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
+        [RegularExpression(@"^(03|09)\d{8}$", ErrorMessage = "Số điện thoại phải có 10 số và bắt đầu bằng 03 hoặc 09")]
         public string SoDienThoai { get; set; }
 
         [DataType(DataType.Date)]
@@ -50,5 +51,31 @@ namespace DoAn.Models
         public TaiKhoan? TaiKhoan { get; set; }
 
         public ICollection<HoaDon> HoaDons { get; set; }
+    }
+
+    // 🔥 Custom attribute kiểm tra tuổi
+    public class MinimumAgeAttribute : ValidationAttribute
+    {
+        private readonly int _minAge;
+        public MinimumAgeAttribute(int minAge)
+        {
+            _minAge = minAge;
+        }
+
+        protected override ValidationResult IsValid(object value, ValidationContext validationContext)
+        {
+            if (value is DateTime date)
+            {
+                var today = DateTime.Today;
+                var age = today.Year - date.Year;
+                if (date > today.AddYears(-age)) age--; // chưa tới sinh nhật thì trừ 1
+
+                if (age < _minAge)
+                {
+                    return new ValidationResult(ErrorMessage ?? $"Tuổi phải từ {_minAge} trở lên");
+                }
+            }
+            return ValidationResult.Success!;
+        }
     }
 }
