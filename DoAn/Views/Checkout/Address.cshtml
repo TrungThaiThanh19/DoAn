@@ -4,6 +4,10 @@
     var carriedLines = (string)ViewBag.Lines ?? Context.Request.Query["lines"].ToString();
 }
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 
 <style>
     :root {
@@ -131,19 +135,25 @@
         </div>
         <div class="col-md-6">
             <label class="form-label">Số nhà, đường</label>
-            <input class="form-control" name="SoNha" />
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Xã/Phường</label>
-            <input class="form-control" name="Xa_Phuong" />
-        </div>
-        <div class="col-md-6">
-            <label class="form-label">Quận/Huyện</label>
-            <input class="form-control" name="Quan_Huyen" />
+            <input class="form-control" name="SoNha" id="SoNha" disabled />
         </div>
         <div class="col-md-6">
             <label class="form-label">Tỉnh/Thành phố</label>
-            <input class="form-control" name="Tinh_ThanhPho" />
+            <select class="form-select" id="TinhThanhPho" name="Tinh_ThanhPho">
+                <option value="">-- Chọn Tỉnh/Thành phố --</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Quận/Huyện</label>
+            <select class="form-select" id="QuanHuyen" name="Quan_Huyen" disabled>
+                <option value="">-- Chọn Quận/Huyện --</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Xã/Phường</label>
+            <select class="form-select" id="XaPhuong" name="Xa_Phuong" disabled>
+                <option value="">-- Chọn Xã/Phường --</option>
+            </select>
         </div>
         <div class="col-12">
             <div class="form-check">
@@ -156,3 +166,84 @@
         </div>
     </form>
 </div>
+
+<script>
+    // Kích hoạt Select2 cho các dropdown
+    $(document).ready(function () {
+        $('#TinhThanhPho, #QuanHuyen, #XaPhuong').select2({
+            placeholder: "-- Chọn --",
+            allowClear: true,
+            width: "100%"
+        });
+    });
+
+    // Load tỉnh/thành
+    fetch("https://provinces.open-api.vn/api/?depth=1")
+        .then(res => res.json())
+        .then(data => {
+            let tinhSelect = document.getElementById("TinhThanhPho");
+            data.forEach(item => {
+                let opt = document.createElement("option");
+                opt.value = item.name;
+                opt.dataset.code = item.code;
+                opt.textContent = item.name;
+                tinhSelect.appendChild(opt);
+            });
+        });
+
+    // Khi chọn Tỉnh => load Quận/Huyện
+    document.getElementById("TinhThanhPho").addEventListener("change", function () {
+        let code = this.selectedOptions[0]?.dataset.code;
+        let qhSelect = document.getElementById("QuanHuyen");
+        qhSelect.innerHTML = "<option value=''>-- Chọn Quận/Huyện --</option>";
+        document.getElementById("XaPhuong").innerHTML = "<option value=''>-- Chọn Xã/Phường --</option>";
+        document.getElementById("QuanHuyen").disabled = true;
+        document.getElementById("XaPhuong").disabled = true;
+        document.getElementById("SoNha").disabled = true;
+
+        if (!code) return;
+
+        fetch(`https://provinces.open-api.vn/api/p/${code}?depth=2`)
+            .then(res => res.json())
+            .then(data => {
+                data.districts.forEach(d => {
+                    let opt = document.createElement("option");
+                    opt.value = d.name;
+                    opt.dataset.code = d.code;
+                    opt.textContent = d.name;
+                    qhSelect.appendChild(opt);
+                });
+                qhSelect.disabled = false;
+                $('#QuanHuyen').val(null).trigger('change'); // reset select2
+            });
+    });
+
+    // Khi chọn Quận/Huyện => load Xã/Phường
+    document.getElementById("QuanHuyen").addEventListener("change", function () {
+        let code = this.selectedOptions[0]?.dataset.code;
+        let xpSelect = document.getElementById("XaPhuong");
+        xpSelect.innerHTML = "<option value=''>-- Chọn Xã/Phường --</option>";
+        document.getElementById("XaPhuong").disabled = true;
+        document.getElementById("SoNha").disabled = true;
+
+        if (!code) return;
+
+        fetch(`https://provinces.open-api.vn/api/d/${code}?depth=2`)
+            .then(res => res.json())
+            .then(data => {
+                data.wards.forEach(w => {
+                    let opt = document.createElement("option");
+                    opt.value = w.name;
+                    opt.textContent = w.name;
+                    xpSelect.appendChild(opt);
+                });
+                xpSelect.disabled = false;
+                $('#XaPhuong').val(null).trigger('change');
+            });
+    });
+
+    // Khi chọn xã/phường => bật ô số nhà
+    document.getElementById("XaPhuong").addEventListener("change", function () {
+        document.getElementById("SoNha").disabled = !this.value;
+    });
+</script>
