@@ -78,6 +78,7 @@ namespace DoAn.Controllers
                 })
                 .ToList();
 
+
             ViewBag.LoaiHoaDon = loaiHoaDon;
             ViewBag.TrangThai = trangThai;
             return View(list);

@@ -180,10 +180,14 @@
 
                         <div class="mb-2">
                             <div class="input-group">
-                                <input asp-for="Password" type="password" class="form-control" placeholder="Mật khẩu" />
+                                <input asp-for="Password" type="password" class="form-control" placeholder="Mật khẩu" id="loginPassword" />
+                                <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('loginPassword', this)">
+                                    👁
+                                </button>
                             </div>
                             <span asp-validation-for="Password" class="text-danger small"></span>
                         </div>
+
 
                         <div class="d-flex justify-content-end mb-3">
                             <a class="link" asp-action="ForgotPassword" asp-controller="TaiKhoan">Quên mật khẩu</a>
@@ -201,6 +205,23 @@
         </div>
     </div>
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+<script>
+    function togglePassword(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector("i");
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.remove("fa-eye");
+            icon.classList.add("fa-eye-slash");
+        } else {
+            input.type = "password";
+            icon.classList.remove("fa-eye-slash");
+            icon.classList.add("fa-eye");
+        }
+    }
+</script>
 
 @section Scripts {
     @{
