@@ -47,7 +47,9 @@ namespace DoAn.Controllers
 					TenSanPham = ct.SanPham.Ten_SanPham,
 					TheTich = ct.TheTich.GiaTri.ToString("0.#") + ct.TheTich.DonVi,
 					ct.GiaBan,
-					ct.SoLuong
+					ct.SoLuong,
+					MaBienThe = ct.MaSanPhamChiTiet,
+					HinhAnhBienThe = ct.HinhAnh
 				})
 				.ToListAsync();
 
