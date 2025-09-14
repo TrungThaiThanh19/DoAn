@@ -1,0 +1,822 @@
+﻿@model DoAn.ViewModel.GioHangVMD
+@using Microsoft.AspNetCore.Antiforgery
+@using Microsoft.AspNetCore.Http
+@inject IAntiforgery Antiforgery
+@{
+    ViewData["Title"] = "Giỏ hàng";
+    var tokens = Antiforgery.GetAndStoreTokens(Context);
+    var username = Context.Session.GetString("Username");
+}
+
+@functions {
+    string ImgSrc(string? path)
+    {
+        const string placeholder = "https://via.placeholder.com/72?text=IMG";
+        if (string.IsNullOrWhiteSpace(path)) return placeholder;
+        if (path.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return path;
+        if (path.StartsWith("~/") || path.StartsWith("/")) return Url.Content(path);
+        if (path.StartsWith("images/", StringComparison.OrdinalIgnoreCase)) return Url.Content("~/" + path);
+        return Url.Content("~/images/" + path);
+    }
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+    /* ====== HEADER ====== */
+    .shp-header {
+        background: linear-gradient(180deg,#ff7043,#ff5a3c 45%,#ff4d2e);
+        color: #fff;
+    }
+
+    .shp-topbar {
+        font-size: .95rem;
+        opacity: .95;
+    }
+
+    .shp-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 800;
+        font-size: 1.5rem;
+    }
+
+        .shp-brand img {
+            height: 36px;
+            width: auto;
+        }
+
+    .shp-search {
+        position: relative;
+        max-width: 720px;
+        width: 100%;
+    }
+
+        .shp-search input {
+            height: 44px;
+            border-radius: 999px;
+            border: 0;
+            padding-left: 18px;
+            padding-right: 54px;
+        }
+
+        .shp-search button {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 999px;
+            height: 36px;
+            width: 44px;
+            border: 0;
+            background: #fff;
+            color: #ff4d2e;
+        }
+
+    .shp-icons a {
+        color: #fff;
+        text-decoration: none;
+        margin-left: 18px;
+        position: relative;
+    }
+
+    .shp-icons .badge {
+        position: absolute;
+        top: -6px;
+        right: -10px;
+        background: #fff;
+        color: #ff4d2e;
+        border-radius: 999px;
+        font-size: .7rem;
+    }
+
+    /* ====== CART ====== */
+    :root {
+        --brand: #ee4d2d;
+        --ink: #1f2937;
+        --muted: #64748b;
+        --line: #e5e7eb;
+        --bg: #f6f7f9;
+    }
+
+    .cart-wrap {
+        max-width: 1100px;
+        margin: 24px auto 110px;
+    }
+
+    .cart-title {
+        font-size: 24px;
+        font-weight: 800;
+        margin-bottom: 16px;
+        color: #111827;
+    }
+
+    .cart-header, .cart-row {
+        display: grid;
+        grid-template-columns: 36px 1fr 140px 160px 140px 100px;
+        column-gap: 12px;
+        align-items: center;
+    }
+
+    .cart-header {
+        padding: 14px 16px;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: #6b7280;
+        font-weight: 700;
+        position: sticky;
+        top: 0;
+        z-index: 3;
+    }
+
+    .shop-block {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        margin-top: 14px;
+    }
+
+    .shop-top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-bottom: 1px dashed var(--line);
+    }
+
+    .shop-name {
+        font-weight: 800;
+        color: #111827;
+    }
+
+    .voucher-link {
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .voucher-row {
+        padding: 10px 16px;
+        border-top: 1px dashed var(--line);
+        color: #334155;
+    }
+
+    .cart-row {
+        padding: 14px 16px;
+    }
+
+        .cart-row + .cart-row {
+            border-top: 1px solid var(--line);
+        }
+
+    .prod {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .thumb {
+        width: 72px;
+        height: 72px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        object-fit: cover;
+    }
+
+    .pname {
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .pmeta {
+        color: #94a3b8;
+        font-size: 12px;
+    }
+
+    .price, .total {
+        font-weight: 800;
+        color: #111827;
+        text-align: right;
+    }
+
+    .qty-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+    }
+
+        .qty-box button {
+            width: 28px;
+            height: 28px;
+            border: 1px solid var(--line);
+            background: #fff;
+        }
+
+        .qty-box input {
+            width: 56px;
+            text-align: center;
+            border: 1px solid var(--line);
+            height: 28px;
+            margin: 0 -1px;
+        }
+
+    .act a {
+        color: #ef4444;
+        text-decoration: none;
+        font-weight: 700;
+    }
+
+    .empty {
+        background: var(--bg);
+        padding: 24px;
+        border-radius: 10px;
+        text-align: center;
+        color: #64748b;
+    }
+
+    .cart-footer {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #fff;
+        border-top: 1px solid var(--line);
+        box-shadow: 0 -6px 18px rgba(0,0,0,.06);
+        z-index: 5;
+    }
+
+    .foot-inner {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .foot-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        color: #334155;
+    }
+
+    .foot-right {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .sum {
+        font-weight: 800;
+        color: #ef4444;
+        font-size: 18px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg,#ff6a3d,var(--brand));
+        color: #fff;
+        border: 0;
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-weight: 800;
+    }
+
+        .btn-primary:disabled {
+            opacity: .6;
+            filter: grayscale(.2);
+        }
+
+    .btn-link {
+        background: transparent;
+        border: 0;
+        color: #ef4444;
+        font-weight: 700;
+    }
+
+    .chk {
+        width: 18px;
+        height: 18px;
+    }
+
+    /* ===== FOOTER ===== */
+    .site-footer {
+        background: #fff;
+        border-top: 1px solid #e5e7eb;
+        margin-top: 36px;
+    }
+
+        .site-footer .ft-wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 28px 12px 36px;
+        }
+
+    .ft-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1.2fr 1.1fr 1.2fr;
+        gap: 28px;
+    }
+
+    .ft-col h6 {
+        font-weight: 800;
+        font-size: 14px;
+        color: #111827;
+        margin-bottom: 14px;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+    }
+
+    .ft-col ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .ft-col li {
+        margin: 8px 0;
+    }
+
+    .ft-col a {
+        color: #334155;
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+        .ft-col a:hover {
+            color: #ef4444;
+        }
+
+    .pay-grid, .ship-grid {
+        display: grid;
+        grid-template-columns: repeat(3,minmax(0,1fr));
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .badge-tile {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 8px 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #fff;
+    }
+
+        .badge-tile i {
+            font-size: 18px;
+        }
+
+    .social a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 10px 0;
+        color: #334155;
+        text-decoration: none;
+    }
+
+    .social i {
+        width: 20px;
+        text-align: center;
+    }
+
+    .app-btns img {
+        height: 36px;
+        width: auto;
+        display: block;
+        margin-bottom: 8px;
+    }
+
+    .qr {
+        width: 120px;
+        height: 120px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: #fff url('https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://yourdomain.example') center/cover no-repeat;
+    }
+
+    /* ===== Responsive - SỬA LẠI MEDIA QUERIES CHUẨN ===== */
+   
+
+    {
+        grid-template-columns: 28px 1fr 110px 130px 120px 80px;
+    }
+
+    }
+    
+
+    {
+        display: none;
+    }
+
+    .cart-row {
+        grid-template-columns: 1fr 100px;
+        grid-template-areas: "prod   prod" "qty    price" "total  act";
+        row-gap: 8px;
+    }
+
+        .cart-row .prod {
+            grid-area: prod;
+        }
+
+        .cart-row .qty-box {
+            grid-area: qty;
+            justify-content: flex-start;
+        }
+
+        .cart-row .price {
+            grid-area: price;
+            text-align: right;
+        }
+
+        .cart-row .total {
+            grid-area: total;
+            text-align: left;
+        }
+
+        .cart-row .act {
+            grid-area: act;
+            text-align: right;
+        }
+
+    }
+    
+
+    {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    }
+    
+
+    {
+        grid-template-columns: 1fr;
+    }
+
+    }</style>
+
+<!-- ===== HEADER ===== -->
+<header class="shp-header">
+    <div class="container py-2 shp-topbar d-flex justify-content-between align-items-center">
+        <div class="d-none d-md-flex gap-3"></div>
+        <div class="d-flex gap-3 align-items-center">
+            @if (!string.IsNullOrEmpty(username))
+            {
+                <span class="text-white">Xin chào, <strong>@username</strong></span>
+                <a class="btn btn-sm btn-light px-3" href="/TaiKhoan/Logout">Đăng xuất</a>
+            }
+            else
+            {
+                <a class="text-white text-decoration-none" href="/TaiKhoan/Register">Đăng Ký</a>
+                <span class="text-white-50">|</span>
+                <a class="text-white text-decoration-none" href="/TaiKhoan/Login">Đăng Nhập</a>
+            }
+        </div>
+    </div>
+    <div class="container py-3">
+        <div class="d-flex align-items-center gap-3">
+            <a href="~/" class="shp-brand">
+                <img src="~/images/logo.png" alt="Logo" />
+                <span>ShopPerfume</span>
+            </a>
+            <form asp-controller="Shop" asp-action="Index" method="get" class="flex-grow-1 shp-search">
+                <input name="search" class="form-control" placeholder="Tìm kiếm sản phẩm..." />
+                <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </form>
+            <div class="shp-icons d-flex align-items-center">
+                <a href="/GioHang/Index">
+                    <i class="fa-solid fa-cart-shopping fa-lg"></i>
+                    <span class="badge" id="cart-badge" style="display:none">0</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- ===== CART ===== -->
+<div class="cart-wrap">
+    <div class="cart-title">Giỏ hàng</div>
+
+    @if (Model == null || !Model.Items.Any())
+    {
+        <div class="empty">
+            Giỏ hàng trống. <a href="@Url.Action("Index","Shop")" class="voucher-link">Tiếp tục mua sắm →</a>
+        </div>
+    }
+    else
+    {
+        <div class="cart-header">
+            <div><input id="chkAllTop" type="checkbox" class="chk" /></div>
+            <div>Sản phẩm</div>
+            <div class="text-end">Đơn giá</div>
+            <div class="text-center">Số lượng</div>
+            <div class="text-end">Số tiền</div>
+            <div class="text-center">Thao tác</div>
+        </div>
+
+        <div class="shop-block" id="cart-list">
+            <div class="shop-top">
+                <input type="checkbox" class="chk" id="chkShop" />
+                <div class="shop-name">Giỏ hàng của bạn</div>
+                <div class="ms-auto"><a href="#" class="voucher-link" onclick="event.preventDefault()">Thêm Mã giảm giá</a></div>
+            </div>
+
+            @foreach (var i in Model.Items)
+            {
+                var lineId = i.ChiTietGioHangId;
+                var soLuong = Math.Max(1, i.SoLuong);
+                <div class="cart-row" data-line="@lineId" data-unit="@i.GiaSauKhuyenMai" data-stock="@i.TonKho">
+                    <div><input type="checkbox" class="chk chk-item" data-line="@lineId" /></div>
+
+                    <div class="prod">
+                        <img src="@ImgSrc(i.HinhAnh)" class="thumb" alt="@i.TenSanPham" />
+                        <div>
+                            <div class="pname">@i.TenSanPham</div>
+                            <div class="pmeta">
+                                @if (!string.IsNullOrWhiteSpace(i.ThuongHieu))
+                                {
+                                    @i.ThuongHieu <text> • </text>
+                                }
+                                @i.TheTich
+                                @if (i.TonKho <= 5)
+                                {
+                                    <span> • <span style="color:#ef4444;font-weight:700">Còn @i.TonKho</span></span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="price text-end">
+                        <span class="fw-bold">@i.GiaSauKhuyenMai.ToString("n0") đ</span>
+                        @if (i.GiamPhanTram > 0)
+                        {
+                            <span class="text-muted text-decoration-line-through ms-1">@i.DonGia.ToString("n0") đ</span>
+                            <span class="badge bg-danger ms-1">-@i.GiamPhanTram%</span>
+                        }
+                    </div>
+
+                    <div class="qty-box">
+                        <button type="button" onclick="stepQty('@lineId', -1)">-</button>
+                        <input type="number" min="1" value="@soLuong" id="qty-@lineId" oninput="qtyChanged('@lineId')" />
+                        <button type="button" onclick="stepQty('@lineId', 1)">+</button>
+                    </div>
+
+                    <div class="total text-end" id="total-@lineId">@i.ThanhTien.ToString("n0") đ</div>
+
+                    <div class="act text-center">
+                        <a href="javascript:void(0)" onclick="removeLine('@lineId'); return false;">Xóa</a>
+                        <form id="rm-@lineId" method="post" asp-action="Remove" class="d-none">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="chiTietGioHangId" value="@lineId" />
+                        </form>
+                    </div>
+                </div>
+            }
+
+            <div class="voucher-row">
+                <i class="fa-solid fa-truck-fast me-1"></i> Miễn phí vận chuyển cho đơn từ <b>500.000đ</b>.
+            </div>
+        </div>
+
+        <div class="cart-footer">
+            <div class="foot-inner">
+                <div class="foot-left">
+                    <input id="chkAllBottom" type="checkbox" class="chk" />
+                    <label for="chkAllBottom" class="mb-0">Chọn tất cả (<span id="sel-count">0</span>)</label>
+                    <button class="btn-link" type="button" onclick="removeSelected()">Xóa</button>
+                </div>
+                <div class="foot-right">
+                    <div>Tổng cộng (<span id="sel-count-2">0</span> sản phẩm): <span class="sum" id="sel-sum">0 đ</span></div>
+                    <button class="btn-primary" id="btnCheckout" disabled>Mua hàng</button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- ====== FOOTER ====== -->
+<footer class="site-footer">
+    <div class="ft-wrap">
+        <div class="ft-grid">
+            <div class="ft-col">
+                <h6>DỊCH VỤ KHÁCH HÀNG</h6>
+                <ul>
+                    <li><a href="#">Trung Tâm Trợ Giúp</a></li>
+                    <li><a href="#">Hướng Dẫn Mua Hàng/Đặt Hàng</a></li>
+                    <li><a href="#">Hướng Dẫn Bán Hàng</a></li>
+                    <li><a href="#">Ví ShopPay</a></li>
+                    <li><a href="#">Đơn Hàng</a></li>
+                    <li><a href="#">Trả Hàng/Hoàn Tiền</a></li>
+                    <li><a href="#">Liên Hệ</a></li>
+                    <li><a href="#">Chính Sách Bảo Hành</a></li>
+                </ul>
+            </div>
+
+            <div class="ft-col">
+                <h6>SHOPPE VIỆT NAM</h6>
+                <ul>
+                    <li><a href="#">Về Shoppe</a></li>
+                    <li><a href="#">Tuyển Dụng</a></li>
+                    <li><a href="#">Điều Khoản</a></li>
+                    <li><a href="#">Chính Sách Bảo Mật</a></li>
+                    <li><a href="#">Kênh Người Bán</a></li>
+                    <li><a href="#">Flash Sale</a></li>
+                    <li><a href="#">Liên Hệ Truyền Thông</a></li>
+                </ul>
+            </div>
+
+            <div class="ft-col">
+                <h6>THANH TOÁN</h6>
+                <div class="pay-grid">
+                    <div class="badge-tile"><i class="fa-brands fa-cc-visa"></i><span>VISA</span></div>
+                    <div class="badge-tile"><i class="fa-brands fa-cc-mastercard"></i><span>Mastercard</span></div>
+                    <div class="badge-tile"><i class="fa-brands fa-cc-amex"></i><span>AMEX</span></div>
+                    <div class="badge-tile"><i class="fa-solid fa-money-bill-wave"></i><span>COD</span></div>
+                    <div class="badge-tile"><i class="fa-solid fa-receipt"></i><span>Trả góp</span></div>
+                    <div class="badge-tile"><i class="fa-solid fa-wallet"></i><span>ShopPay</span></div>
+                </div>
+
+                <h6 class="mt-3">ĐƠN VỊ VẬN CHUYỂN</h6>
+                <div class="ship-grid">
+                    <div class="badge-tile"><i class="fa-solid fa-truck-fast"></i><span>J&T</span></div>
+                    <div class="badge-tile"><i class="fa-solid fa-truck"></i><span>VNPost</span></div>
+                    <div class="badge-tile"><i class="fa-solid fa-truck-front"></i><span>GHN</span></div>
+                    <div class="badge-tile"><i class="fa-solid fa-truck-ramp-box"></i><span>GHTK</span></div>
+                    <div class="badge-tile"><i class="fa-solid fa-motorcycle"></i><span>Grab</span></div>
+                    <div class="badge-tile"><i class="fa-solid fa-plane"></i><span>Ahamove</span></div>
+                </div>
+            </div>
+
+            <div class="ft-col">
+                <h6>THEO DÕI CHÚNG TÔI</h6>
+                <div class="social">
+                    <a href="#"><i class="fa-brands fa-facebook-f"></i>Facebook</a>
+                    <a href="#"><i class="fa-brands fa-instagram"></i>Instagram</a>
+                    <a href="#"><i class="fa-brands fa-linkedin-in"></i>LinkedIn</a>
+                    <a href="#"><i class="fa-brands fa-youtube"></i>YouTube</a>
+                </div>
+
+                <h6 class="mt-3">TẢI ỨNG DỤNG</h6>
+                <div class="d-flex align-items-start gap-3">
+                    <div class="qr"></div>
+                    <div class="app-btns">
+                        <a href="#"><img alt="App Store" src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"></a>
+                        <a href="#"><img alt="Google Play" src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"></a>
+                        <a href="#"><img alt="AppGallery" src="https://upload.wikimedia.org/wikipedia/commons/4/4f/Huawei_AppGallery_badge_EN.svg"></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- ===== Toast: đơn bị hủy (từ phiên bản 2) ===== -->
+<div id="cancel-toast" style="display:none;position:fixed;right:16px;bottom:88px;z-index:1060;max-width:420px;background:#fff;border:1px solid #fee2e2;box-shadow:0 10px 30px rgba(0,0,0,.15);border-left:4px solid #ef4444;border-radius:10px;padding:12px 14px;">
+    <div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="color:#ef4444"><i class="fa-solid fa-circle-xmark"></i></div>
+        <div style="flex:1">
+            <div style="font-weight:700;color:#991b1b;margin-bottom:4px">Đơn hàng đã bị hủy</div>
+            <div id="cancel-toast-msg" style="color:#334155;font-size:14px"></div>
+            <div style="margin-top:8px">
+                <a id="cancel-toast-view" class="btn btn-sm btn-outline-danger" href="#">Xem đơn</a>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('cancel-toast').style.display='none'">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // ===== Badge giỏ hàng =====
+        function renderCartCount(n){
+          const badge = document.getElementById('cart-badge');
+          if(!badge) return;
+          const c = Number(n) || 0;
+          badge.textContent = c;
+          badge.style.display = c > 0 ? 'inline-block' : 'none';
+        }
+        async function refreshCartCount(){
+          try{
+            const r = await fetch('/Cart/Count', { credentials:'same-origin' });
+            if(!r.ok) return; const d = await r.json();
+            renderCartCount(d.count);
+          }catch(_){ }
+        }
+        document.addEventListener('DOMContentLoaded', refreshCartCount);
+
+        // ===== Logic chọn / tính lại =====
+        const csrfHeader='@tokens.HeaderName', csrfToken='@tokens.RequestToken';
+        const fmt = n => (n||0).toLocaleString('vi-VN') + ' đ';
+        const chkAllTop = document.getElementById('chkAllTop');
+        const chkAllBottom = document.getElementById('chkAllBottom');
+        const chkShop = document.getElementById('chkShop');
+        function itemChecks(){ return Array.from(document.querySelectorAll('.chk-item')); }
+        function applyAll(checked){ itemChecks().forEach(c=>c.checked=checked); recalc(); }
+        chkAllTop?.addEventListener('change', e=>applyAll(e.target.checked));
+        chkAllBottom?.addEventListener('change', e=>applyAll(e.target.checked));
+        chkShop?.addEventListener('change', e=>applyAll(e.target.checked));
+        itemChecks().forEach(c=>c.addEventListener('change', recalc));
+
+        function clampByStock(lineId, value){
+          const row = document.querySelector(`.cart-row[data-line="${lineId}"]`);
+          const stock = parseInt(row?.dataset.stock || '1', 10);
+          let v = parseInt(value || '1', 10);
+          if(isNaN(v)) v = 1;
+          v = Math.max(1, Math.min(v, Math.max(1, stock)));
+          return v;
+        }
+
+        function stepQty(lineId, step){
+          const ip = document.getElementById('qty-'+lineId);
+          let v = clampByStock(lineId, (parseInt(ip.value||'1',10) + step));
+          ip.value = v; sendUpdate(lineId, v);
+        }
+
+        function qtyChanged(lineId){
+          const ip = document.getElementById('qty-'+lineId);
+          let v = clampByStock(lineId, ip.value);
+          ip.value = v; clearTimeout(ip._t); ip._t = setTimeout(()=>sendUpdate(lineId, v), 250);
+        }
+
+        function sendUpdate(lineId, qty){
+          fetch('@Url.Action("UpdateAjax", "GioHang")', {
+            method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8', [csrfHeader]:csrfToken },
+            body:new URLSearchParams({ chiTietGioHangId: lineId, soLuong: qty })
+          })
+          .then(r=>r.ok?r.json():Promise.reject())
+          .then(d=>{
+            if(!d || !d.ok) return;
+            document.getElementById('total-'+lineId).textContent = fmt(d.lineTotal);
+            if(typeof d.qty === 'number'){ document.getElementById('qty-'+lineId).value = d.qty; }
+            recalc(true, d.subtotal); refreshCartCount();
+          })
+          .catch(()=>{});
+        }
+
+        function removeLine(lineId){ document.getElementById('rm-'+lineId)?.submit(); }
+        function removeSelected(){
+          const ids = itemChecks().filter(c=>c.checked).map(c=>c.dataset.line);
+          if(!ids.length) return; ids.forEach(id=>document.getElementById('rm-'+id)?.submit());
+        }
+
+        function recalc(){
+          const items = itemChecks();
+          const sel = items.filter(c=>c.checked);
+          document.getElementById('sel-count').textContent = sel.length;
+          document.getElementById('sel-count-2').textContent = sel.length;
+          let sum = 0;
+          sel.forEach(c=>{
+            const row = document.querySelector(`.cart-row[data-line="${c.dataset.line}"]`);
+            const unit = parseFloat(row?.dataset.unit || '0');
+            const qty  = clampByStock(c.dataset.line, (document.getElementById('qty-'+c.dataset.line)?.value));
+            sum += unit * qty;
+          });
+          document.getElementById('sel-sum').textContent = fmt(sum);
+          document.getElementById('btnCheckout').disabled = sel.length === 0;
+          const all = sel.length===items.length && items.length>0;
+          chkAllTop && (chkAllTop.checked = all);
+          chkAllBottom && (chkAllBottom.checked = all);
+          chkShop && (chkShop.checked = all);
+        }
+        recalc();
+
+        // ==== MUA HÀNG: mang theo các dòng đã tick sang trang Địa chỉ ====
+        const btnCheckout = document.getElementById('btnCheckout');
+        btnCheckout?.addEventListener('click', () => {
+          const ids = itemChecks().filter(c => c.checked).map(c => c.dataset.line);
+          if (ids.length === 0) return;
+          const url = '@Url.Action("Address", "Checkout")' + '?lines=' + encodeURIComponent(ids.join(','));
+          window.location.href = url;
+        });
+    </script>
+
+    <!-- ==== Hiện toast nếu có đơn bị hủy gần đây ==== -->
+    <script>
+        (function(){
+          fetch('@Url.Action("RecentCanceled", "DonHang")', { credentials:'same-origin' })
+            .then(r=>r.ok ? r.json() : null)
+            .then(d=>{
+              if(!d || !d.ok) return;
+              var key = 'canceled-notified-' + (d.id || '');
+              if(localStorage.getItem(key)) return;
+              var box=document.getElementById('cancel-toast');
+              var msg=document.getElementById('cancel-toast-msg');
+              var link=document.getElementById('cancel-toast-view');
+              if(!box||!msg||!link) return;
+              msg.textContent = 'Đơn ' + (d.ma||'') + ' đã bị hủy' + (d.reason ? '. Lý do: ' + d.reason : '') + (d.at ? ' (' + d.at + ')' : '');
+              if(d.id){ link.href='@Url.Action("Track", "DonHang")' + '?id=' + encodeURIComponent(d.id); } else { link.style.display='none'; }
+              box.style.display='block'; localStorage.setItem(key,'1');
+            })
+            .catch(()=>{});
+        })();
+    </script>
+}

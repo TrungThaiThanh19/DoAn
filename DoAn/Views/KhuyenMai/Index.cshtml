@@ -1,0 +1,75 @@
+﻿@model IEnumerable<DoAn.ViewModel.KhuyenMaiIndexItemVM>
+@{
+    ViewData["Title"] = "Danh sách khuyến mãi";
+    string Currency(decimal v) => string.Format("{0:N0} đ", v);
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2 class="mb-3">Danh sách khuyến mãi</h2>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<form method="get" class="mb-3 d-flex gap-2">
+    <input name="q" class="form-control" placeholder="Tìm mã hoặc tên..." value="@ViewBag.Query" />
+    <button class="btn btn-primary">Tìm</button>
+    <a asp-action="Create" class="btn btn-success">+ Tạo mới</a>
+</form>
+
+<table class="table table-bordered table-striped align-middle">
+    <thead class="table-light">
+        <tr>
+            <th>Mã</th>
+            <th>Tên</th>
+            <th>Kiểu</th>
+            <th>Giá trị</th>
+            <th>Cap</th>
+            <th>Bắt đầu</th>
+            <th>Hết hạn</th>
+            <th>SPCT</th>
+            <th>Trạng thái</th>
+            <th style="width:200px"></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var i in Model)
+        {
+            <tr>
+                <td>@i.Ma_KhuyenMai</td>
+                <td>@i.Ten_KhuyenMai</td>
+                <td>@i.KieuGiamGia</td>
+                <td>@i.GiaTriGiam</td>
+                <td>@(i.GiaTriToiDa == 0 ? "-" : Currency(i.GiaTriToiDa))</td>
+                <td>@i.NgayBatDau:g</td>
+                <td>@i.NgayHetHan:g</td>
+                <td>@i.SoSPCT</td>
+                <td>
+                    @if (i.DangHoatDong)
+                    {
+                        <span class="badge bg-success">Đang chạy</span>
+                    }
+                    else if (i.TrangThai == 1)
+                    {
+                        <span class="badge bg-warning text-dark">Hết hạn / Chưa tới</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Tắt</span>
+                    }
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@i.ID_KhuyenMai" class="btn btn-sm btn-primary">Sửa</a>
+                    <form asp-action="Toggle" asp-route-id="@i.ID_KhuyenMai" method="post" class="d-inline">
+                        <button class="btn btn-sm btn-outline-dark">@((i.TrangThai == 1) ? "Tắt" : "Bật")</button>
+                    </form>
+                    <form asp-action="Delete" asp-route-id="@i.ID_KhuyenMai" method="post" class="d-inline"
+                          onsubmit="return confirm('Xóa khuyến mãi này?')">
+                        <button class="btn btn-sm btn-outline-danger">Xóa</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

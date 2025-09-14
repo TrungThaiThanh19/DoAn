@@ -1,0 +1,82 @@
+﻿@model IEnumerable<DoAn.Models.NhanVien>
+
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Index";
+}
+
+<h1>Danh sách nhân viên</h1>
+
+<form asp-action="Index" method="get" class="row g-2 mb-3">
+    <div class="col-md-3">
+        <input type="text" name="tenSearch"
+               value="@Context.Request.Query["tenSearch"]"
+               class="form-control"
+               placeholder="Tìm theo tên..."
+               oninput="if(this.value === '') this.form.submit();" />
+    </div>
+    <div class="col-md-3">
+        <input type="text" name="sdtSearch"
+               value="@Context.Request.Query["sdtSearch"]"
+               class="form-control"
+               placeholder="Tìm theo số điện thoại..."
+               oninput="if(this.value === '') this.form.submit();" />
+    </div>
+    <div class="col-md-3">
+        <input type="text" name="manvSearch"
+               value="@Context.Request.Query["manvSearch"]"
+               class="form-control"
+               placeholder="Tìm theo mã nhân viên..."
+               oninput="if(this.value === '') this.form.submit();" />
+    </div>
+    <div class="col-md-2">
+        @Html.DropDownList("trangThaiFilter",
+                 (SelectList)ViewBag.TrangThaiList,
+                 "-- Tất cả trạng thái --",
+                 new { @class = "form-select", onchange = "this.form.submit();" })
+    </div>
+    <div class="col-md-1">
+        <button type="submit" class="btn btn-primary w-100">Tìm kiếm</button>
+    </div>
+</form>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Thêm nhân viên</a>
+</p>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Mã nhân viên</th>
+            <th>Tên nhân viên</th>
+            <th>Ngày sinh</th>
+            <th>Email</th>
+            <th>Địa chỉ liên hệ</th>
+            <th>Giới tính</th>
+            <th>Số điện thoại</th>
+            <th>Ngày tham gia</th>
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@Html.DisplayFor(modelItem => item.Ma_NhanVien)</td>
+                <td>@Html.DisplayFor(modelItem => item.Ten_NhanVien)</td>
+                <td>@Html.DisplayFor(modelItem => item.NgaySinh)</td>
+                <td>@Html.DisplayFor(modelItem => item.Email)</td>
+                <td>@Html.DisplayFor(modelItem => item.DiaChiLienHe)</td>
+                <td>@Html.DisplayFor(modelItem => item.GioiTinh)</td>
+                <td>@Html.DisplayFor(modelItem => item.SoDienThoai)</td>
+                <td>@Html.DisplayFor(modelItem => item.NgayThamGia)</td>
+                <td>@(item.TrangThai == 1 ? "Hoạt động" : "Không hoạt động")</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.ID_NhanVien">Sửa</a> |
+                    <a asp-action="Details" asp-route-id="@item.ID_NhanVien">Chi tiết</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

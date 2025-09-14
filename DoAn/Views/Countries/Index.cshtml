@@ -1,0 +1,54 @@
+﻿@model IEnumerable<DoAn.Models.QuocGia>
+
+@{
+    ViewData["Title"] = "Danh sách quốc gia";
+    string keyword = ViewBag.Keyword as string ?? "";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2 class="mb-4 text-primary">🌍 Danh sách quốc gia</h2>
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <form method="get" asp-action="Index" class="input-group">
+            <input type="text" name="keyword" class="form-control" placeholder="🔍 Tìm theo tên quốc gia..." value="@keyword" />
+            <button type="submit" class="btn btn-outline-primary">Tìm</button>
+        </form>
+    </div>
+    <div class="col-md-6 text-end">
+        <a asp-action="Create" class="btn btn-success rounded-pill px-4">+ Thêm quốc gia</a>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle text-center">
+        <thead class="table-dark">
+            <tr>
+                <th>Mã quốc gia</th>
+                <th>Tên quốc gia</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model != null && Model.Any())
+            {
+                foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.ID_QuocGia</td>
+                        <td>@item.Ten_QuocGia</td>
+                        <td>
+                            <a asp-action="Details" asp-route-idQuocGia="@item.ID_QuocGia" class="btn btn-sm btn-outline-info rounded-pill">Xem thêm</a>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="3" class="text-muted">Không tìm thấy quốc gia nào.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
