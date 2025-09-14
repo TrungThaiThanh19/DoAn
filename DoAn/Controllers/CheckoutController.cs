@@ -12,7 +12,6 @@ namespace DoAn.Controllers
         private readonly DoAnDbContext _db;
         private readonly IGioHangService _cart;
 
-        // Trạng thái biến thể
         private const int TrangThaiConBan = 1;
         private const int TrangThaiHetHang = 0;
 
@@ -49,8 +48,18 @@ namespace DoAn.Controllers
             return kh.ID_KhachHang;
         }
 
+        // Hàm tính phí ship
+        private int TinhPhiShip(decimal subtotal, string tinhThanh)
+        {
+            if (subtotal >= 500000) return 0; // free ship nếu >= 500k
+            if (!string.IsNullOrEmpty(tinhThanh) && tinhThanh.Contains("Hà Nội"))
+                return 10000;
+            if (!string.IsNullOrEmpty(tinhThanh) && tinhThanh.Contains("Hồ Chí Minh"))
+                return 15000;
+            return 20000; // mặc định
+        }
+
         // ===== B1: CHỌN ĐỊA CHỈ =====
-        // NHẬN THÊM lines để mang theo qua các bước, KHÔNG đổi logic khác
         public async Task<IActionResult> Address(string? lines)
         {
             var khId = await GetKhachHangIdAsync();
@@ -78,7 +87,7 @@ namespace DoAn.Controllers
                                     ?? list.FirstOrDefault()?.ID_DiaChiKhachHang
             };
 
-            ViewBag.Lines = lines; // mang theo
+            ViewBag.Lines = lines;
             return View(vm);
         }
 
@@ -113,9 +122,7 @@ namespace DoAn.Controllers
             return RedirectToAction(nameof(Review), new { addressId = model.ID_DiaChiKhachHang, lines });
         }
 
-
         // ===== B2: REVIEW =====
-        // THÊM tham số lines để hiển thị đúng các dòng đã tick (nếu có)
         public async Task<IActionResult> Review(Guid addressId, string? lines)
         {
             var khId = await GetKhachHangIdAsync();
@@ -126,7 +133,6 @@ namespace DoAn.Controllers
 
             var cart = await _cart.GetCartAsync(khId);
 
-            // --- LỌC items theo lines (nếu có). Không có lines => giữ nguyên như cũ ---
             HashSet<Guid>? selectedIds = null;
             if (!string.IsNullOrWhiteSpace(lines))
             {
@@ -146,6 +152,9 @@ namespace DoAn.Controllers
                 return RedirectToAction("Index", "GioHang");
             }
 
+            var subtotal = items.Sum(x => x.ThanhTien);
+            var shipping = TinhPhiShip(subtotal, addr.Tinh_ThanhPho);
+
             var vm = new CheckoutReviewVM
             {
                 AddressId = addressId,
@@ -153,14 +162,14 @@ namespace DoAn.Controllers
                 ReceiverName = string.IsNullOrWhiteSpace(addr.HoTen) ? kh.Ten_KhachHang : addr.HoTen,
                 Phone = string.IsNullOrWhiteSpace(addr.SoDienThoai) ? kh.SoDienThoai : addr.SoDienThoai,
                 Items = items,
-                ShippingFee = 1000,
+                ShippingFee = shipping,
                 PaymentMethod = "COD"
             };
-            ViewBag.Lines = lines; // mang theo tiếp
+            ViewBag.Lines = lines;
             return View(vm);
         }
 
-        // ===== B3: ĐẶT HÀNG — KHÔNG TRỪ KHO  =====
+        // ===== B3: ĐẶT HÀNG =====
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> PlaceOrder(PlaceOrderPost dto, string? lines)
@@ -178,7 +187,6 @@ namespace DoAn.Controllers
                 return RedirectToAction(nameof(Review), new { addressId = dto.AddressId, lines });
             }
 
-            // --- LỌC items theo lines (nếu có). Không có lines => giữ nguyên như cũ ---
             HashSet<Guid>? selectedIds = null;
             if (!string.IsNullOrWhiteSpace(lines))
             {
@@ -198,8 +206,9 @@ namespace DoAn.Controllers
                 return RedirectToAction(nameof(Review), new { addressId = dto.AddressId, lines });
             }
 
-            // 👉 Chỉ tạo hóa đơn + chi tiết, KHÔNG trừ kho
             var subtotal = items.Sum(x => x.ThanhTien);
+            var shipping = TinhPhiShip(subtotal, addr.Tinh_ThanhPho);
+
             var hd = new HoaDon
             {
                 ID_HoaDon = Guid.NewGuid(),
@@ -211,10 +220,10 @@ namespace DoAn.Controllers
                 HinhThucThanhToan = dto.PaymentMethod,
                 PhuongThucNhanHang = "Giao hàng",
                 TongTienTruocGiam = subtotal,
-                TongTienSauGiam = subtotal + dto.ShippingFee,
-                PhuThu = dto.ShippingFee,
+                TongTienSauGiam = subtotal + shipping,
+                PhuThu = shipping,
                 LoaiHoaDon = "Online",
-                TrangThai = 0, // ⏳ Chờ xác nhận
+                TrangThai = 0,
                 NgayTao = DateTime.Now
             };
             _db.HoaDons.Add(hd);
@@ -233,7 +242,6 @@ namespace DoAn.Controllers
 
             await _db.SaveChangesAsync();
 
-            // 4) Dọn giỏ: nếu có lines -> chỉ xóa các dòng đã mua; nếu không -> xóa toàn bộ như cũ
             if (selectedIds != null && selectedIds.Count > 0)
             {
                 foreach (var lineId in selectedIds)

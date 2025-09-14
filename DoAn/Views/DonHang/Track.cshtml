@@ -17,6 +17,9 @@
         .FirstOrDefault();
 
     string Currency(decimal v) => string.Format("{0:N0} đ", v);
+
+    var steps = new[] { "Chờ xác nhận", "Đã xác nhận", "Đang vận chuyển", "Đã thanh toán", "Thành công" };
+    var active = Math.Clamp(Model.TrangThai, 0, steps.Length - 1);
 }
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
@@ -46,6 +49,50 @@
         background: #f1f5f9;
         color: #0f172a;
         font-weight: 800
+    }
+
+    /* Stepper */
+    .stepper {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 18px
+    }
+    .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+        color: #6b7280
+    }
+    .step:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        top: 22px;
+        left: 50%;
+        right: -50%;
+        height: 4px;
+        background: #e5e7eb;
+        z-index: 0
+    }
+    .dot {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        background: #d1d5db;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 8px;
+        font-weight: 800;
+        position: relative;
+        z-index: 1
+    }
+    .step.done .dot { background: #22c55e }
+    .step.active .dot { background: #0d6efd }
+    .step.done, .step.active {
+        color: #111827;
+        font-weight: 700
     }
 </style>
 
@@ -110,7 +157,18 @@
 @* Khi đã hủy hoặc đã hoàn xong -> chỉ hiển thị banner trên, KHÔNG stepper *@
 @if (!(isCanceled || isReturnDone))
 {
-    <!-- Nếu muốn giữ stepper cũ, bạn có thể chèn lại ở đây -->
+    <div class="order-head mb-4">
+        <div class="stepper">
+            @for (int i = 0; i < steps.Length; i++)
+            {
+                var cls = i < active ? "step done" : i == active ? "step active" : "step";
+                <div class="@cls">
+                    <div class="dot">@((i + 1))</div>
+                    <div>@steps[i]</div>
+                </div>
+            }
+        </div>
+    </div>
 }
 
 <!-- Thông tin & chi tiết -->

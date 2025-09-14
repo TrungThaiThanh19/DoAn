@@ -1,0 +1,236 @@
+@model DoAn.Models.QuanLyTraHang
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Chi tiết phiếu hoàn hàng";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-primary mb-0">Chi tiết phiếu hoàn hàng</h2>
+    <div>
+        <a href="@Url.Action("Index", "LichSuTraHang")" class="btn btn-secondary me-2">
+            <i class="fas fa-arrow-left"></i> Quay lại danh sách
+        </a>
+        <a href="@Url.Action("Details", "HoaDon", new { id = Model.ID_HoaDon })" class="btn btn-info">
+            <i class="fas fa-file-invoice"></i> Xem hóa đơn
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Thông tin phiếu hoàn hàng -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Thông tin phiếu hoàn hàng</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Mã phiếu:</strong> @Model.ID_TraHang.ToString()[..8]...</p>
+                        <p><strong>Lý do hoàn hàng:</strong> @Model.LyDo</p>
+                        <p><strong>Ghi chú:</strong> @(string.IsNullOrEmpty(Model.GhiChu) ? "Không có" : Model.GhiChu)</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Nhân viên xử lý:</strong> @Model.NhanVienXuLy</p>
+                        <p><strong>Ngày tạo:</strong> @Model.NgayTao.ToString("dd/MM/yyyy HH:mm")</p>
+                        <p><strong>Trạng thái:</strong> 
+                            @{
+                                var statusText = Model.TrangThai switch
+                                {
+                                    0 => "Yêu cầu hoàn hàng",
+                                    1 => "Đã duyệt",
+                                    2 => "Đã nhận hàng",
+                                    3 => "Đã hoàn tiền",
+                                    9 => "Từ chối",
+                                    _ => "Không rõ"
+                                };
+                                var statusClass = Model.TrangThai switch
+                                {
+                                    0 => "bg-warning",
+                                    1 => "bg-info",
+                                    2 => "bg-primary",
+                                    3 => "bg-success",
+                                    9 => "bg-danger",
+                                    _ => "bg-secondary"
+                                };
+                            }
+                            <span class="badge @statusClass">@statusText</span>
+                        </p>
+                    </div>
+                </div>
+                <hr>
+                <div class="text-center">
+                    <h4 class="text-success">Tổng tiền hoàn: @Model.TongTienHoan.ToString("N0") VND</h4>
+                    @if (Model.HoaDon != null)
+                    {
+                        var tongHang = Model.HoaDon.HoaDonChiTiets?.Sum(x => x.SoLuong * x.DonGia) ?? 0;
+                        var ship = Model.HoaDon.PhuThu ?? 0;
+                        var tongTienTruocGiam = tongHang + ship;
+                        var tongTienSauGiam = Model.HoaDon.TongTienSauGiam != 0 ? Model.HoaDon.TongTienSauGiam : tongTienTruocGiam;
+                        var chenhLech = tongTienSauGiam - Model.TongTienHoan;
+                        
+                        
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Chi tiết sản phẩm hoàn -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Chi tiết sản phẩm hoàn</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.ChiTietTraHangs?.Any() == true)
+                {
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>STT</th>
+                                    <th>Sản phẩm</th>
+                                    <th>Thể tích</th>
+                                    <th>Số lượng</th>
+                                    <th>Giá gốc</th>
+                                    <th>Tiền hoàn</th>
+                                    <th>Chênh lệch</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    int stt = 1;
+                                }
+                                @{
+                                    // Tính toán chung cho tất cả items
+                                    var tongHangTotal = Model.HoaDon?.HoaDonChiTiets?.Sum(x => x.SoLuong * x.DonGia) ?? 0;
+                                    var shipTotal = Model.HoaDon?.PhuThu ?? 0;
+                                }
+                                @foreach (var item in Model.ChiTietTraHangs)
+                                {
+                                    // Tìm giá gốc từ hóa đơn
+                                    var hoaDonChiTiet = Model.HoaDon?.HoaDonChiTiets?.FirstOrDefault(x => x.ID_SanPhamChiTiet == item.ID_ChiTietSanPham);
+                                    var giaGoc = hoaDonChiTiet?.DonGia ?? 0;
+                                    
+                                    // Giá gốc chỉ là giá sản phẩm (không bao gồm phí ship)
+                                    var tongGiaGocItem = giaGoc * item.SoLuong;
+                                    var chenhLech = tongGiaGocItem - item.TienHoan;
+                                    
+                                    <tr>
+                                        <td>@stt</td>
+                                        <td>@(item.SanPhamChiTiet?.SanPham?.Ten_SanPham ?? "Không rõ sản phẩm")</td>
+                                        <td>
+                                            @if (item.SanPhamChiTiet?.TheTich != null)
+                                            {
+                                                @($"{item.SanPhamChiTiet.TheTich.GiaTri}{item.SanPhamChiTiet.TheTich.DonVi}")
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Không rõ</span>
+                                            }
+                                        </td>
+                                        <td>@item.SoLuong</td>
+                                        <td class="text-end">@tongGiaGocItem.ToString("N0") VND</td>
+                                        <td class="text-end text-success">@item.TienHoan.ToString("N0") VND</td>
+                                        <td class="text-end @(chenhLech > 0 ? "text-warning" : "text-muted")">
+                                            @if (chenhLech > 0)
+                                            {
+                                                <span>-@chenhLech.ToString("N0") VND</span>
+                                            }
+                                            else
+                                            {
+                                                <span>@chenhLech.ToString("N0") VND</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                    stt++;
+                                }
+                            </tbody>
+                            <tfoot>
+                                @{
+                                    var tongGiaGocSanPham = tongHangTotal; // Chỉ tính giá sản phẩm
+                                    var tongChenhLech = tongGiaGocSanPham - Model.TongTienHoan;
+                                }
+                                <tr class="table-success">
+                                    <th colspan="4" class="text-end">Tổng cộng:</th>
+                                    <th class="text-end">@tongGiaGocSanPham.ToString("N0") VND</th>
+                                    <th class="text-end">@Model.TongTienHoan.ToString("N0") VND</th>
+                                    <th class="text-end @(tongChenhLech > 0 ? "text-warning" : "text-muted")">
+                                        @if (tongChenhLech > 0)
+                                        {
+                                            <span>-@tongChenhLech.ToString("N0") VND</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@tongChenhLech.ToString("N0") VND</span>
+                                        }
+                                    </th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> Không có chi tiết sản phẩm hoàn.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Thông tin hóa đơn gốc -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Thông tin hóa đơn gốc</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.HoaDon != null)
+                {
+                    <p><strong>Mã hóa đơn:</strong> @Model.HoaDon.Ma_HoaDon</p>
+                    <p><strong>Khách hàng:</strong> @(Model.HoaDon.HoTen ?? Model.HoaDon.KhachHang?.Ten_KhachHang ?? "Khách lẻ")</p>
+                    <p><strong>Ngày tạo:</strong> @Model.HoaDon.NgayTao.ToString("dd/MM/yyyy HH:mm")</p>
+                    <p><strong>Loại hóa đơn:</strong> 
+                        <span class="badge bg-info">@Model.HoaDon.LoaiHoaDon</span>
+                    </p>
+                    <p><strong>Trạng thái:</strong> 
+                        @{
+                            var hoaDonStatusText = Model.HoaDon.TrangThai switch
+                            {
+                                0 => "Chờ xác nhận",
+                                1 => "Đã xác nhận",
+                                2 => "Đang vận chuyển",
+                                3 => "Đã thanh toán",
+                                4 => "Thành công",
+                                5 => "Đã hủy",
+                                7 => "Hoàn hàng thành công",
+                                8 => "Đang xử lý hoàn hàng",
+                                _ => "Không rõ"
+                            };
+                            var hoaDonStatusClass = Model.HoaDon.TrangThai switch
+                            {
+                                0 => "bg-warning",
+                                1 => "bg-info",
+                                2 => "bg-primary",
+                                3 => "bg-success",
+                                4 => "bg-success",
+                                5 => "bg-danger",
+                                7 => "bg-success",
+                                8 => "bg-warning",
+                                _ => "bg-secondary"
+                            };
+                        }
+                        <span class="badge @hoaDonStatusClass">@hoaDonStatusText</span>
+                    </p>
+                }
+                else
+                {
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> Không tìm thấy thông tin hóa đơn.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,9 +1,10 @@
-﻿﻿@{
+﻿﻿﻿@{
     ViewData["Title"] = "➕ Thêm giới tính mới";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
 }
 
-<h2 class="mb-4 text-primary">➕ Thêm giới tính mới</h2>
+<h2 class="mb-4 text-primary">Thêm giới tính mới</h2>
 
 <form method="post">
     @Html.ValidationSummary(true, "", new { @class = "text-danger" })
@@ -11,7 +12,13 @@
     <div class="card shadow rounded-4 mb-4">
         <div class="card-header bg-primary text-white">Thông tin giới tính</div>
         <div class="card-body row g-3">
-            <div class="col-md-12">
+            <div class="col-md-6">
+                <label class="form-label">Mã giới tính</label>
+                <input type="text" name="maGioiTinh" class="form-control" value="@ViewBag.MaGioiTinh" />
+                <span class="text-danger">@Html.ValidationMessage("MaGioiTinh")</span>
+            </div>
+
+            <div class="col-md-6">
                 <label class="form-label">Tên giới tính</label>
                 <input type="text" name="tenGioiTinh" class="form-control" value="@ViewBag.TenGioiTinh" />
                 <span class="text-danger">@Html.ValidationMessage("TenGioiTinh")</span>

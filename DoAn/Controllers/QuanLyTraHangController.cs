@@ -18,7 +18,7 @@ namespace DoAn.Controllers
         // Chuẩn hóa trạng thái phiếu
         private static class ReturnStatus
         {
-            public const int YeuCau = 0;
+            public const int YeuCau = 6;
             public const int DaDuyet = 1;
             public const int DaNhanHang = 2;
             public const int DaHoanTien = 3;
@@ -57,12 +57,23 @@ namespace DoAn.Controllers
                 return RedirectToAction("Index", "HoaDon");
             }
 
-            // 1) BẮT BUỘC: KH đã gửi yêu cầu hoàn (đã có log trạng thái = 6)
+            // ❌ Chặn tạo phiếu mới nếu đã có phiếu đang tồn tại
+            var existed = await _context.QuanLyTraHangs
+                .AnyAsync(x => x.ID_HoaDon == hoaDonId
+                            && x.TrangThai != ReturnStatus.TuChoi
+                            && x.TrangThai != ReturnStatus.DaHoanTien);
+            if (existed)
+            {
+                TempData["Error"] = "Hóa đơn này đã có phiếu hoàn, không thể tạo thêm.";
+                return RedirectToAction("Details", "HoaDon", new { id = hoaDonId });
+            }
+
+            // 1) Kiểm tra khách đã gửi yêu cầu hoàn
             var hasRequest = await _context.TrangThaiDonHangs.AsNoTracking()
-                .AnyAsync(t => t.ID_HoaDon == hoaDonId && t.TrangThai == KH_YEU_CAU_HOAN_STATUS);
+                .AnyAsync(t => t.ID_HoaDon == hoaDonId && t.TrangThai == ReturnStatus.YeuCau);
             if (!hasRequest)
             {
-                TempData["Error"] = "Khách hàng chưa gửi yêu cầu hoàn hàng. Không thể tạo phiếu.";
+                TempData["Error"] = "Khách hàng chưa gửi yêu cầu hoàn hàng.";
                 return RedirectToAction("Details", "HoaDon", new { id = hoaDonId });
             }
 
@@ -73,21 +84,15 @@ namespace DoAn.Controllers
                 return RedirectToAction("Details", "HoaDon", new { id = hoaDonId });
             }
 
-            // 3) Không tạo thêm nếu đã có phiếu đang xử lý (trừ phiếu đã hoàn tiền xong)
-            var dangXuLy = await _context.QuanLyTraHangs
-                .Where(p => p.ID_HoaDon == hoaDonId && p.TrangThai != ReturnStatus.TuChoi)
-                .OrderByDescending(p => p.NgayTao)
-                .FirstOrDefaultAsync();
-            if (dangXuLy != null && dangXuLy.TrangThai != ReturnStatus.DaHoanTien)
-            {
-                TempData["Info"] = "Đơn đã có phiếu hoàn đang xử lý.";
-                return RedirectToAction("Details", "HoaDon", new { id = hoaDonId });
-            }
-
-            // 4) Tạo dòng hoàn CHO TẤT CẢ sản phẩm còn có thể hoàn
+            // ==== Tạo chi tiết hoàn ====
             var subtotal = hd.HoaDonChiTiets.Sum(x => x.SoLuong * x.DonGia);
-            var discount = hd.TongTienTruocGiam - hd.TongTienSauGiam;
-
+            var ship = hd.PhuThu ?? 0m;
+            var tongTienTruocGiam = subtotal + ship;
+            var tongTienSauGiam = hd.TongTienSauGiam != 0m ? hd.TongTienSauGiam : tongTienTruocGiam;
+            var discount = tongTienTruocGiam - tongTienSauGiam;
+            
+            // Tiền hoàn = Tổng tiền hàng gốc (không trừ giảm giá, không cộng phí ship)
+            // Vì khách hàng đã trả đủ tiền hàng, chỉ được giảm giá thôi
             var lines = new List<ChiTietTraHang>();
             decimal tongHoan = 0;
 
@@ -97,7 +102,6 @@ namespace DoAn.Controllers
                     ?? await _context.SanPhamChiTiets.FirstOrDefaultAsync(x => x.ID_SanPhamChiTiet == ct.ID_SanPhamChiTiet);
                 if (spct == null) continue;
 
-                // số đã hoàn trước (trừ phiếu bị từ chối)
                 var daHoan = await _context.ChiTietTraHangs
                     .Include(t => t.TraHang)
                     .Where(t => t.TraHang.ID_HoaDon == hd.ID_HoaDon
@@ -105,12 +109,13 @@ namespace DoAn.Controllers
                              && t.TraHang.TrangThai != ReturnStatus.TuChoi)
                     .SumAsync(t => (int?)t.SoLuong) ?? 0;
 
-                var soTra = Math.Max(0, ct.SoLuong - daHoan); // TRẢ HẾT phần còn lại
+                var soTra = Math.Max(0, ct.SoLuong - daHoan);
                 if (soTra <= 0) continue;
 
                 var gross = ct.DonGia * soTra;
-                var prorate = subtotal > 0 ? (gross / subtotal) * discount : 0m;
-                var tienHoan = decimal.Round(Math.Max(0, gross - prorate), 0);
+                // Tiền hoàn = Giá sản phẩm gốc (không trừ giảm giá)
+                // Vì khách hàng đã trả đủ tiền hàng, chỉ được giảm giá thôi
+                var tienHoan = decimal.Round(gross, 0, MidpointRounding.AwayFromZero);
 
                 lines.Add(new ChiTietTraHang
                 {
@@ -137,17 +142,22 @@ namespace DoAn.Controllers
                 GhiChu = "",
                 NhanVienXuLy = User?.Identity?.Name ?? "system",
                 NgayTao = DateTime.Now,
-                TrangThai = ReturnStatus.DaDuyet, // admin tạo => coi như đã duyệt
+                TrangThai = ReturnStatus.DaDuyet,
                 TongTienHoan = tongHoan,
                 ChiTietTraHangs = lines
             };
 
             _context.QuanLyTraHangs.Add(phieu);
+
+            // ✅ Cập nhật trạng thái hóa đơn
+            hd.TrangThai = 8;
+            hd.NgayCapNhat = DateTime.Now;
+
             _context.TrangThaiDonHangs.Add(new TrangThaiDonHang
             {
                 ID_TrangThaiDonHang = Guid.NewGuid(),
                 ID_HoaDon = hd.ID_HoaDon,
-                TrangThai = hd.TrangThai,
+                TrangThai = 8,
                 NgayChuyen = DateTime.Now,
                 NhanVienDoi = phieu.NhanVienXuLy,
                 NoiDungDoi = $"Tạo phiếu hoàn toàn bộ #{phieu.ID_TraHang.ToString()[..8]}: {tongHoan:N0} VND."
@@ -157,6 +167,8 @@ namespace DoAn.Controllers
             TempData["Success"] = "Đã tạo phiếu hoàn toàn bộ.";
             return RedirectToAction("Details", "HoaDon", new { id = hoaDonId });
         }
+
+
 
         // ============= NHẬN HOÀN HÀNG (+ KHO) =============
         [HttpPost]
@@ -202,7 +214,7 @@ namespace DoAn.Controllers
             return RedirectToAction("Details", "HoaDon", new { id = phieu.ID_HoaDon });
         }
 
-        // ============= XÁC NHẬN HOÀN TIỀN =============
+
         // ============= XÁC NHẬN HOÀN TIỀN =============
         [HttpPost]
         [ValidateAntiForgeryToken]

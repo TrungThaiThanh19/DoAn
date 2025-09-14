@@ -317,20 +317,8 @@
         background: #fff url('https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://yourdomain.example') center/cover no-repeat
     }
 
-   
 
-    {
-        grid-template-columns: 1fr 1fr
-    }
-
-    }
-   
-
-    {
-        grid-template-columns: 1fr
-    }
-
-    }</style>
+    </style>
 
 <header class="shp-header">
     <div class="container py-2 shp-topbar d-flex justify-content-between align-items-center">
@@ -356,7 +344,7 @@
                 <span>ShopPerfume</span>
             </a>
             <form asp-controller="Shop" asp-action="Index" method="get" class="flex-grow-1 shp-search">
-                <input name="search" class="form-control" placeholder="Tìm kiếm sản phẩm..." />
+                <input name="search" class="form-control" placeholder="Tìm kiếm sản phẩm..." value="@ViewBag.Search" />
                 <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
             </form>
             <div class="shp-icons d-flex align-items-center">
@@ -392,6 +380,8 @@
         <button class="carousel-control-next" type="button" data-bs-target="#homeBanner" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button>
     </div>
 </div>
+
+
 
 <!-- ==== PRODUCTS ==== -->
 <div class="shop-wrap">

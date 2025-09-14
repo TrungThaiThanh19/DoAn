@@ -28,6 +28,9 @@
        asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="4">Hoàn thành</a>
     <a class="btn btn-outline-secondary @(trangThai == 5 ? "active" : "")"
        asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="5">Hủy</a>
+    <a class="btn btn-outline-secondary @(trangThai == 7 ? "active" : "")"
+       asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="7">Hoàn hàng thành công</a>
+   
 </div>
 
 <!-- Lọc loại hóa đơn -->
@@ -113,23 +116,90 @@
                         @if (!isOnline)
                         {
                             <!-- Offline thì luôn là thành công -->
-                            <span class="text-success fw-bold">Thành công</span>
+                            <span class="badge bg-success rounded-pill px-2 py-1">
+                                <i class="fa-solid fa-check-double me-1"></i>Thành công
+                            </span>
                         }
                         else
                         {
-                            <!-- Online thì hiển thị theo trạng thái thực tế -->
-                            @item.TrangThaiText
-
-                            @* Dấu hiệu: khách đã gửi yêu cầu hoàn (chưa hoàn tiền) *@
-                            @if (item.HasReturnRequest && !item.HasReturnDone)
+                            <!-- Online: hiển thị trạng thái với badge -->
+                            @if (item.TrangThaiText == "Đã hoàn hàng")
                             {
-                                <span class="badge rounded-pill bg-warning text-dark ms-1" title="Khách đã gửi yêu cầu hoàn hàng">
-                                    <i class="fa-solid fa-rotate-left me-1"></i>Y/c hoàn
+                                <span class="badge bg-warning text-dark rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-check-circle me-1"></i>Đã hoàn hàng
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Đã nhận hàng hoàn")
+                            {
+                                <span class="badge bg-info rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-box-open me-1"></i>Đã nhận hàng hoàn
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Đã duyệt hoàn hàng")
+                            {
+                                <span class="badge bg-primary rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-clipboard-check me-1"></i>Đã duyệt hoàn hàng
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Có yêu cầu hoàn hàng")
+                            {
+                                <span class="badge bg-warning text-dark rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-exclamation-triangle me-1"></i>Có yêu cầu hoàn hàng
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Chờ xác nhận")
+                            {
+                                <span class="badge bg-secondary rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-clock me-1"></i>Chờ xác nhận
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Đã xác nhận")
+                            {
+                                <span class="badge rounded-pill px-2 py-1" style="background-color: #8e44ad; color: white;">
+                                    <i class="fa-solid fa-check me-1"></i>Đã xác nhận
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Đang vận chuyển")
+                            {
+                                <span class="badge bg-dark rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-truck me-1"></i>Đang vận chuyển
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Đã thanh toán")
+                            {
+                                <span class="badge rounded-pill px-2 py-1" style="background-color: #e91e63; color: white;">
+                                    <i class="fa-solid fa-credit-card me-1"></i>Đã thanh toán
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Thành công")
+                            {
+                                <span class="badge bg-success rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-check-double me-1"></i>Thành công
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Đã hủy")
+                            {
+                                <span class="badge bg-danger rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-times-circle me-1"></i>Đã hủy
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-light text-dark rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-question-circle me-1"></i>@item.TrangThaiText
+                                </span>
+                            }
+
+                            @* Badge bổ sung cho các trường hợp đặc biệt *@
+                            @if (item.HasReturnRequest && !item.HasReturnDone && !item.TrangThaiText.Contains("hoàn"))
+                            {
+                                <br>
+                                <span class="badge rounded-pill bg-warning text-dark mt-1" title="Có liên quan đến hoàn hàng">
+                                    <i class="fa-solid fa-rotate-left me-1"></i>Liên quan hoàn hàng
                                 </span>
                             }
                         }
                     </td>
-
 
                     <td>
                         <a asp-action="Details" asp-route-id="@item.ID_HoaDon"

@@ -1,0 +1,192 @@
+﻿@using DoAn.ViewModel
+@model IEnumerable<LichSuTraHangVM>
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Lịch sử hoàn hàng";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-primary mb-0">Lịch sử hoàn hàng</h2>
+    <a href="@Url.Action("Index", "HoaDon")" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Quay lại danh sách hóa đơn
+    </a>
+</div>
+
+@if (ViewBag.ErrorMessage != null)
+{
+    <div class="alert alert-danger">
+        @ViewBag.ErrorMessage
+    </div>
+}
+
+@if (ViewBag.HoaDonInfo != null)
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Thông tin hóa đơn</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <strong>Mã hóa đơn:</strong> @ViewBag.HoaDonInfo.MaHoaDon
+                </div>
+                <div class="col-md-4">
+                    <strong>Khách hàng:</strong> @ViewBag.HoaDonInfo.KhachHang
+                </div>
+                <div class="col-md-4">
+                    <strong>Ngày tạo:</strong> @ViewBag.HoaDonInfo.NgayTao.ToString("dd/MM/yyyy HH:mm")
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (ViewBag.IsAllReturns == true)
+{
+    <!-- Filter theo trạng thái -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <label class="form-label"><strong>Lọc theo trạng thái:</strong></label>
+                </div>
+                <div class="col-md-9">
+                    <div class="btn-group" role="group">
+                        <a href="@Url.Action("Index")" class="btn btn-outline-secondary @(ViewBag.CurrentStatus == null ? "active" : "")">
+                            Tất cả
+                        </a>
+                        <a href="@Url.Action("Index", new { trangThai = 0 })" class="btn btn-outline-warning @(ViewBag.CurrentStatus == 0 ? "active" : "")">
+                            Yêu cầu (@ViewBag.YeuCauCount)
+                        </a>
+                        <a href="@Url.Action("Index", new { trangThai = 1 })" class="btn btn-outline-info @(ViewBag.CurrentStatus == 1 ? "active" : "")">
+                            Đã duyệt (@ViewBag.DaDuyetCount)
+                        </a>
+                        <a href="@Url.Action("Index", new { trangThai = 2 })" class="btn btn-outline-primary @(ViewBag.CurrentStatus == 2 ? "active" : "")">
+                            Đã nhận hàng (@ViewBag.DaNhanHangCount)
+                        </a>
+                        <a href="@Url.Action("Index", new { trangThai = 3 })" class="btn btn-outline-success @(ViewBag.CurrentStatus == 3 ? "active" : "")">
+                            Đã hoàn tiền (@ViewBag.DaHoanTienCount)
+                        </a>
+                        <a href="@Url.Action("Index", new { trangThai = 9 })" class="btn btn-outline-danger @(ViewBag.CurrentStatus == 9 ? "active" : "")">
+                            Từ chối (@ViewBag.TuChoiCount)
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Tổng quan hoàn hàng</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <strong>Tổng số phiếu hoàn:</strong> @ViewBag.TotalReturns
+                </div>
+                <div class="col-md-6">
+                    <strong>Tổng tiền hoàn:</strong> @ViewBag.TotalAmount.ToString("N0") VND
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="text-center p-2 border rounded">
+                        <div class="text-warning"><strong>@ViewBag.YeuCauCount</strong></div>
+                        <small>Yêu cầu hoàn hàng</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center p-2 border rounded">
+                        <div class="text-info"><strong>@ViewBag.DaDuyetCount</strong></div>
+                        <small>Đã duyệt</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center p-2 border rounded">
+                        <div class="text-primary"><strong>@ViewBag.DaNhanHangCount</strong></div>
+                        <small>Đã nhận hàng</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center p-2 border rounded">
+                        <div class="text-success"><strong>@ViewBag.DaHoanTienCount</strong></div>
+                        <small>Đã hoàn tiền</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center p-2 border rounded">
+                        <div class="text-danger"><strong>@ViewBag.TuChoiCount</strong></div>
+                        <small>Từ chối</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> 
+        @if (ViewBag.IsAllReturns == true)
+        {
+            <text>Không có phiếu hoàn hàng nào trong hệ thống (yêu cầu, đã duyệt, đã nhận hàng, đã hoàn tiền, từ chối).</text>
+        }
+        else
+        {
+            <text>Không có lịch sử hoàn hàng nào cho hóa đơn này.</text>
+        }
+    </div>
+}
+else
+{
+    <table class="table table-bordered">
+    <thead>
+        <tr>
+            @if (ViewBag.IsAllReturns == true)
+            {
+                <th>Mã hóa đơn</th>
+                <th>Khách hàng</th>
+            }
+            <th>Ngày tạo</th>
+            <th>Lý do</th>
+            <th>Ghi chú</th>
+            <th>Nhân viên xử lý</th>
+            <th>Trạng thái</th>
+            <th>Tổng tiền hoàn</th>
+            <th>Chi tiết</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                @if (ViewBag.IsAllReturns == true)
+                {
+                    <td>
+                        <a asp-controller="HoaDon" asp-action="Details" asp-route-id="@item.ID_HoaDon" 
+                           class="text-decoration-none">
+                            @item.MaHoaDon
+                        </a>
+                    </td>
+                    <td>@item.TenKhachHang</td>
+                }
+                <td>@item.NgayTao.ToString("dd/MM/yyyy HH:mm")</td>
+                <td>@item.LyDo</td>
+                <td>@item.GhiChu</td>
+                <td>@item.NhanVienXuLy</td>
+                <td>@item.TrangThaiText</td>
+                <td>@item.TongTienHoan.ToString("n0") đ</td>
+                <td>
+                    <a asp-action="ChiTiet" asp-route-traHangId="@item.ID_TraHang" 
+                       class="btn btn-primary btn-sm">
+                        <i class="fas fa-eye"></i> Xem chi tiết
+                    </a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+}

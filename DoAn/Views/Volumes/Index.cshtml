@@ -3,9 +3,10 @@
     ViewData["Title"] = "Danh sách thể tích";
     string keyword = ViewBag.Keyword as string ?? "";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
 }
 
-<h2 class="mb-4 text-primary">📏 Danh sách thể tích</h2>
+<h2 class="mb-4 text-primary">Danh sách thể tích</h2>
 
 <div class="row mb-3">
     <div class="col-md-6">
@@ -15,7 +16,7 @@
         </form>
     </div>
     <div class="col-md-6 text-end">
-        <a asp-action="Create" class="btn btn-success rounded-pill px-4">+ Thêm thể tích</a>
+        <a asp-action="Create" class="btn btn-success rounded-pill px-4">Thêm thể tích</a>
     </div>
 </div>
 

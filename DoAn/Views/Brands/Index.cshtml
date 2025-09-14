@@ -3,9 +3,10 @@
     ViewData["Title"] = "Danh sách thương hiệu";
     string keyword = ViewBag.Keyword as string ?? "";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
 }
 
-<h2 class="mb-4 text-primary">🏷️ Danh sách thương hiệu</h2>
+<h2 class="mb-4 text-primary">Danh sách thương hiệu</h2>
 
 <div class="row mb-3">
     <div class="col-md-6">
@@ -15,7 +16,7 @@
         </form>
     </div>
     <div class="col-md-6 text-end">
-        <a asp-action="Create" class="btn btn-success rounded-pill px-4">+ Thêm thương hiệu</a>
+        <a asp-action="Create" class="btn btn-success rounded-pill px-4">Thêm thương hiệu</a>
     </div>
 </div>
 
@@ -48,7 +49,7 @@
                             }
                         </td>
                         <td>
-                            <a asp-action="Details" asp-route-idThuongHieu="@item.ID_ThuongHieu" class="btn btn-sm btn-outline-info rounded-pill">Xem thêm</a>
+                            <a asp-action="Details" asp-route-idThuongHieu="@item.ID_ThuongHieu" class="btn btn-sm btn-outline-info rounded-pill">Xem</a>
                         </td>
                     </tr>
                 }

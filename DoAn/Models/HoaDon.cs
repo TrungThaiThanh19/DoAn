@@ -59,7 +59,11 @@ namespace DoAn.Models
         [ForeignKey("KhachHang")]
         public Guid? ID_KhachHang { get; set; }
         public KhachHang? KhachHang { get; set; }
+        [NotMapped]
+        public decimal TamTinh => HoaDonChiTiets.Sum(x => x.SoLuong * x.DonGia);
 
+        [NotMapped]
+        public decimal GiamGia => TamTinh - (TongTienSauGiam - (PhuThu ?? 0));
         // Navigation
         public ICollection<QuanLyTraHang> TraHangs { get; set; } = new List<QuanLyTraHang>();
         public ICollection<HoaDonChiTiet> HoaDonChiTiets { get; set; } = new List<HoaDonChiTiet>();

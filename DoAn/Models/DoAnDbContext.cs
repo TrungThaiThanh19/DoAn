@@ -19,7 +19,6 @@ namespace DoAn.Models
         public DbSet<Voucher> Vouchers { get; set; }
         public DbSet<HoaDon> HoaDons { get; set; }
         public DbSet<TrangThaiDonHang> TrangThaiDonHangs { get; set; }
-        public DbSet<QuanLyTraHang> TraHangs { get; set; }
         public DbSet<ThuongHieu> ThuongHieus { get; set; }
         public DbSet<SanPham> SanPhams { get; set; }
         public DbSet<KhachHang> KhachHangs { get; set; }

@@ -146,8 +146,20 @@ namespace DoAn.Controllers
                 .ToListAsync(),
                 "ID_ThuongHieu", "Ten_ThuongHieu", sanPham.ID_ThuongHieu
                 );
-            ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "Ten_QuocGia", sanPham.ID_QuocGia);
-            ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "Ten_GioiTinh", sanPham.ID_GioiTinh);
+            ViewBag.QuocGiaList = new SelectList(
+                await _context.QuocGias
+                .Where(qg => qg.TrangThai == 1)
+                .OrderBy(qg => qg.Ten_QuocGia)
+                .ToListAsync(),
+                "ID_QuocGia", "Ten_QuocGia", sanPham.ID_QuocGia
+                );
+            ViewBag.GioiTinhList = new SelectList(
+                await _context.GioiTinhs
+                .Where(gt => gt.TrangThai == 1)
+                .OrderBy(gt => gt.Ten_GioiTinh)
+                .ToListAsync(),
+                "ID_GioiTinh", "Ten_GioiTinh", sanPham.ID_GioiTinh
+                );
             ViewBag.TheTichList = new SelectList(
                 _context.TheTichs.Select(t => new
                 {
@@ -159,10 +171,9 @@ namespace DoAn.Controllers
         }
         [HttpPost]
         public async Task<IActionResult> Update(Guid idSanPham, string tenSanPham, string thoiGianLuuHuong, string moTa,
-            string huongDau, string huongGiua, string huongCuoi, Guid idThuongHieu, Guid idQuocGia, Guid idGioiTinh, IFormFile hinhAnh)
+                    string huongDau, string huongGiua, string huongCuoi, Guid idThuongHieu, Guid idQuocGia, Guid idGioiTinh, IFormFile hinhAnh)
         {
-            ClearModelErrors("TenSanPham", "MoTa", "ThoiGianLuuHuong", "SoLuong", "HuongDau", "HuongGiua", "HuongCuoi", "GiaBan", "GiaNhap", "Trạng thái");
-
+            ModelState.Clear();
             var sanPham = await _context.SanPhams
                 .Include(sp => sp.ThuongHieu)
                 .Include(sp => sp.QuocGia)
@@ -227,8 +238,21 @@ namespace DoAn.Controllers
                     "ID_ThuongHieu", "Ten_ThuongHieu", idThuongHieu
                     );
 
-                ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "Ten_QuocGia", idQuocGia);
-                ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "Ten_GioiTinh", idGioiTinh);
+                ViewBag.QuocGiaList = new SelectList(
+                    await _context.QuocGias
+                    .Where(qg => qg.TrangThai == 1)
+                    .OrderBy(qg => qg.Ten_QuocGia)
+                    .ToListAsync(),
+                    "ID_QuocGia", "Ten_QuocGia", idQuocGia
+                    );
+
+                ViewBag.GioiTinhList = new SelectList(
+                    await _context.GioiTinhs
+                    .Where(gt => gt.TrangThai == 1)
+                    .OrderBy(gt => gt.Ten_GioiTinh)
+                    .ToListAsync(),
+                    "ID_GioiTinh", "Ten_GioiTinh", idGioiTinh
+                    );
 
                 return View(sanPham);
             }
@@ -438,8 +462,20 @@ namespace DoAn.Controllers
                 .ToListAsync(),
                 "ID_ThuongHieu", "Ten_ThuongHieu"
             );
-            ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "Ten_QuocGia");
-            ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "Ten_GioiTinh");
+            ViewBag.QuocGiaList = new SelectList(
+                await _context.QuocGias
+                .Where(qg => qg.TrangThai == 1)
+                .OrderBy(qg => qg.Ten_QuocGia)
+                .ToListAsync(),
+                "ID_QuocGia", "Ten_QuocGia"
+                );
+            ViewBag.GioiTinhList = new SelectList(
+                await _context.GioiTinhs
+                .Where(gt => gt.TrangThai == 1)
+                .OrderBy(gt => gt.Ten_GioiTinh)
+                .ToListAsync(),
+                "ID_GioiTinh", "Ten_GioiTinh"
+                );
             ViewBag.TheTichList = new SelectList(
                 await _context.TheTichs
                 .Where(t => t.TrangThai == 1)
@@ -455,13 +491,14 @@ namespace DoAn.Controllers
             return View();
         }
         [HttpPost]
-        public async Task<IActionResult> Create(Guid idSanPham, Guid idSanPhamChiTiet, string tenSanPham, string maSanPham, string moTa, string thoiGianLuuHuong,
-            string huongDau, string huongGiua, string huongCuoi, string soLuong, int trangThai, string giaNhap, string giaBan, IFormFile hinhAnh,
+        public async Task<IActionResult> Create(Guid idSanPham, Guid idSanPhamChiTiet, string tenSanPham, string maSanPham, string maBienThe, string moTa, string thoiGianLuuHuong,
+            string huongDau, string huongGiua, string huongCuoi, string soLuong, int trangThai, string giaNhap, string giaBan, IFormFile hinhAnh, IFormFile hinhAnhBienThe,
             Guid idTheTich, Guid idThuongHieu, Guid idQuocGia, Guid idGioiTinh)
         {
             int thoiGianLuuHuongParse = 0, soLuongParse = 0;
             decimal giaNhapParse = 0, giaBanParse = 0;
-            ClearModelErrors("TenSanPham", "MaSanPham", "MoTa", "ThoiGianLuuHuong", "SoLuong", "HuongDau", "HuongGiua", "HuongCuoi", "GiaBan", "GiaNhap", "HinhAnh");
+            //ClearModelErrors("TenSanPham", "MaSanPham", "MoTa", "ThoiGianLuuHuong", "SoLuong", "HuongDau", "HuongGiua", "HuongCuoi", "GiaBan", "GiaNhap", "HinhAnh");
+            ModelState.Clear();
 
             // Nếu thời gian lưu hương bỏ trống hoặc nhập toàn khoảng trắng thì báo lỗi
             if (string.IsNullOrWhiteSpace(thoiGianLuuHuong))
@@ -553,6 +590,11 @@ namespace DoAn.Controllers
             else if (Regex.IsMatch(huongCuoi, @"\d"))
                 ModelState.AddModelError("HuongCuoi", "Hương cuối không được chứa số");
 
+            if (string.IsNullOrWhiteSpace(maBienThe) || maBienThe.Length > 50)
+                ModelState.AddModelError("MaBienThe", "Mã biến thể không được để trống và không quá 50 ký tự");
+            else if (await _context.SanPhamChiTiets.AnyAsync(ct => ct.MaSanPhamChiTiet == maBienThe))
+                ModelState.AddModelError("MaBienThe", "Mã biến thể này đã tồn tại");
+
             if (idTheTich == Guid.Empty)
                 ModelState.AddModelError("ID_TheTich", "Vui lòng chọn thể tích");
             if (idThuongHieu == Guid.Empty)
@@ -563,6 +605,8 @@ namespace DoAn.Controllers
                 ModelState.AddModelError("ID_GioiTinh", "Vui lòng chọn giới tính");
             if (hinhAnh == null || hinhAnh.Length == 0)
                 ModelState.AddModelError("HinhAnh", "Vui lòng chọn ảnh cho sản phẩm");
+            if (hinhAnhBienThe == null || hinhAnhBienThe.Length == 0)
+                ModelState.AddModelError("HinhAnhBienThe", "Vui lòng chọn ảnh cho biến thể");
             if (!_context.TheTichs.Any(t => t.ID_TheTich == idTheTich))
                 ModelState.AddModelError("ID_TheTich", "Vui lòng chọn thể tích hợp lệ");
             if (!_context.ThuongHieus.Any(th => th.ID_ThuongHieu == idThuongHieu))
@@ -639,9 +683,21 @@ namespace DoAn.Controllers
                     .OrderBy(th => th.Ten_ThuongHieu)
                     .ToList(),
                     "ID_ThuongHieu", "Ten_ThuongHieu", idThuongHieu
-);
-                ViewBag.QuocGiaList = new SelectList(_context.QuocGias, "ID_QuocGia", "Ten_QuocGia", idQuocGia);
-                ViewBag.GioiTinhList = new SelectList(_context.GioiTinhs, "ID_GioiTinh", "Ten_GioiTinh", idGioiTinh);
+                    );
+                ViewBag.QuocGiaList = new SelectList(
+                    await _context.QuocGias
+                    .Where(qg => qg.TrangThai == 1)
+                    .OrderBy(qg => qg.Ten_QuocGia)
+                    .ToListAsync(),
+                    "ID_QuocGia", "Ten_QuocGia", idQuocGia
+                    );
+                ViewBag.GioiTinhList = new SelectList(
+                    await _context.GioiTinhs
+                    .Where(gt => gt.TrangThai == 1)
+                    .OrderBy(gt => gt.Ten_GioiTinh)
+                    .ToListAsync(),
+                    "ID_GioiTinh", "Ten_GioiTinh", idGioiTinh
+                    );
                 ViewBag.TheTichList = new SelectList(
                     await _context.TheTichs
                     .Where(t => t.TrangThai == 1)
@@ -652,7 +708,7 @@ namespace DoAn.Controllers
                         HienThi = t.GiaTri.ToString("0.#") + t.DonVi
                     })
                     .ToListAsync(),
-                    "ID_TheTich", "HienThi"
+                    "ID_TheTich", "HienThi", idTheTich
                     );
 
                 ViewBag.TenSanPham = tenSanPham;
@@ -665,6 +721,7 @@ namespace DoAn.Controllers
                 ViewBag.SoLuong = soLuong;
                 ViewBag.GiaNhap = giaNhap;
                 ViewBag.GiaBan = giaBan;
+                ViewBag.MaBienThe = maBienThe;
                 return View();
             }
             // Xử lý ảnh
@@ -677,6 +734,17 @@ namespace DoAn.Controllers
             using (var stream = new FileStream(filePath, FileMode.Create))
             {
                 await hinhAnh.CopyToAsync(stream);
+            }
+
+            string uniqueFileNameBienThe = Guid.NewGuid().ToString() + "_" + Path.GetFileName(hinhAnhBienThe.FileName);
+            var uploadsFolderBienThe = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+            if (!Directory.Exists(uploadsFolderBienThe))
+                Directory.CreateDirectory(uploadsFolderBienThe);
+
+            var filePathBienThe = Path.Combine(uploadsFolderBienThe, uniqueFileNameBienThe);
+            using (var stream = new FileStream(filePathBienThe, FileMode.Create))
+            {
+                await hinhAnhBienThe.CopyToAsync(stream);
             }
 
             if (sanPham == null)
@@ -702,11 +770,13 @@ namespace DoAn.Controllers
             var sanPhamChiTiet = new SanPhamChiTiet()
             {
                 ID_SanPhamChiTiet = Guid.NewGuid(),
+                MaSanPhamChiTiet = maBienThe,
                 SoLuong = soLuongParse,
                 GiaBan = giaBanParse,
                 GiaNhap = giaNhapParse,
                 NgayTao = DateTime.Now,
                 TrangThai = 1,
+                HinhAnh = "/images/" + uniqueFileNameBienThe,
                 ID_SanPham = sanPham.ID_SanPham,
                 ID_TheTich = idTheTich
             };

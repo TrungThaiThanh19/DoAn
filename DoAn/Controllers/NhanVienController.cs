@@ -52,6 +52,11 @@ namespace DoAn.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(NhanVien nv)
         {
+            if (!ModelState.IsValid)
+            {
+                return View(nv); // Trả lại view kèm lỗi
+            }
+
             // 1. Tìm role nhân viên
             var roleNhanVien = _db.Roles.FirstOrDefault(r => r.Ma_Roles == "NV");
             if (roleNhanVien == null)
@@ -122,7 +127,10 @@ namespace DoAn.Controllers
         {
             if (id != nv.ID_NhanVien) return NotFound();
 
-
+            if (!ModelState.IsValid)
+            {
+                return View(nv); // trả về view nếu dữ liệu không hợp lệ
+            }
 
             try
             {

@@ -1,4 +1,4 @@
-﻿using DoAn.Migrations;
+﻿//using DoAn.Migrations;
 using DoAn.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

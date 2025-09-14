@@ -2,9 +2,10 @@
 @{
     ViewData["Title"] = "Cập nhật thể tích";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
 }
 
-<h2 class="mb-4 text-primary">✏️ Cập nhật thể tích</h2>
+<h2 class="mb-4 text-primary">Cập nhật thể tích</h2>
 
 <form method="post">
     <input type="hidden" name="id" value="@Model.ID_TheTich" />
@@ -20,7 +21,7 @@
             </div>
 
             <div class="col-md-6">
-                <label class="form-label">Giá trị (dùng dấu phẩy)</label>
+                <label class="form-label">Giá trị</label>
                 <input name="giaTri" class="form-control" value="@Model.GiaTri.ToString("0.##")" />
                 <span class="text-danger">@Html.ValidationMessage("GiaTri")</span>
             </div>

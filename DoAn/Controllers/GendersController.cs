@@ -1,12 +1,10 @@
 ﻿using DoAn.Models;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 
 namespace DoAn.Controllers
 {
-    [Authorize(Roles = "admin")]
     public class GendersController : Controller
     {
         private readonly DoAnDbContext _context;
@@ -23,7 +21,7 @@ namespace DoAn.Controllers
             // Kiểm tra nếu từ khóa tìm kiếm không rỗng
             if (!string.IsNullOrWhiteSpace(keyword))
             {
-                query = query.Where(q => q.Ten_GioiTinh.Contains(keyword));
+                query = query.Where(x => x.Ten_GioiTinh.Contains(keyword) || x.MaGioiTinh.Contains(keyword));
             }
             // Sắp xếp theo tên quốc gia
             var gioiTinhs = await query.OrderBy(x => x.Ten_GioiTinh).ToListAsync();
@@ -56,7 +54,7 @@ namespace DoAn.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> Update(Guid idGioiTinh, string tenGioiTinh)
+        public async Task<IActionResult> Update(Guid idGioiTinh, string tenGioiTinh, string maGioiTinh, int trangThai)
         {
             var gioiTinh = await _context.GioiTinhs.FindAsync(idGioiTinh);
             if (gioiTinh == null)
@@ -64,6 +62,12 @@ namespace DoAn.Controllers
 
             // Xóa lỗi mặc định
             ModelState.Clear();
+
+            if (string.IsNullOrWhiteSpace(maGioiTinh))
+                ModelState.AddModelError("MaGioiTinh", "Mã giới tính không được để trống");
+
+            else if (_context.GioiTinhs.Any(x => x.MaGioiTinh == maGioiTinh && x.ID_GioiTinh != idGioiTinh))
+                ModelState.AddModelError("MaGioiTinh", "Mã giới tính đã tồn tại");
 
             if (string.IsNullOrWhiteSpace(tenGioiTinh))
                 ModelState.AddModelError("Ten_GioiTinh", "Tên giới tính không được để trống");
@@ -78,10 +82,14 @@ namespace DoAn.Controllers
             if (!ModelState.IsValid)
             {
                 ViewBag.Ten_GioiTinh = tenGioiTinh;
+                ViewBag.MaGioiTinh = tenGioiTinh;
+                ViewBag.TrangThai = trangThai;
                 return View(gioiTinh);
             }
 
             gioiTinh.Ten_GioiTinh = tenGioiTinh;
+            gioiTinh.MaGioiTinh = maGioiTinh;
+            gioiTinh.TrangThai = trangThai;
             _context.GioiTinhs.Update(gioiTinh);
             await _context.SaveChangesAsync();
 
@@ -96,10 +104,16 @@ namespace DoAn.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(string tenGioiTinh)
+        public async Task<IActionResult> Create(string tenGioiTinh, string maGioiTinh)
         {
             // Xóa lỗi mặc định
             ModelState.Clear();
+
+            if (string.IsNullOrWhiteSpace(maGioiTinh))
+                ModelState.AddModelError("MaGioiTinh", "Mã giới tính không được để trống");
+
+            else if (_context.GioiTinhs.Any(x => x.MaGioiTinh.ToLower() == maGioiTinh.Trim().ToLower()))
+                ModelState.AddModelError("MaGioiTinh", "Mã giới tính đã tồn tại");
 
             if (string.IsNullOrWhiteSpace(tenGioiTinh))
             {
@@ -118,13 +132,16 @@ namespace DoAn.Controllers
             if (!ModelState.IsValid)
             {
                 ViewBag.TenGioiTinh = tenGioiTinh;
+                ViewBag.MaGioiTinh = maGioiTinh;
                 return View();
             }
 
             var gioiTinh = new GioiTinh
             {
                 ID_GioiTinh = Guid.NewGuid(),
-                Ten_GioiTinh = tenGioiTinh.Trim()
+                Ten_GioiTinh = tenGioiTinh.Trim(),
+                MaGioiTinh = maGioiTinh.Trim(),
+                TrangThai = 1
             };
 
             _context.GioiTinhs.Add(gioiTinh);

@@ -47,11 +47,36 @@ namespace DoAn.Controllers
                         ? (h.NhanVien?.Ten_NhanVien ?? (!string.IsNullOrWhiteSpace(lastActor) ? lastActor : "Không có"))
                         : (!string.IsNullOrWhiteSpace(lastActor) ? lastActor : (h.NhanVien?.Ten_NhanVien ?? "Không có"));
 
-                    // --- dấu hiệu hoàn hàng ---
-                    var hasReturnDone = h.TraHangs?.Any(p => p.TrangThai == 3) ?? false; // đã hoàn tiền
+                    // --- Phân tích trạng thái hoàn hàng chi tiết ---
+                    var hasReturnDone = h.TraHangs?.Any(p => p.TrangThai == 3) ?? false; // đã hoàn tiền (trạng thái 3)
+                    var hasReturnApproved = h.TraHangs?.Any(p => p.TrangThai == 1) ?? false; // đã duyệt hoàn hàng (trạng thái 1)
+                    var hasReturnReceived = h.TraHangs?.Any(p => p.TrangThai == 2) ?? false; // đã nhận hàng hoàn (trạng thái 2)
                     var hasReturnRequest =
                         (h.TrangThaiDonHangs?.Any(t => t.TrangThai == 6) ?? false) ||    // log "KH bấm hoàn"
-                        (h.TraHangs?.Any(t => t.TrangThai == 0 || t.TrangThai == 1 || t.TrangThai == 2) ?? false); // YC/duyệt/đã nhận
+                        (h.TraHangs?.Any(t => t.TrangThai == 0) ?? false); // yêu cầu hoàn (trạng thái 0)
+
+                    // --- Xác định text trạng thái theo độ ưu tiên ---
+                    string trangThaiText;
+                    if (hasReturnDone)
+                    {
+                        trangThaiText = "Đã hoàn hàng";
+                    }
+                    else if (hasReturnReceived)
+                    {
+                        trangThaiText = "Đã nhận hàng hoàn";
+                    }
+                    else if (hasReturnApproved)
+                    {
+                        trangThaiText = "Đã duyệt hoàn hàng";
+                    }
+                    else if (hasReturnRequest)
+                    {
+                        trangThaiText = "Có yêu cầu hoàn hàng";
+                    }
+                    else
+                    {
+                        trangThaiText = GetTrangThaiText(h.TrangThai);
+                    }
 
                     // --- tiền giảm / tổng tiền như bạn đang làm ---
                     var ship = h.PhuThu ?? 0m;
@@ -71,19 +96,17 @@ namespace DoAn.Controllers
                         TongTienSauGiam = tongSauGiam,
                         TienGiam = tienGiam,
                         TrangThai = h.TrangThai,
-                        TrangThaiText = hasReturnDone ? "Đã hoàn hàng" : GetTrangThaiText(h.TrangThai),
-                        HasReturnRequest = hasReturnRequest,
+                        TrangThaiText = trangThaiText,
+                        HasReturnRequest = hasReturnRequest || hasReturnApproved || hasReturnReceived,
                         HasReturnDone = hasReturnDone
                     };
                 })
                 .ToList();
 
-
             ViewBag.LoaiHoaDon = loaiHoaDon;
             ViewBag.TrangThai = trangThai;
             return View(list);
         }
-
 
 
         // Helper đọc giá gốc theo nhiều tên thuộc tính

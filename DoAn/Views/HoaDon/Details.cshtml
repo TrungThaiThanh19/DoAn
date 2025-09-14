@@ -409,6 +409,7 @@
                             <div class="mb-2"><span class="text-muted">Ngày tạo:</span> @phieuMoi.NgayTao.ToString("dd/MM/yyyy HH:mm")</div>
 
                             <div class="d-flex flex-wrap gap-2">
+                                
                                 @if ((phieuMoi.TrangThai == 0 || phieuMoi.TrangThai == 1) && !hasReturnDone)
                                 {
                                     <form asp-controller="QuanLyTraHang" asp-action="NhanHoanHang" method="post" class="d-inline">

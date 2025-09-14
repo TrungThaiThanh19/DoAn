@@ -60,6 +60,7 @@
         <div class="alert alert-danger">@TempData["OrderError"]</div>
     }
 
+    <!-- Thông tin nhận hàng -->
     <div class="card mb-3">
         <div class="card-header">Thông tin nhận hàng</div>
         <div class="card-body row g-3">
@@ -78,6 +79,7 @@
         </div>
     </div>
 
+    <!-- Danh sách sản phẩm -->
     <div class="card mb-3">
         <div class="card-header">Sản phẩm</div>
         <table class="table mb-0">
@@ -102,19 +104,31 @@
             </tbody>
             <tfoot>
                 <tr>
+                    <th colspan="3" class="text-end">Tạm tính</th>
+                    <th class="text-end">@Model.Items.Sum(x => x.SoLuong * x.DonGia).ToString("n0") đ</th>
+                </tr>
+                <tr>
+                    <th colspan="3" class="text-end">Giảm giá</th>
+                    <th class="text-end text-success">
+                        -@((Model.Items.Sum(x => x.SoLuong * x.DonGia) - Model.Items.Sum(x => x.ThanhTien)).ToString("n0")) đ
+                    </th>
+                </tr>
+                <tr>
                     <th colspan="3" class="text-end">Phí vận chuyển</th>
                     <th class="text-end">@Model.ShippingFee.ToString("n0") đ</th>
                 </tr>
                 <tr>
-                    <th colspan="3" class="text-end">Tổng thanh toán</th>
+                    <th colspan="3" class="text-end">Thành tiền</th>
                     <th class="text-end total">
                         @((Model.Items.Sum(x => x.ThanhTien) + Model.ShippingFee).ToString("n0")) đ
                     </th>
                 </tr>
             </tfoot>
+
         </table>
     </div>
 
+    <!-- Thanh toán -->
     <form id="f" asp-action="PlaceOrder" method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" name="AddressId" value="@Model.AddressId" />
