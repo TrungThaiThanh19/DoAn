@@ -7,7 +7,9 @@ namespace DoAn.Models
     {
         [Key]
         public Guid ID_SanPhamChiTiet { get; set; }
-        public decimal GiaNhap { get; set; }
+		public string MaSanPhamChiTiet { get; set; }
+		public string HinhAnh { get; set; }
+		public decimal GiaNhap { get; set; }
         public decimal GiaBan { get; set; }
         public int SoLuong { get; set; }
         public int TrangThai { get; set; }

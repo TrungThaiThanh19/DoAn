@@ -3,7 +3,7 @@
     ViewData["Title"] = "Cập nhật sản phẩm";
 }
 
-<h2 class="mb-4 text-primary">✏️ Cập nhật sản phẩm</h2>
+<h2 class="mb-4 text-primary">Cập nhật sản phẩm</h2>
 
 <form method="post" enctype="multipart/form-data" asp-action="Update">
     <input type="hidden" name="idSanPham" value="@Model.ID_SanPham" />
@@ -94,6 +94,8 @@
         <table class="table table-bordered table-hover text-center align-middle">
             <thead class="table-light">
                 <tr>
+                    <th>Ảnh</th>
+                    <th>Mã biến thể</th>
                     <th>Thể tích</th>
                     <th>Giá nhập</th>
                     <th>Giá bán</th>
@@ -106,6 +108,10 @@
                 @foreach (var ct in Model.SanPhamChiTiets)
                 {
                     <tr>
+                        <td>
+                            <img src="@ct.HinhAnh" style="width: 80px;" class="img-thumbnail" alt="Ảnh" />
+                        </td>
+                        <td>@ct.MaSanPhamChiTiet</td>
                         <td>@(ct.TheTich?.GiaTri.ToString("0.#") + ct.TheTich?.DonVi)</td>
                         <td>@ct.GiaNhap.ToString("0.##") VNĐ</td>
                         <td>@ct.GiaBan.ToString("0.##") VNĐ</td>
@@ -121,11 +127,11 @@
                             }
                             else if (ct.TrangThai == 2)
                             {
-                                <span class="badge bg-warning text-dark">Ngừng kinh doanh</span>
+                                <span class="badge bg-warning text-dark">Tạm ngừng kinh doanh</span>
                             }
                         </td>
                         <td>
-                            <a asp-action="UpdateDetails" asp-route-id="@ct.ID_SanPhamChiTiet" class="btn btn-sm btn-outline-primary">✏️ Cập nhật</a>
+                            <a asp-action="UpdateDetails" asp-route-id="@ct.ID_SanPhamChiTiet" class="btn btn-sm btn-outline-primary">Cập nhật</a>
                         </td>
                     </tr>
                 }

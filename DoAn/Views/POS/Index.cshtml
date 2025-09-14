@@ -109,6 +109,8 @@
                     <table class="table table-bordered table-hover text-center align-middle mb-0">
                         <thead class="table-light">
                             <tr>
+                                <th>Hình ảnh</th>
+                                <th>Mã biến thể</th>
                                 <th>Thể tích</th>
                                 <th>Giá bán</th>
                                 <th>Số lượng</th>
@@ -301,6 +303,10 @@
                     data.forEach((bt, index) => {
                         const row = `
                             <tr>
+                                <td>
+                                    <img src="${bt.hinhAnhBienThe || '/images/no-image.png'}" style="max-width:60px;max-height:60px;border-radius:8px;" />
+                                </td>
+                                <td>${bt.maBienThe}</td>
                                 <td>${bt.theTich}</td>
                                 <td>${bt.giaBan.toLocaleString('vi-VN')} đ</td>
                                 <td>${bt.soLuong}</td>
@@ -318,50 +324,37 @@
 
         }
 
+
+
         async function themVaoHoaDonCho(index) {
             const bienThe = bienTheTam[index];
             const soLuong = 1;
 
+            // Nếu chưa chọn hoặc tạo hóa đơn chờ thì báo lỗi
             if (!idHoaDonCho) {
-                // Chưa có hóa đơn chờ => tạo mới hóa đơn chờ và thêm sp đầu tiên
-                const payload = {
-                    ID_SanPhamChiTiet: bienThe.id_SanPhamChiTiet,
-                    SoLuong: soLuong,
-                    DonGia: bienThe.giaBan
-                };
-                const res = await fetch('/POS/TaoHoaDonCho', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                if (data.success) {
-                    idHoaDonCho = data.idHoaDon;
-                    await loadChiTietHoaDon(idHoaDonCho);
-                    await loadHoaDonCho();
-                } else {
-                    showError(data.message || 'Không tạo được hóa đơn chờ.');
-                }
+                showError("Vui lòng tạo hóa đơn chờ trước khi thêm sản phẩm");
+                return;
+            }
+
+            // Đã có hóa đơn chờ => thêm sp vào hóa đơn này
+            const payload = {
+                ID_HoaDon: idHoaDonCho,
+                ID_SanPhamChiTiet: bienThe.id_SanPhamChiTiet,
+                SoLuong: soLuong
+            };
+            const res = await fetch('/POS/ThemSanPhamVaoHoaDonCho', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.success) {
+                await loadChiTietHoaDon(idHoaDonCho);
             } else {
-                // Đã có hóa đơn chờ => thêm sp vào hóa đơn này
-                const payload = {
-                    ID_HoaDon: idHoaDonCho,
-                    ID_SanPhamChiTiet: bienThe.id_SanPhamChiTiet,
-                    SoLuong: soLuong
-                };
-                const res = await fetch('/POS/ThemSanPhamVaoHoaDonCho', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                if (data.success) {
-                    await loadChiTietHoaDon(idHoaDonCho);
-                } else {
-                    showError(data.message || 'Không thêm được sản phẩm.');
-                }
+                showError(data.message || 'Không thêm được sản phẩm');
             }
         }
+
 
 
         async function taoHoaDonChoRong() {
@@ -381,7 +374,7 @@
                     showConfirmButton: false, // Ẩn nút OK
                 });
             } else {
-                showError(data.message || 'Không tạo được hóa đơn chờ.');
+                showError(data.message || 'Không tạo được hóa đơn chờ');
             }
         }
 
@@ -833,19 +826,10 @@
 
 
         function capNhatTienThua() {
-            let tienKhachDuaStr = document.getElementById("tienKhachDua")?.value ?? "";
-            let tienThuaEl = document.getElementById("tienThua");
-
-            if (tienKhachDuaStr.trim() === "") {
-                // Nếu chưa nhập tiền đưa thì tiền thừa = 0
-                tienThuaEl.innerText = toVn(0);
-                tienThuaEl.classList.remove('text-danger', 'text-success');
-                tienThuaEl.classList.add('text-success');
-                return;
-            }
-            let tienKhachDua = toNumber(tienKhachDuaStr);
+            let tienKhachDua = toNumber(document.getElementById("tienKhachDua")?.value || 0);
             let tongCong = getTongCong();
             let tienThua = tienKhachDua - tongCong;
+            let tienThuaEl = document.getElementById("tienThua");
             tienThuaEl.innerText = toVn(tienThua);
 
             if (tienThua < 0) {
@@ -856,7 +840,6 @@
                 tienThuaEl.classList.add('text-success');
             }
         }
-
 
         function getTongCong() {
             // Tổng cộng = Tổng tiền hàng - ưu đãi + phụ thu

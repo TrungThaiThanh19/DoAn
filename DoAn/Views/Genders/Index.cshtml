@@ -5,7 +5,7 @@
     string keyword = ViewBag.Keyword as string ?? "";
 }
 
-<h2 class="mb-4 text-primary">⚧️ Danh sách giới tính</h2>
+<h2 class="mb-4 text-primary">Danh sách giới tính</h2>
 
 <div class="row mb-3">
     <div class="col-md-6">
@@ -15,7 +15,7 @@
         </form>
     </div>
     <div class="col-md-6 text-end">
-        <a asp-action="Create" class="btn btn-success rounded-pill px-4">+ Thêm giới tính</a>
+        <a asp-action="Create" class="btn btn-success rounded-pill px-4">Thêm giới tính</a>
     </div>
 </div>
 
@@ -25,6 +25,7 @@
             <tr>
                 <th>Mã giới tính</th>
                 <th>Tên giới tính</th>
+                <th>Trạng thái</th>
                 <th>Thao tác</th>
             </tr>
         </thead>
@@ -34,10 +35,20 @@
                 foreach (var item in Model)
                 {
                     <tr>
-                        <td>@item.ID_GioiTinh</td>
+                        <td>@item.MaGioiTinh</td>
                         <td>@item.Ten_GioiTinh</td>
                         <td>
-                            <a asp-action="Details" asp-route-idGioiTinh="@item.ID_GioiTinh" class="btn btn-sm btn-outline-info rounded-pill">Xem thêm</a>
+                            @if (item.TrangThai == 1)
+                            {
+                                <span class="badge bg-success">Hoạt động</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Không hoạt động</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-action="Details" asp-route-idGioiTinh="@item.ID_GioiTinh" class="btn btn-sm btn-outline-info rounded-pill">Xem</a>
                         </td>
                     </tr>
                 }

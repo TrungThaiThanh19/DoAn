@@ -1,4 +1,4 @@
-﻿﻿@{
+﻿﻿﻿@{
     ViewData["Title"] = "Thêm sản phẩm mới";
 }
 
@@ -75,6 +75,7 @@
                 <span class="text-danger">@Html.ValidationMessage("ID_ThuongHieu")</span>
             </div>
 
+
             <div class="col-md-6">
                 <label class="form-label">Quốc gia</label>
                 @Html.DropDownList("idQuocGia", (SelectList)ViewBag.QuocGiaList, "-- Chọn --", new { @class = "form-select" })
@@ -94,6 +95,18 @@
         <div class="card-header bg-secondary text-white">Thông tin chi tiết</div>
         <div class="card-body row g-3">
             <div class="col-md-6">
+                <label class="form-label">Mã biến thể</label>
+                <input name="maBienThe" type="text" class="form-control" value="@ViewBag.MaBienThe" />
+                <span class="text-danger">@Html.ValidationMessage("MaBienThe")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Hình ảnh biến thể</label>
+                <input type="file" name="hinhAnhBienThe" class="form-control" />
+                <span class="text-danger">@Html.ValidationMessage("HinhAnhBienThe")</span>
+            </div>
+
+            <div class="col-md-6">
                 <label class="form-label">Số lượng</label>
                 <input name="soLuong" type="text" class="form-control" value="@ViewBag.SoLuong" />
                 <span class="text-danger">@Html.ValidationMessage("SoLuong")</span>
@@ -107,8 +120,7 @@
 
             <div class="col-md-6">
                 <label class="form-label">Thể tích</label>
-                @* @Html.DropDownList("idTheTich", (SelectList)ViewBag.TheTichList, "-- Chọn --", new { @class = "form-select" }) *@
-                @Html.DropDownList("idTheTich", (SelectList)ViewBag.TheTichList, "-- Chọn thể tích --", new { @class = "form-select" })
+                @Html.DropDownList("idTheTich", (SelectList)ViewBag.TheTichList, "-- Chọn --", new { @class = "form-select" })
                 <span class="text-danger">@Html.ValidationMessage("ID_TheTich")</span>
             </div>
 

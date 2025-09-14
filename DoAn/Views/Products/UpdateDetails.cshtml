@@ -3,9 +3,9 @@
     ViewData["Title"] = "Cập nhật biến thể";
 }
 
-<h2 class="mb-4 text-info">🛠️ Cập nhật biến thể sản phẩm</h2>
+<h2 class="mb-4 text-info">Cập nhật biến thể</h2>
 
-<form method="post">
+<form method="post" enctype="multipart/form-data">
     <input type="hidden" name="id" value="@Model.ID_SanPhamChiTiet" />
 
     <div class="card shadow rounded-4 mb-4">
@@ -13,9 +13,9 @@
         <div class="card-body row g-3">
 
             <div class="col-md-6">
-                <label class="form-label">Thể tích</label>
-                @Html.DropDownList("idTheTich", (SelectList)ViewBag.TheTichList, "-- Chọn thể tích --", new { @class = "form-select" })
-                <span class="text-danger">@Html.ValidationMessage("ID_TheTich")</span>
+                <label class="form-label">Mã biến thể</label>
+                <input name="maBienThe" type="text" class="form-control" value="@Model.MaSanPhamChiTiet" />
+                <span class="text-danger">@Html.ValidationMessage("MaBienThe")</span>
             </div>
 
             <div class="col-md-6">
@@ -42,11 +42,28 @@
                 <span class="text-danger">@Html.ValidationMessage("TrangThai")</span>
             </div>
 
+            <div class="col-md-6">
+                <label class="form-label">Thể tích</label>
+                @Html.DropDownList("idTheTich", (SelectList)ViewBag.TheTichList, "-- Chọn thể tích --", new { @class = "form-select" })
+                <span class="text-danger">@Html.ValidationMessage("ID_TheTich")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label mb-2">Hình ảnh hiện tại</label>
+                <div class="mb-3">
+                    <input type="file" name="hinhAnhBienThe" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <img src="@Model.HinhAnh" class="img-thumbnail d-block" style="max-width: 150px;" />
+                </div>
+                <span class="text-danger">@Html.ValidationMessage("HinhAnhBienThe")</span>
+            </div>
+
         </div>
     </div>
 
     <div class="d-flex justify-content-between">
         <a asp-action="Update" asp-route-idSanPham="@Model.ID_SanPham" class="btn btn-outline-secondary rounded-pill px-4">← Quay lại</a>
-        <button type="submit" class="btn btn-info rounded-pill px-4">Lưu thay đổi</button>
+        <button type="submit" class="btn btn-info rounded-pill px-4">Cập nhật</button>
     </div>
 </form>
