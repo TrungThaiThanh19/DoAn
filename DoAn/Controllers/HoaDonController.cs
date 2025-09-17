@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using DoAn.IService;
 using DoAn.Models;
 using DoAn.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -14,6 +15,7 @@ namespace DoAn.Controllers
     public class HoaDonController : Controller
     {
         private readonly DoAnDbContext _context;
+        private readonly IHoaDonService _hoaDonService;
         public HoaDonController(DoAnDbContext context) => _context = context;
 
 
@@ -374,5 +376,23 @@ namespace DoAn.Controllers
             var cur = ReadTonKho(spct);
             WriteTonKho(spct, Math.Max(0, cur - qty));
         }
+        private string GenerateMaHoaDon()
+        {
+            string prefix = "HD"; // tiền tố
+            string datePart = DateTime.Now.ToString("yyyyMMdd"); // 20250917
+
+            // Đếm số hóa đơn trong ngày
+            int countToday = _context.HoaDons
+                .Count(h => h.NgayTao.Date == DateTime.Today);
+
+            // Tăng thêm 1 cho mã mới
+            int nextNumber = countToday + 1;
+
+            // Format thành 3 chữ số: 001, 002, ...
+            string numberPart = nextNumber.ToString("D3");
+
+            return $"{prefix}{datePart}-{numberPart}";
+        }
     }
+
 }

@@ -4,6 +4,8 @@ using DoAn.ViewModel;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
+using DoAn.IService;
+using DoAn.Service;
 
 namespace DoAn.Controllers
 {
@@ -11,13 +13,15 @@ namespace DoAn.Controllers
     {
         private readonly DoAnDbContext _db;
         private readonly IGioHangService _cart;
+        private readonly IHoaDonService _hoaDonService;
 
         private const int TrangThaiConBan = 1;
         private const int TrangThaiHetHang = 0;
 
-        public CheckoutController(DoAnDbContext db, IGioHangService cart)
+        public CheckoutController(DoAnDbContext db, IGioHangService cart,  IHoaDonService hoaDonService)
         {
             _db = db;
+            _hoaDonService = hoaDonService;
             _cart = cart;
         }
 
@@ -212,7 +216,7 @@ namespace DoAn.Controllers
             var hd = new HoaDon
             {
                 ID_HoaDon = Guid.NewGuid(),
-                Ma_HoaDon = "HD" + DateTime.Now.ToString("yyyyMMddHHmmss"),
+                Ma_HoaDon = _hoaDonService.GenerateMaHoaDon(),
                 ID_KhachHang = khId,
                 HoTen = dto.ReceiverName,
                 Sdt_NguoiNhan = dto.Phone,

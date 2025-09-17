@@ -41,6 +41,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddScoped<IGioHangService, GioHangService>();
 builder.Services.AddScoped<IStatisticsService, StatisticsService>();
 builder.Services.AddScoped<IKhuyenMaiService, KhuyenMaiService>();
+builder.Services.AddScoped<IHoaDonService, HoaDonService>();
+
 
 // (tuỳ nhu cầu) nếu service nào cần HttpContext:
 builder.Services.AddHttpContextAccessor();

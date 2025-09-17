@@ -7,15 +7,18 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using QuestPDF.Drawing;
+using DoAn.IService;
 
 namespace DoAn.Controllers
 {
     public class POSController : Controller
     {
         private readonly DoAnDbContext _context;
-        public POSController(DoAnDbContext context)
+        private readonly IHoaDonService _hoaDonService;
+        public POSController(DoAnDbContext context, IHoaDonService hoaDonService)
         {
             _context = context;
+            _hoaDonService = hoaDonService;
         }
 
 
@@ -47,7 +50,9 @@ namespace DoAn.Controllers
                     TenSanPham = ct.SanPham.Ten_SanPham,
                     TheTich = ct.TheTich.GiaTri.ToString("0.#") + ct.TheTich.DonVi,
                     ct.GiaBan,
-                    ct.SoLuong
+                    ct.SoLuong,
+                    MaBienThe = ct.MaSanPhamChiTiet,
+                    HinhAnhBienThe = ct.HinhAnh
                 })
                 .ToListAsync();
 
@@ -168,7 +173,7 @@ namespace DoAn.Controllers
                 }
 
                 string maHoaDon;
-                do { maHoaDon = TaoMaNgauNhien(10); }
+                do { maHoaDon = _hoaDonService.GenerateMaHoaDon(); }
                 while (await _context.HoaDons.AnyAsync(x => x.Ma_HoaDon == maHoaDon));
 
                 var idHoaDon = Guid.NewGuid();
@@ -217,7 +222,7 @@ namespace DoAn.Controllers
                 }
 
                 string maHoaDon;
-                do { maHoaDon = TaoMaNgauNhien(10); }
+                do { maHoaDon = _hoaDonService.GenerateMaHoaDon(); }
                 while (await _context.HoaDons.AnyAsync(x => x.Ma_HoaDon == maHoaDon));
 
                 var idHoaDon = Guid.NewGuid();
@@ -490,7 +495,7 @@ namespace DoAn.Controllers
                     hoaDon = new HoaDon
                     {
                         ID_HoaDon = Guid.NewGuid(),
-                        Ma_HoaDon = TaoMaNgauNhien(10),
+                        Ma_HoaDon = _hoaDonService.GenerateMaHoaDon(),
                         HoTen = model.HoTen,
                         Email = model.Email,
                         Sdt_NguoiNhan = model.Sdt_NguoiNhan,
