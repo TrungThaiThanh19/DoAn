@@ -1,0 +1,126 @@
+﻿@model IEnumerable<DoAn.Models.NhanVien>
+@{
+    ViewData["Title"] = "Danh sách nhân viên";
+    var selectedGioiTinh = ViewBag.SelectedGioiTinh as string[] ?? Array.Empty<string>();
+    var selectedTrangThai = ViewBag.SelectedTrangThai as string[] ?? Array.Empty<string>();
+}
+
+<h2 class="mb-4 text-primary">Danh sách nhân viên</h2>
+
+<div class="row mb-3">
+    <!-- Ô tìm kiếm và nút thêm -->
+    <div class="col-md-6">
+        <form method="get" asp-action="Index" class="input-group">
+            <input type="text" name="keyword" class="form-control" placeholder="🔍 Tìm kiếm theo mã, tên, sđt..." value="@ViewBag.Keyword" />
+            <button type="submit" class="btn btn-primary">Tìm</button>
+        </form>
+    </div>
+    <div class="col-md-6 text-end">
+        <a asp-action="Create" class="btn btn-success rounded-pill px-4">Thêm nhân viên</a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Bảng danh sách nhân viên -->
+    <div class="col-md-9">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle text-center">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Mã NV</th>
+                        <th>Tên nhân viên</th>
+                        <th>Email</th>
+                        <th>SĐT</th>
+                        <th>Địa chỉ</th>
+                        <th>Giới tính</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.Ma_NhanVien</td>
+                                <td>@item.Ten_NhanVien</td>
+                                <td>@item.Email</td>
+                                <td>@item.SoDienThoai</td>
+                                <td>@item.DiaChiLienHe</td>
+                                <td>@item.GioiTinh</td>
+                                <td>
+                                    @if (item.TrangThai == 1)
+                                    {
+                                        <span class="badge bg-success">Hoạt động</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Không hoạt động</span>
+                                    }
+                                </td>
+                                <td>
+                                    <a asp-action="Details" asp-route-id="@item.ID_NhanVien" class="btn btn-sm btn-outline-info rounded-pill">Xem</a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="9" class="text-muted">Không tìm thấy nhân viên nào</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Bộ lọc -->
+    <div class="col-md-3">
+        <form method="get" asp-action="Index">
+            <div class="card shadow-sm border-0 mb-3">
+                <div class="card-header bg-light fw-bold">🔎 Bộ lọc</div>
+                <div class="card-body">
+
+                    <!-- Giới tính -->
+                    <div class="mb-3">
+                        <label class="fw-semibold">Giới tính</label>
+                        @foreach (var item in (SelectList)ViewBag.GioiTinhList)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="gioiTinhFilters" value="@item.Value"
+                                @(selectedGioiTinh.Contains(item.Value) ? "checked" : "") />
+                                <label class="form-check-label">@item.Text</label>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Trạng thái -->
+                    <div class="mb-3">
+                        <label class="fw-semibold">Trạng thái</label>
+                        @foreach (var item in (SelectList)ViewBag.TrangThaiList)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="trangThaiFilters" value="@item.Value"
+                                @(selectedTrangThai.Contains(item.Value) ? "checked" : "") />
+                                <label class="form-check-label">@item.Text</label>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="d-flex justify-content-between gap-2">
+                        <button type="submit" class="btn btn-primary w-100 py-1 rounded">Áp dụng</button>
+                        <button type="button" class="btn btn-outline-secondary w-100 py-1 rounded" onclick="clearFilters()">Xóa tất cả</button>
+                    </div>
+
+                    <script>
+                        function clearFilters() {
+                            const form = event.target.closest("form");
+                            const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+                            checkboxes.forEach(cb => cb.checked = false);
+                        }
+                    </script>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

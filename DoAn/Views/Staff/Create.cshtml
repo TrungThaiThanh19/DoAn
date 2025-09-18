@@ -1,0 +1,83 @@
+﻿@{
+    ViewData["Title"] = "Thêm nhân viên mới";
+}
+
+<h2 class="mb-4 text-primary">Thêm nhân viên</h2>
+
+<form method="post">
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+    <!-- Thông tin cá nhân -->
+    <div class="card mb-4 shadow rounded-4">
+        <div class="card-header bg-primary text-white">Thông tin cá nhân</div>
+        <div class="card-body row g-3">
+
+            <div class="col-md-6">
+                <label class="form-label">Tên người dùng</label>
+                <input name="username" type="text" class="form-control" value="@ViewBag.Username" />
+                <span class="text-danger">@Html.ValidationMessage("Uername")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Tên nhân viên</label>
+                <input name="tenNhanVien" type="text" class="form-control" value="@ViewBag.TenNhanVien" />
+                <span class="text-danger">@Html.ValidationMessage("Ten_NhanVien")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Ngày sinh</label>
+                <input name="ngaySinh" type="date" class="form-control" value="@ViewBag.NgaySinh" />
+                <span class="text-danger">@Html.ValidationMessage("Ngay_Sinh")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Giới tính</label>
+                @Html.DropDownList("gioiTinh", (SelectList)ViewBag.GioiTinhList, "-- Chọn --", new { @class = "form-select" })
+                <span class="text-danger">@Html.ValidationMessage("Gioi_Tinh")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Email</label>
+                <input name="email" type="text" class="form-control" value="@ViewBag.Email" />
+                <span class="text-danger">@Html.ValidationMessage("Email")</span>
+
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Địa chỉ liên hệ</label>
+                <input name="diaChi" type="text" class="form-control" value="@ViewBag.DiaChi" />
+                <span class="text-danger">@Html.ValidationMessage("Dia_Chi")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Số điện thoại</label>
+                <input name="soDienThoai" type="text" class="form-control" value="@ViewBag.SoDienThoai" />
+                <span class="text-danger">@Html.ValidationMessage("So_Dien_Thoai")</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Thông tin hệ thống -->
+    <div class="card mb-4 shadow rounded-4">
+        <div class="card-header bg-secondary text-white">Thông tin tài khoản</div>
+        <div class="card-body row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Trạng thái</label>
+                @Html.DropDownList("trangThai", (SelectList)ViewBag.TrangThaiList, "Hoạt động", new { @class = "form-select", @disabled = "disabled" })
+                <span class="text-danger">@Html.ValidationMessage("TrangThai")</span>
+                <small class="text-muted d-block">Trạng thái mặc định: Hoạt động</small>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Mật khẩu mặc định</label>
+                <input class="form-control" value="123456" readonly />
+                <small class="text-muted d-block">Đổi sau khi đăng nhập</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between">
+        <a href="/Staff/Index" class="btn btn-outline-success rounded-pill px-4">Quay lại</a>
+        <button type="submit" class="btn btn-success rounded-pill px-4">Thêm nhân viên</button>
+    </div>
+</form>
