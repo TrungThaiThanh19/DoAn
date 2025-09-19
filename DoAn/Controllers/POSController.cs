@@ -41,17 +41,62 @@ namespace DoAn.Controllers
             var danhSachBienThe = await _context.SanPhamChiTiets
                 .Include(ct => ct.TheTich)
                 .Include(ct => ct.SanPham)
+                .Include(ct => ct.ChiTietKhuyenMais)
+                    .ThenInclude(ctkm => ctkm.KhuyenMai)
                 .Where(ct => ct.ID_SanPham == idSanPham && ct.TrangThai == 1 && ct.SoLuong > 0)
-                .Select(ct => new {
+                .ToListAsync();
+
+            var now = DateTime.UtcNow.AddHours(7); // UTC+7
+            var result = danhSachBienThe.Select(ct => {
+                decimal giaGoc = ct.GiaBan;
+                decimal giaHienThi = giaGoc;
+                int giamPhanTram = 0;
+
+                // Áp dụng khuyến mãi tự động
+                if (ct.ChiTietKhuyenMais != null)
+                {
+                    foreach (var ctkm in ct.ChiTietKhuyenMais)
+                    {
+                        var km = ctkm.KhuyenMai;
+                        if (km == null) continue;
+                        if (km.TrangThai != 1 || now < km.NgayBatDau || now > km.NgayHetHan) continue;
+
+                        decimal discount = 0M;
+                        var kieu = (km.KieuGiamGia ?? "").Trim().ToLowerInvariant();
+
+                        if (kieu == "percent")
+                        {
+                            var pct = Math.Clamp(km.GiaTriGiam, 0, 100);
+                            discount = giaGoc * (pct / 100m);
+                            if (km.GiaTriToiDa > 0 && discount > km.GiaTriToiDa) discount = km.GiaTriToiDa;
+                        }
+                        else if (kieu == "fixed")
+                        {
+                            discount = Math.Min(giaGoc, Math.Max(0, km.GiaTriGiam));
+                        }
+
+                        var price = Math.Max(0, giaGoc - discount);
+                        if (price < giaHienThi) giaHienThi = price; // chọn giá tốt nhất
+                    }
+
+                    if (giaHienThi < giaGoc)
+                    {
+                        giamPhanTram = (int)Math.Clamp(Math.Round((1 - (giaHienThi / giaGoc)) * 100M), 0, 100);
+                    }
+                }
+
+                return new {
                     id_SanPhamChiTiet = ct.ID_SanPhamChiTiet,
                     TenSanPham = ct.SanPham.Ten_SanPham,
                     TheTich = ct.TheTich.GiaTri.ToString("0.#") + ct.TheTich.DonVi,
-                    ct.GiaBan,
+                    GiaBan = giaHienThi, // Sử dụng giá đã áp dụng khuyến mãi
+                    GiaGoc = giaGoc, // Giá gốc để hiển thị
+                    GiamPhanTram = giamPhanTram, // Phần trăm giảm giá
                     ct.SoLuong
-                })
-                .ToListAsync();
+                };
+            }).ToList();
 
-            return Json(danhSachBienThe);
+            return Json(result);
         }
 
 
@@ -139,19 +184,64 @@ namespace DoAn.Controllers
             var dsChiTiet = await _context.HoaDonChiTiets
                 .Include(ct => ct.SanPhamChiTiet).ThenInclude(spct => spct.SanPham)
                 .Include(ct => ct.SanPhamChiTiet).ThenInclude(spct => spct.TheTich)
+                .Include(ct => ct.SanPhamChiTiet).ThenInclude(spct => spct.ChiTietKhuyenMais)
+                    .ThenInclude(ctkm => ctkm.KhuyenMai)
                 .Where(ct => ct.ID_HoaDon == idHoaDon)
-                .Select(ct => new {
-                    TenSanPham = ct.SanPhamChiTiet.SanPham.Ten_SanPham,
-                    TheTich = ct.SanPhamChiTiet.TheTich.GiaTri.ToString("0.#") + ct.SanPhamChiTiet.TheTich.DonVi,
-                    DonGia = ct.DonGia,
-                    SoLuong = ct.SoLuong,
-                    ThanhTien = ct.SoLuong * ct.DonGia,
-                    ID_SanPhamChiTiet = ct.ID_SanPhamChiTiet,
-                    ID_HoaDonChiTiet = ct.ID_HoaDonChiTiet
-                })
                 .ToListAsync();
 
-            return Json(dsChiTiet);
+            var now = DateTime.UtcNow.AddHours(7); // UTC+7
+            var result = dsChiTiet.Select(ct => {
+                decimal giaGoc = ct.SanPhamChiTiet.GiaBan;
+                decimal giaHienThi = giaGoc;
+                int giamPhanTram = 0;
+
+                // Áp dụng khuyến mãi tự động
+                if (ct.SanPhamChiTiet.ChiTietKhuyenMais != null)
+                {
+                    foreach (var ctkm in ct.SanPhamChiTiet.ChiTietKhuyenMais)
+                    {
+                        var km = ctkm.KhuyenMai;
+                        if (km == null) continue;
+                        if (km.TrangThai != 1 || now < km.NgayBatDau || now > km.NgayHetHan) continue;
+
+                        decimal discount = 0M;
+                        var kieu = (km.KieuGiamGia ?? "").Trim().ToLowerInvariant();
+
+                        if (kieu == "percent")
+                        {
+                            var pct = Math.Clamp(km.GiaTriGiam, 0, 100);
+                            discount = giaGoc * (pct / 100m);
+                            if (km.GiaTriToiDa > 0 && discount > km.GiaTriToiDa) discount = km.GiaTriToiDa;
+                        }
+                        else if (kieu == "fixed")
+                        {
+                            discount = Math.Min(giaGoc, Math.Max(0, km.GiaTriGiam));
+                        }
+
+                        var price = Math.Max(0, giaGoc - discount);
+                        if (price < giaHienThi) giaHienThi = price; // chọn giá tốt nhất
+                    }
+
+                    if (giaHienThi < giaGoc)
+                    {
+                        giamPhanTram = (int)Math.Clamp(Math.Round((1 - (giaHienThi / giaGoc)) * 100M), 0, 100);
+                    }
+                }
+
+                return new {
+                    TenSanPham = ct.SanPhamChiTiet.SanPham.Ten_SanPham,
+                    TheTich = ct.SanPhamChiTiet.TheTich.GiaTri.ToString("0.#") + ct.SanPhamChiTiet.TheTich.DonVi,
+                    DonGia = giaHienThi, // Sử dụng giá đã áp dụng khuyến mãi
+                    GiaGoc = giaGoc, // Giá gốc để hiển thị
+                    GiamPhanTram = giamPhanTram, // Phần trăm giảm giá
+                    SoLuong = ct.SoLuong,
+                    ThanhTien = ct.SoLuong * giaHienThi, // Tính lại thành tiền với giá đã giảm
+                    ID_SanPhamChiTiet = ct.ID_SanPhamChiTiet,
+                    ID_HoaDonChiTiet = ct.ID_HoaDonChiTiet
+                };
+            }).ToList();
+
+            return Json(result);
         }
 
 
@@ -182,13 +272,56 @@ namespace DoAn.Controllers
                     TrangThai = 0,
                     HinhThucThanhToan = "Chưa xác định"
                 };
+                // Lấy thông tin sản phẩm chi tiết để tính giá đã áp dụng khuyến mãi
+                var spct = await _context.SanPhamChiTiets
+                    .Include(x => x.ChiTietKhuyenMais)
+                        .ThenInclude(ctkm => ctkm.KhuyenMai)
+                    .FirstOrDefaultAsync(x => x.ID_SanPhamChiTiet == model.ID_SanPhamChiTiet);
+
+                decimal giaHienThi = model.DonGia; // Mặc định sử dụng giá từ frontend
+                
+                if (spct != null)
+                {
+                    decimal giaGoc = spct.GiaBan;
+                    giaHienThi = giaGoc;
+                    var now = DateTime.UtcNow.AddHours(7); // UTC+7
+
+                    // Áp dụng khuyến mãi tự động
+                    if (spct.ChiTietKhuyenMais != null)
+                    {
+                        foreach (var ctkm in spct.ChiTietKhuyenMais)
+                        {
+                            var km = ctkm.KhuyenMai;
+                            if (km == null) continue;
+                            if (km.TrangThai != 1 || now < km.NgayBatDau || now > km.NgayHetHan) continue;
+
+                            decimal discount = 0M;
+                            var kieu = (km.KieuGiamGia ?? "").Trim().ToLowerInvariant();
+
+                            if (kieu == "percent")
+                            {
+                                var pct = Math.Clamp(km.GiaTriGiam, 0, 100);
+                                discount = giaGoc * (pct / 100m);
+                                if (km.GiaTriToiDa > 0 && discount > km.GiaTriToiDa) discount = km.GiaTriToiDa;
+                            }
+                            else if (kieu == "fixed")
+                            {
+                                discount = Math.Min(giaGoc, Math.Max(0, km.GiaTriGiam));
+                            }
+
+                            var price = Math.Max(0, giaGoc - discount);
+                            if (price < giaHienThi) giaHienThi = price; // chọn giá tốt nhất
+                        }
+                    }
+                }
+
                 var chiTiet = new HoaDonChiTiet
                 {
                     ID_HoaDonChiTiet = Guid.NewGuid(),
                     ID_HoaDon = idHoaDon,
                     ID_SanPhamChiTiet = model.ID_SanPhamChiTiet,
                     SoLuong = model.SoLuong,
-                    DonGia = model.DonGia
+                    DonGia = giaHienThi // Sử dụng giá đã áp dụng khuyến mãi
                 };
                 hoaDon.HoaDonChiTiets = new List<HoaDonChiTiet> { chiTiet };
                 _context.HoaDons.Add(hoaDon);
@@ -256,10 +389,46 @@ namespace DoAn.Controllers
             if (hoaDon == null)
                 return Json(new { success = false, message = "Không tìm thấy hóa đơn chờ" });
 
-            // Lấy tồn kho thực tế của biến thể
-            var spct = await _context.SanPhamChiTiets.FirstOrDefaultAsync(x => x.ID_SanPhamChiTiet == model.ID_SanPhamChiTiet);
+            // Lấy tồn kho thực tế của biến thể và khuyến mãi
+            var spct = await _context.SanPhamChiTiets
+                .Include(x => x.ChiTietKhuyenMais)
+                    .ThenInclude(ctkm => ctkm.KhuyenMai)
+                .FirstOrDefaultAsync(x => x.ID_SanPhamChiTiet == model.ID_SanPhamChiTiet);
+            
             if (spct == null || spct.TrangThai != 1)
                 return Json(new { success = false, message = "Biến thể không hợp lệ hoặc đã ngừng kinh doanh" });
+
+            // Tính giá đã áp dụng khuyến mãi
+            decimal giaGoc = spct.GiaBan;
+            decimal giaHienThi = giaGoc;
+            var now = DateTime.UtcNow.AddHours(7); // UTC+7
+
+            if (spct.ChiTietKhuyenMais != null)
+            {
+                foreach (var ctkm in spct.ChiTietKhuyenMais)
+                {
+                    var km = ctkm.KhuyenMai;
+                    if (km == null) continue;
+                    if (km.TrangThai != 1 || now < km.NgayBatDau || now > km.NgayHetHan) continue;
+
+                    decimal discount = 0M;
+                    var kieu = (km.KieuGiamGia ?? "").Trim().ToLowerInvariant();
+
+                    if (kieu == "percent")
+                    {
+                        var pct = Math.Clamp(km.GiaTriGiam, 0, 100);
+                        discount = giaGoc * (pct / 100m);
+                        if (km.GiaTriToiDa > 0 && discount > km.GiaTriToiDa) discount = km.GiaTriToiDa;
+                    }
+                    else if (kieu == "fixed")
+                    {
+                        discount = Math.Min(giaGoc, Math.Max(0, km.GiaTriGiam));
+                    }
+
+                    var price = Math.Max(0, giaGoc - discount);
+                    if (price < giaHienThi) giaHienThi = price; // chọn giá tốt nhất
+                }
+            }
 
             // Kiểm tra tổng số lượng đã có trong hóa đơn
             var chiTiet = hoaDon.HoaDonChiTiets.FirstOrDefault(ct => ct.ID_SanPhamChiTiet == model.ID_SanPhamChiTiet);
@@ -272,6 +441,7 @@ namespace DoAn.Controllers
             if (chiTiet != null)
             {
                 chiTiet.SoLuong = soLuongMoi;
+                chiTiet.DonGia = giaHienThi; // Cập nhật giá đã áp dụng khuyến mãi
                 _context.HoaDonChiTiets.Update(chiTiet);
             }
             else
@@ -282,7 +452,7 @@ namespace DoAn.Controllers
                     ID_HoaDon = hoaDon.ID_HoaDon,
                     ID_SanPhamChiTiet = model.ID_SanPhamChiTiet,
                     SoLuong = model.SoLuong,
-                    DonGia = spct.GiaBan
+                    DonGia = giaHienThi // Sử dụng giá đã áp dụng khuyến mãi
                 };
                 _context.HoaDonChiTiets.Add(chiTiet);
             }
@@ -475,13 +645,16 @@ namespace DoAn.Controllers
                     foreach (var item in model.HoaDonChiTiets)
                     {
                         var spct = await _context.SanPhamChiTiets.FindAsync(item.ID_SanPhamChiTiet);
-                        spct.SoLuong -= item.SoLuong;
-                        if (spct.SoLuong <= 0)
+                        if (spct != null)
                         {
-                            spct.SoLuong = 0;
-                            spct.TrangThai = 0;
+                            spct.SoLuong -= item.SoLuong;
+                            if (spct.SoLuong <= 0)
+                            {
+                                spct.SoLuong = 0;
+                                spct.TrangThai = 0;
+                            }
+                            _context.SanPhamChiTiets.Update(spct);
                         }
-                        _context.SanPhamChiTiets.Update(spct);
                     }
                 }
                 else
@@ -511,23 +684,62 @@ namespace DoAn.Controllers
                     hoaDon.HoaDonChiTiets = new List<HoaDonChiTiet>();
                     foreach (var item in model.HoaDonChiTiets)
                     {
-                        var spct = await _context.SanPhamChiTiets.FindAsync(item.ID_SanPhamChiTiet);
-                        spct.SoLuong -= item.SoLuong;
-                        if (spct.SoLuong <= 0)
+                        var spct = await _context.SanPhamChiTiets
+                            .Include(x => x.ChiTietKhuyenMais)
+                                .ThenInclude(ctkm => ctkm.KhuyenMai)
+                            .FirstOrDefaultAsync(x => x.ID_SanPhamChiTiet == item.ID_SanPhamChiTiet);
+                        
+                        if (spct != null)
                         {
-                            spct.SoLuong = 0;
-                            spct.TrangThai = 0;
-                        }
-                        _context.SanPhamChiTiets.Update(spct);
+                            spct.SoLuong -= item.SoLuong;
+                            if (spct.SoLuong <= 0)
+                            {
+                                spct.SoLuong = 0;
+                                spct.TrangThai = 0;
+                            }
+                            _context.SanPhamChiTiets.Update(spct);
 
-                        hoaDon.HoaDonChiTiets.Add(new HoaDonChiTiet
-                        {
-                            ID_HoaDonChiTiet = Guid.NewGuid(),
-                            ID_HoaDon = hoaDon.ID_HoaDon,
-                            ID_SanPhamChiTiet = item.ID_SanPhamChiTiet,
-                            SoLuong = item.SoLuong,
-                            DonGia = item.DonGia
-                        });
+                            // Tính giá đã áp dụng khuyến mãi
+                            decimal giaGoc = spct.GiaBan;
+                            decimal giaHienThi = giaGoc;
+                            var now = DateTime.UtcNow.AddHours(7); // UTC+7
+
+                            if (spct.ChiTietKhuyenMais != null)
+                            {
+                                foreach (var ctkm in spct.ChiTietKhuyenMais)
+                                {
+                                    var km = ctkm.KhuyenMai;
+                                    if (km == null) continue;
+                                    if (km.TrangThai != 1 || now < km.NgayBatDau || now > km.NgayHetHan) continue;
+
+                                    decimal discount = 0M;
+                                    var kieu = (km.KieuGiamGia ?? "").Trim().ToLowerInvariant();
+
+                                    if (kieu == "percent")
+                                    {
+                                        var pct = Math.Clamp(km.GiaTriGiam, 0, 100);
+                                        discount = giaGoc * (pct / 100m);
+                                        if (km.GiaTriToiDa > 0 && discount > km.GiaTriToiDa) discount = km.GiaTriToiDa;
+                                    }
+                                    else if (kieu == "fixed")
+                                    {
+                                        discount = Math.Min(giaGoc, Math.Max(0, km.GiaTriGiam));
+                                    }
+
+                                    var price = Math.Max(0, giaGoc - discount);
+                                    if (price < giaHienThi) giaHienThi = price; // chọn giá tốt nhất
+                                }
+                            }
+
+                            hoaDon.HoaDonChiTiets.Add(new HoaDonChiTiet
+                            {
+                                ID_HoaDonChiTiet = Guid.NewGuid(),
+                                ID_HoaDon = hoaDon.ID_HoaDon,
+                                ID_SanPhamChiTiet = item.ID_SanPhamChiTiet,
+                                SoLuong = item.SoLuong,
+                                DonGia = giaHienThi // Sử dụng giá đã áp dụng khuyến mãi
+                            });
+                        }
                     }
 
                     _context.HoaDons.Add(hoaDon);

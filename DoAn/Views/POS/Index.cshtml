@@ -299,10 +299,21 @@
                     }
 
                     data.forEach((bt, index) => {
+                        let giaDisplay = '';
+                        if (bt.giamPhanTram > 0) {
+                            giaDisplay = `
+                                <div class="text-decoration-line-through text-muted small">${bt.giaGoc.toLocaleString('vi-VN')} đ</div>
+                                <div class="text-danger fw-bold">${bt.giaBan.toLocaleString('vi-VN')} đ</div>
+                                <div class="badge bg-danger">-${bt.giamPhanTram}%</div>
+                            `;
+                        } else {
+                            giaDisplay = `<div class="fw-bold">${bt.giaBan.toLocaleString('vi-VN')} đ</div>`;
+                        }
+
                         const row = `
                             <tr>
                                 <td>${bt.theTich}</td>
-                                <td>${bt.giaBan.toLocaleString('vi-VN')} đ</td>
+                                <td>${giaDisplay}</td>
                                 <td>${bt.soLuong}</td>
                                 <td>
                                     <button class="btn btn-sm btn-outline-success" onclick="themVaoHoaDonCho(${index})">➕</button>
@@ -399,11 +410,23 @@
             let tongTien = 0;
             data.forEach((item, index) => {
                 tongTien += item.thanhTien;
+                
+                let giaDisplay = '';
+                if (item.giamPhanTram > 0) {
+                    giaDisplay = `
+                        <div class="text-decoration-line-through text-muted small">${item.giaGoc.toLocaleString("vi-VN")} đ</div>
+                        <div class="text-danger fw-bold">${item.donGia.toLocaleString("vi-VN")} đ</div>
+                        <div class="badge bg-danger">-${item.giamPhanTram}%</div>
+                    `;
+                } else {
+                    giaDisplay = `<div class="fw-bold">${item.donGia.toLocaleString("vi-VN")} đ</div>`;
+                }
+
                 tbody.innerHTML += `
                     <tr>
                         <td>${item.tenSanPham}</td>
                         <td>${item.theTich}</td>
-                        <td>${item.donGia.toLocaleString("vi-VN")} đ</td>
+                        <td>${giaDisplay}</td>
                         <td>
                             <button class="btn btn-sm btn-light" onclick="giamSoLuongHD(${index})">−</button>
                             <input type="number" value="${item.soLuong}" min="1"
