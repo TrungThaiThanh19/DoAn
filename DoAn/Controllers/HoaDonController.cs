@@ -197,7 +197,6 @@ namespace DoAn.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult CapNhatTrangThai(Guid idHoaDon)
         {
-            // Lấy hoá đơn kèm chi tiết + sản phẩm để kiểm tra tồn
             var hoaDon = _context.HoaDons
                 .Include(h => h.HoaDonChiTiets)
                     .ThenInclude(ct => ct.SanPhamChiTiet)
@@ -206,10 +205,33 @@ namespace DoAn.Controllers
 
             if (hoaDon == null) return NotFound();
 
-            // Chỉ xử lý đặc biệt khi chuyển 0 -> 1 (giữ hàng bằng cách trừ kho)
+            var old = hoaDon.TrangThai;
+
+            // 🔹 Nếu là OFFLINE -> chuyển thẳng sang Thành công
+            if (hoaDon.LoaiHoaDon.Equals("Offline", StringComparison.OrdinalIgnoreCase))
+            {
+                hoaDon.TrangThai = 4; // Thành công
+                hoaDon.NgayCapNhat = DateTime.Now;
+
+                _context.TrangThaiDonHangs.Add(new TrangThaiDonHang
+                {
+                    ID_TrangThaiDonHang = Guid.NewGuid(),
+                    ID_HoaDon = idHoaDon,
+                    TrangThai = hoaDon.TrangThai,
+                    NgayChuyen = DateTime.Now,
+                    NhanVienDoi = User?.Identity?.Name ?? "system",
+                    NoiDungDoi = "Đơn Offline -> Thanh toán trực tiếp -> Thành công"
+                });
+
+                _context.SaveChanges();
+                TempData["Success"] = "Đơn Offline đã được chuyển sang trạng thái Thành công.";
+                return RedirectToAction("Details", new { id = idHoaDon });
+            }
+
+            // 🔹 Nếu là ONLINE -> xử lý bình thường
             if (hoaDon.TrangThai == 0)
             {
-                // Kiểm tra đủ tồn kho cho tất cả dòng
+                // Kiểm tra tồn kho
                 var thieu = new List<string>();
                 foreach (var ct in hoaDon.HoaDonChiTiets)
                 {
@@ -233,7 +255,7 @@ namespace DoAn.Controllers
                     return RedirectToAction("Details", new { id = idHoaDon });
                 }
 
-                // Đủ hàng -> trừ kho + chuyển sang ĐÃ XÁC NHẬN
+                // Đủ hàng -> trừ kho + cập nhật trạng thái
                 foreach (var ct in hoaDon.HoaDonChiTiets)
                 {
                     var spct = ct.SanPhamChiTiet
@@ -243,7 +265,6 @@ namespace DoAn.Controllers
                     DecreaseTonKho(spct, ct.SoLuong);
                 }
 
-                var old = hoaDon.TrangThai;
                 hoaDon.TrangThai = 1; // Đã xác nhận
                 hoaDon.NgayCapNhat = DateTime.Now;
 
@@ -262,10 +283,8 @@ namespace DoAn.Controllers
                 return RedirectToAction("Details", new { id = idHoaDon });
             }
 
-            // Các bước khác (1->2->3->4) vẫn giống trước đây
             if (hoaDon.TrangThai < 4)
             {
-                var old = hoaDon.TrangThai;
                 hoaDon.TrangThai += 1;
                 hoaDon.NgayCapNhat = DateTime.Now;
 
@@ -284,6 +303,7 @@ namespace DoAn.Controllers
 
             return RedirectToAction("Details", new { id = idHoaDon });
         }
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -350,6 +370,51 @@ namespace DoAn.Controllers
             TempData["Success"] = "Đã hủy đơn hàng.";
             return RedirectToAction("Details", new { id });
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult CreateOffline(HoaDon model)
+        {
+            if (model == null)
+            {
+                TempData["Error"] = "Dữ liệu hóa đơn không hợp lệ.";
+                return RedirectToAction("Index");
+            }
+
+            // Gán mã hóa đơn tự sinh
+            model.ID_HoaDon = Guid.NewGuid();
+            model.Ma_HoaDon = GenerateMaHoaDon();
+            model.NgayTao = DateTime.Now;
+            model.NgayCapNhat = DateTime.Now;
+
+            // Nếu là offline thì auto thành công
+            if (model.LoaiHoaDon.Equals("Offline", StringComparison.OrdinalIgnoreCase))
+            {
+                model.TrangThai = 4; // Thành công
+
+                _context.TrangThaiDonHangs.Add(new TrangThaiDonHang
+                {
+                    ID_TrangThaiDonHang = Guid.NewGuid(),
+                    ID_HoaDon = model.ID_HoaDon,
+                    TrangThai = 4,
+                    NgayChuyen = DateTime.Now,
+                    NhanVienDoi = User?.Identity?.Name ?? "system",
+                    NoiDungDoi = "Tạo đơn Offline -> Thanh toán trực tiếp -> Thành công"
+                });
+            }
+            else
+            {
+                // Online mặc định để trạng thái chờ xác nhận
+                model.TrangThai = 0;
+            }
+
+            _context.HoaDons.Add(model);
+            _context.SaveChanges();
+
+            TempData["Success"] = "Tạo hóa đơn thành công.";
+            return RedirectToAction("Details", new { id = model.ID_HoaDon });
+        }
+
 
 
         // ===================== Helpers tồn kho (reflection) =====================

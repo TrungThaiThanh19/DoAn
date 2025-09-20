@@ -85,21 +85,23 @@ namespace DoAn.Controllers
             }
 
             // ==== Tạo chi tiết hoàn ====
+            // Tổng tiền gốc (chưa giảm, chưa cộng ship)
             var subtotal = hd.HoaDonChiTiets.Sum(x => x.SoLuong * x.DonGia);
             var ship = hd.PhuThu ?? 0m;
             var tongTienTruocGiam = subtotal + ship;
+
+            // Nếu có giảm giá
             var tongTienSauGiam = hd.TongTienSauGiam != 0m ? hd.TongTienSauGiam : tongTienTruocGiam;
             var discount = tongTienTruocGiam - tongTienSauGiam;
-            
-            // Tiền hoàn = Tổng tiền hàng gốc (không trừ giảm giá, không cộng phí ship)
-            // Vì khách hàng đã trả đủ tiền hàng, chỉ được giảm giá thôi
+
             var lines = new List<ChiTietTraHang>();
-            decimal tongHoan = 0;
+            decimal tongHoanHang = 0;
 
             foreach (var ct in hd.HoaDonChiTiets)
             {
                 var spct = ct.SanPhamChiTiet
-                    ?? await _context.SanPhamChiTiets.FirstOrDefaultAsync(x => x.ID_SanPhamChiTiet == ct.ID_SanPhamChiTiet);
+                    ?? await _context.SanPhamChiTiets
+                        .FirstOrDefaultAsync(x => x.ID_SanPhamChiTiet == ct.ID_SanPhamChiTiet);
                 if (spct == null) continue;
 
                 var daHoan = await _context.ChiTietTraHangs
@@ -113,9 +115,6 @@ namespace DoAn.Controllers
                 if (soTra <= 0) continue;
 
                 var gross = ct.DonGia * soTra;
-                // Tiền hoàn = Giá sản phẩm gốc (không trừ giảm giá)
-                // Vì khách hàng đã trả đủ tiền hàng, chỉ được giảm giá thôi
-                var tienHoan = decimal.Round(gross, 0, MidpointRounding.AwayFromZero);
 
                 lines.Add(new ChiTietTraHang
                 {
@@ -123,17 +122,24 @@ namespace DoAn.Controllers
                     ID_ChiTietSanPham = spct.ID_SanPhamChiTiet,
                     SanPhamChiTiet = spct,
                     SoLuong = soTra,
-                    TienHoan = tienHoan
+                    // Chỉ tạm lưu tiền gốc cho chi tiết
+                    TienHoan = decimal.Round(gross, 0, MidpointRounding.AwayFromZero)
                 });
-                tongHoan += tienHoan;
+
+                tongHoanHang += gross;
             }
 
+            // Nếu không có sản phẩm nào thì báo lỗi
             if (!lines.Any())
             {
                 TempData["Error"] = "Không còn số lượng để hoàn.";
                 return RedirectToAction("Details", "HoaDon", new { id = hoaDonId });
             }
 
+            // ✅ Tiền hoàn cuối cùng = Tổng tiền hàng gốc - Giảm giá + Ship
+            var tongHoan = tongHoanHang - discount + ship;
+
+            // Tạo phiếu
             var phieu = new QuanLyTraHang
             {
                 ID_TraHang = Guid.NewGuid(),

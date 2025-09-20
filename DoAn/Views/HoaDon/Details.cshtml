@@ -265,10 +265,13 @@
                         <div class="col-6"><div class="text-muted">Ngày tạo</div><div class="fw-bold">@Model.NgayTao.ToString("dd/MM/yyyy HH:mm")</div></div>
                         <div class="col-6"><div class="text-muted">Loại hóa đơn</div><div class="fw-bold">@Model.LoaiHoaDon</div></div>
                         <div class="col-6"><div class="text-muted">Hình thức thanh toán</div><div class="fw-bold">@Model.HinhThucThanhToan</div></div>
+                        <h4 class="fw-bold text-danger mb-3">
+                            Tổng thanh toán: @Currency(total)
+                        </h4>
                     </div>
 
                     <hr />
-                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-box-open me-2"></i>Sản phẩm</h5>
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-box-open me-2"></i>Hóa đơn </h5>
 
                     <div class="table-responsive">
                         @{
@@ -359,12 +362,31 @@
                                     var orderDiscount = Math.Max(0m, (sumSale + shipping) - total);
                                     var discount = lineDiscount + orderDiscount;
                                     var subtotalDisplay = sumGoc > 0m ? sumGoc : lineSubtotal;
+
+                                    var afterDiscount = subtotalDisplay - discount; // 👉 tổng tiền sau giảm giá
                                 }
-                                <tr><td colspan="4" class="text-end text-muted">Tạm tính (trước giảm)</td><td class="text-end">@Currency(subtotalDisplay)</td></tr>
-                                <tr><td colspan="4" class="text-end text-muted">Giảm giá</td><td class="text-end">-@Currency(discount)</td></tr>
-                                <tr><td colspan="4" class="text-end text-muted">Phụ thu</td><td class="text-end">@Currency(shipping)</td></tr>
-                                <tr class="total-row"><td colspan="4" class="text-end">Tổng thanh toán</td><td class="text-end">@Currency(total)</td></tr>
+                                <tr>
+                                    <td colspan="4" class="text-end text-muted">Tạm tính (trước giảm)</td>
+                                    <td class="text-end">@Currency(subtotalDisplay)</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4" class="text-end text-muted">Giảm giá</td>
+                                    <td class="text-end">-@Currency(discount)</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4" class="text-end text-muted">Tổng tiền sản phẩm (sau giảm)</td>
+                                    <td class="text-end">@Currency(afterDiscount)</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4" class="text-end text-muted">Phụ thu( Phí ship)</td>
+                                    <td class="text-end">@Currency(shipping)</td>
+                                </tr>
+                                <tr class="fw-bold" style="background-color:#007bff; color:white;">
+                                    <td colspan="4" class="text-end">Tổng thanh toán</td>
+                                    <td class="text-end">@Currency(total)</td>
+                                </tr>
                             </tfoot>
+
                         </table>
                     </div>
                 </div>
@@ -385,14 +407,21 @@
                             <i class="fa-solid fa-arrow-left-long me-2"></i>Quay lại danh sách
                         </a>
 
-                        @if (isOnline && Model.TrangThai < steps.Length - 1 && !isCanceled)
+                        @if (Model.TrangThai < steps.Length - 1)
                         {
-                            <form asp-action="CapNhatTrangThai" method="post">
+                            <form asp-action="CapNhatTrangThai" method="post" class="m-0">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="idHoaDon" value="@Model.ID_HoaDon" />
-                                <button class="btn btn-primary w-100">
-                                    <i class="fa-regular fa-circle-right me-2"></i>
-                                    Chuyển sang: <strong>@steps[Model.TrangThai + 1]</strong>
+                                <button class="btn btn-success px-4 py-2">
+                                    <i class="fa-solid fa-hand-point-right me-2"></i>
+                                    @if (isOnline)
+                                    {
+                                        @:Chuyển sang bước: <strong>@steps[Model.TrangThai + 1]</strong>
+                                    }
+                                    else
+                                    {
+                                        @:Hoàn tất: <strong>Thành công</strong>
+                                    }
                                 </button>
                             </form>
                         }

@@ -107,21 +107,23 @@ namespace DoAn.Controllers
         }
 
 
-        // Hàm sinh mã ngẫu nhiên
-        private string TaoMaNgauNhien(int length)
+        // Hàm sinh mã hóa đơn theo ngày
+        private string TaoMaHoaDon(string prefix)
         {
-            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            var random = new Random();
-            return new string(Enumerable.Repeat(chars, length)
-                .Select(s => s[random.Next(s.Length)]).ToArray());
+            string datePart = DateTime.Now.ToString("yyyyMMdd");
+            int countToday = _context.HoaDons.Count(h => h.NgayTao.Date == DateTime.Today);
+            int nextNumber = countToday + 1;
+            string numberPart = nextNumber.ToString("D5"); // VD: 00001, 00002
+            return $"{prefix}{datePart}-{numberPart}";
         }
+
 
 
         [HttpGet]
         public async Task<IActionResult> DanhSachHoaDonCho()
         {
             var ds = await _context.HoaDons
-                .Where(x => x.TrangThai == 0 && x.LoaiHoaDon == "Offline") // Chỉ lấy hóa đơn chờ offline và chưa thanh toán
+                .Where(x => x.TrangThai == 0 && x.LoaiHoaDon == "Offline")
                 .OrderByDescending(x => x.NgayTao)
                 .Select(x => new
                 {
@@ -160,55 +162,6 @@ namespace DoAn.Controllers
         }
 
 
-
-        [HttpPost]
-        public async Task<IActionResult> TaoHoaDonCho([FromBody] TaoHoaDonChoRequest model)
-        {
-            try
-            {
-                var soHoaDonCho = await _context.HoaDons.CountAsync(x => x.TrangThai == 0);
-                if (soHoaDonCho >= 5)
-                {
-                    return Json(new { success = false, message = "Chỉ được phép tạo tối đa 5 hóa đơn chờ! Vui lòng xóa bớt hóa đơn chờ trước khi tạo mới" });
-                }
-
-                string maHoaDon;
-                do { maHoaDon = _hoaDonService.GenerateMaHoaDon(); }
-                while (await _context.HoaDons.AnyAsync(x => x.Ma_HoaDon == maHoaDon));
-
-                var idHoaDon = Guid.NewGuid();
-                var hoaDon = new HoaDon
-                {
-                    ID_HoaDon = idHoaDon,
-                    Ma_HoaDon = maHoaDon,
-                    PhuongThucNhanHang = "Nhận tại quầy",
-                    LoaiHoaDon = "Offline",
-                    NgayTao = DateTime.Now,
-                    TrangThai = 0,
-                    HinhThucThanhToan = "Chưa xác định"
-                };
-                var chiTiet = new HoaDonChiTiet
-                {
-                    ID_HoaDonChiTiet = Guid.NewGuid(),
-                    ID_HoaDon = idHoaDon,
-                    ID_SanPhamChiTiet = model.ID_SanPhamChiTiet,
-                    SoLuong = model.SoLuong,
-                    DonGia = model.DonGia
-                };
-                hoaDon.HoaDonChiTiets = new List<HoaDonChiTiet> { chiTiet };
-                _context.HoaDons.Add(hoaDon);
-
-                await _context.SaveChangesAsync();
-
-                return Json(new { success = true, idHoaDon = hoaDon.ID_HoaDon, maHoaDon = hoaDon.Ma_HoaDon });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message, detail = ex.InnerException?.Message });
-            }
-        }
-
-
         [HttpPost]
         public async Task<IActionResult> TaoHoaDonChoRong()
         {
@@ -221,15 +174,11 @@ namespace DoAn.Controllers
                     return Json(new { success = false, message = "Chỉ được tạo tối đa 5 hóa đơn chờ. Vui lòng xóa bớt hóa đơn chờ trước khi tạo mới." });
                 }
 
-                string maHoaDon;
-                do { maHoaDon = _hoaDonService.GenerateMaHoaDon(); }
-                while (await _context.HoaDons.AnyAsync(x => x.Ma_HoaDon == maHoaDon));
-
                 var idHoaDon = Guid.NewGuid();
                 var hoaDon = new HoaDon
                 {
                     ID_HoaDon = idHoaDon,
-                    Ma_HoaDon = maHoaDon,
+                    Ma_HoaDon = _hoaDonService.GenerateMaHoaDon(),
                     PhuongThucNhanHang = "Nhận tại quầy",
                     LoaiHoaDon = "Offline",
                     NgayTao = DateTime.Now,
@@ -379,6 +328,16 @@ namespace DoAn.Controllers
         {
             try
             {
+                //var userIdString = HttpContext.Session.GetString("UserID");
+                //if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var idTaiKhoan))
+                //	return Json(new { success = false, message = "Không xác định được tài khoản nhân viên!" });
+
+                //var nhanVien = await _context.NhanViens.FirstOrDefaultAsync(nv => nv.ID_TaiKhoan == idTaiKhoan);
+                //if (nhanVien == null)
+                //	return Json(new { success = false, message = "Không xác định được nhân viên bán hàng!" });
+
+                //var idNhanVien = nhanVien.ID_NhanVien;
+
                 if (model == null || model.HoaDonChiTiets == null || !model.HoaDonChiTiets.Any())
                     return Json(new { success = false, message = "Hóa đơn không được để trống!" });
 
@@ -472,9 +431,10 @@ namespace DoAn.Controllers
                     hoaDon.ID_Voucher = voucher?.ID_Voucher;
                     hoaDon.TongTienTruocGiam = model.TongTienTruocGiam;
                     hoaDon.TongTienSauGiam = model.TongTienTruocGiam - giamGia + (model.PhuThu ?? 0);
-                    hoaDon.TrangThai = 1; // Đã thanh toán
+                    hoaDon.TrangThai = 4; // Đã thanh toán
                     hoaDon.NgayCapNhat = DateTime.Now;
                     hoaDon.PhuongThucNhanHang = phuongThucNhanHang;
+                    //hoaDon.ID_NhanVien = idNhanVien; // Gán nhân viên thanh toán
 
                     // Trừ tồn kho sản phẩm
                     foreach (var item in model.HoaDonChiTiets)
@@ -495,7 +455,7 @@ namespace DoAn.Controllers
                     hoaDon = new HoaDon
                     {
                         ID_HoaDon = Guid.NewGuid(),
-                        Ma_HoaDon = _hoaDonService.GenerateMaHoaDon(),
+                        Ma_HoaDon = TaoMaHoaDon("HD"),
                         HoTen = model.HoTen,
                         Email = model.Email,
                         Sdt_NguoiNhan = model.Sdt_NguoiNhan,
@@ -510,6 +470,7 @@ namespace DoAn.Controllers
                         LoaiHoaDon = "Offline",
                         NgayTao = DateTime.Now,
                         TrangThai = 1,
+                        //ID_NhanVien = idNhanVien,
                     };
 
                     // Tạo chi tiết hóa đơn + trừ tồn kho
@@ -648,6 +609,11 @@ namespace DoAn.Controllers
                                     txt.Span("Ngày tạo: ").SemiBold();
                                     txt.Span($"{hoaDon.NgayTao:dd/MM/yyyy HH:mm}");
                                 });
+                                //stack.Item().Text(txt =>
+                                //{
+                                //	txt.Span("Mã nhân viên: ").SemiBold();
+                                //	txt.Span($"{hoaDon.NhanVien?.Ma_NhanVien ?? ""}");
+                                //});
                                 stack.Item().Text(txt =>
                                 {
                                     txt.Span("Phương thức thanh toán: ").SemiBold();
