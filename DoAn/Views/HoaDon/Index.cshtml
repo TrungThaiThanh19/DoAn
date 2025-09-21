@@ -1,0 +1,218 @@
+﻿@model List<DoAn.ViewModels.HoaDonViewModel>
+@{
+    ViewData["Title"] = "Quản lý hóa đơn";
+    var loaiHD = (ViewBag.LoaiHoaDon as string)?.Trim();
+    var trangThai = ViewBag.TrangThai as int?;
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    string Money(decimal v) => string.Format("{0:N0} VND", v);
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+<h2 class="mb-3">Quản lý hóa đơn</h2>
+
+<!-- Tabs trạng thái -->
+<div class="btn-group mb-3">
+    <a class="btn btn-outline-secondary @(trangThai == null ? "active" : "")"
+       asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="">Tất cả</a>
+    <a class="btn btn-outline-secondary @(trangThai == 0 ? "active" : "")"
+       asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="0">Chờ xác nhận</a>
+    <a class="btn btn-outline-secondary @(trangThai == 1 ? "active" : "")"
+       asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="1">Xác nhận</a>
+    <a class="btn btn-outline-secondary @(trangThai == 2 ? "active" : "")"
+       asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="2">Vận chuyển</a>
+    <a class="btn btn-outline-secondary @(trangThai == 3 ? "active" : "")"
+       asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="3">Thanh toán</a>
+    <a class="btn btn-outline-secondary @(trangThai == 4 ? "active" : "")"
+       asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="4">Hoàn thành</a>
+    <a class="btn btn-outline-secondary @(trangThai == 5 ? "active" : "")"
+       asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="5">Hủy</a>
+    <a class="btn btn-outline-secondary @(trangThai == 7 ? "active" : "")"
+       asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="7">Hoàn hàng thành công</a>
+   
+</div>
+
+<!-- Lọc loại hóa đơn -->
+<form method="get" class="mb-3 d-flex align-items-center gap-2">
+    <label for="loaiHoaDon">Lọc loại hóa đơn:</label>
+    <select name="loaiHoaDon" id="loaiHoaDon" class="form-select w-auto" onchange="this.form.submit()">
+        <option value="">-- Tất cả --</option>
+
+        @if (string.Equals(loaiHD, "online", StringComparison.OrdinalIgnoreCase))
+        {
+            <option value="online" selected>Online</option>
+        }
+        else
+        {
+            <option value="online">Online</option>
+        }
+
+        @if (string.Equals(loaiHD, "offline", StringComparison.OrdinalIgnoreCase))
+        {
+            <option value="offline" selected>Offline</option>
+        }
+        else
+        {
+            <option value="offline">Offline</option>
+        }
+    </select>
+</form>
+
+<!-- Bảng dữ liệu -->
+<table class="table table-striped table-bordered text-center align-middle">
+    <thead class="table-warning">
+        <tr>
+            <th>STT</th>
+            <th>Mã hóa đơn</th>
+            <th>Tên khách hàng</th>
+            <th>Nhân viên</th>
+            <th class="text-start">Loại</th>
+            <th>Ngày tạo</th>
+            <th>Tiền giảm</th>
+            <th>Phụ thu</th>
+            <th>Tổng tiền</th>
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model != null && Model.Count > 0)
+        {
+            for (int i = 0; i < Model.Count; i++)
+            {
+                var item = Model[i];
+                var isOnline = string.Equals(item.LoaiHoaDon?.Trim(), "online", StringComparison.OrdinalIgnoreCase);
+
+                <tr>
+                    <td>@(i + 1)</td>
+                    <td>@item.Ma_HoaDon</td>
+                    <td>@(string.IsNullOrWhiteSpace(item.HoTen) ? "Khách lẻ" : item.HoTen)</td>
+                    <td>@(string.IsNullOrWhiteSpace(item.NhanVienTen) ? "Không có" : item.NhanVienTen)</td>
+
+                    <td class="text-start">
+                        @if (isOnline)
+                        {
+                            <span><i class="fa-solid fa-circle text-success me-1"></i> Online</span>
+                        }
+                        else
+                        {
+                            <span><i class="fa-solid fa-circle text-danger me-1"></i> Offline</span>
+                        }
+                    </td>
+
+                    <td>@item.NgayTao.ToString("HH:mm:ss dd-MM-yyyy")</td>
+
+                    <!-- Tiền giảm (khuyến mãi/voucher) -->
+                    <td>@Money(item.TienGiam)</td>
+
+                    <!-- Phụ thu / phí vận chuyển -->
+                    <td>@Money(item.PhuThu)</td>
+
+                    <!-- Tổng phải thu (đã gồm ship) -->
+                    <td>@Money(item.TongTienSauGiam)</td>
+
+                    <td>
+                        @if (!isOnline)
+                        {
+                            <!-- Offline thì luôn là thành công -->
+                            <span class="badge bg-success rounded-pill px-2 py-1">
+                                <i class="fa-solid fa-check-double me-1"></i>Thành công
+                            </span>
+                        }
+                        else
+                        {
+                            <!-- Online: hiển thị trạng thái với badge -->
+                            @if (item.TrangThaiText == "Đã hoàn hàng")
+                            {
+                                <span class="badge bg-warning text-dark rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-check-circle me-1"></i>Đã hoàn hàng
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Đã nhận hàng hoàn")
+                            {
+                                <span class="badge bg-info rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-box-open me-1"></i>Đã nhận hàng hoàn
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Đã duyệt hoàn hàng")
+                            {
+                                <span class="badge bg-primary rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-clipboard-check me-1"></i>Đã duyệt hoàn hàng
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Có yêu cầu hoàn hàng")
+                            {
+                                <span class="badge bg-warning text-dark rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-exclamation-triangle me-1"></i>Có yêu cầu hoàn hàng
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Chờ xác nhận")
+                            {
+                                <span class="badge bg-secondary rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-clock me-1"></i>Chờ xác nhận
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Đã xác nhận")
+                            {
+                                <span class="badge rounded-pill px-2 py-1" style="background-color: #8e44ad; color: white;">
+                                    <i class="fa-solid fa-check me-1"></i>Đã xác nhận
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Đang vận chuyển")
+                            {
+                                <span class="badge bg-dark rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-truck me-1"></i>Đang vận chuyển
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Đã thanh toán")
+                            {
+                                <span class="badge rounded-pill px-2 py-1" style="background-color: #e91e63; color: white;">
+                                    <i class="fa-solid fa-credit-card me-1"></i>Đã thanh toán
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Thành công")
+                            {
+                                <span class="badge bg-success rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-check-double me-1"></i>Thành công
+                                </span>
+                            }
+                            else if (item.TrangThaiText == "Đã hủy")
+                            {
+                                <span class="badge bg-danger rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-times-circle me-1"></i>Đã hủy
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-light text-dark rounded-pill px-2 py-1">
+                                    <i class="fa-solid fa-question-circle me-1"></i>@item.TrangThaiText
+                                </span>
+                            }
+
+                            @* Badge bổ sung cho các trường hợp đặc biệt *@
+                            @if (item.HasReturnRequest && !item.HasReturnDone && !item.TrangThaiText.Contains("hoàn"))
+                            {
+                                <br>
+                                <span class="badge rounded-pill bg-warning text-dark mt-1" title="Có liên quan đến hoàn hàng">
+                                    <i class="fa-solid fa-rotate-left me-1"></i>Liên quan hoàn hàng
+                                </span>
+                            }
+                        }
+                    </td>
+
+                    <td>
+                        <a asp-action="Details" asp-route-id="@item.ID_HoaDon"
+                           class="btn btn-warning btn-sm" title="Xem chi tiết">
+                            <i class="fa-regular fa-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr><td colspan="11" class="text-muted">Không có hóa đơn nào.</td></tr>
+        }
+    </tbody>
+</table>

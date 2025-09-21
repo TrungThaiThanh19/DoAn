@@ -1,0 +1,104 @@
+﻿@model DoAn.Models.Voucher;
+
+@{
+    ViewData["Title"] = "Chỉnh sửa Voucher";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid pt-4 px-4">
+    <div class="bg-light rounded p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="mb-0">Chỉnh sửa thông tin Voucher</h4>
+            <a asp-action="Index" class="btn btn-secondary"><i class="fa fa-arrow-left"></i> Quay lại</a>
+        </div>
+
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <input type="hidden" asp-for="ID_Voucher" />
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Ma_Voucher" class="form-label"></label>
+                    <input asp-for="Ma_Voucher" class="form-control" />
+                    <span asp-validation-for="Ma_Voucher" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Ten_Voucher" class="form-label"></label>
+                    <input asp-for="Ten_Voucher" class="form-control" />
+                    <span asp-validation-for="Ten_Voucher" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="NgayTao" class="form-label"></label>
+                    <input asp-for="NgayTao" class="form-control" type="date" />
+                    <span asp-validation-for="NgayTao" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="NgayHetHan" class="form-label"></label>
+                    <input asp-for="NgayHetHan" class="form-control" type="date" />
+                    <span asp-validation-for="NgayHetHan" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="KieuGiamGia" class="form-label"></label>
+                    <input asp-for="KieuGiamGia" class="form-control" />
+                    <span asp-validation-for="KieuGiamGia" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="GiaTriGiam" class="form-label"></label>
+                    <input asp-for="GiaTriGiam" class="form-control" />
+                    <span asp-validation-for="GiaTriGiam" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="GiaTriToiThieu" class="form-label"></label>
+                    <input asp-for="GiaTriToiThieu" class="form-control" />
+                    <span asp-validation-for="GiaTriToiThieu" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="GiaTriToiDa" class="form-label"></label>
+                    <input asp-for="GiaTriToiDa" class="form-control" />
+                    <span asp-validation-for="GiaTriToiDa" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="SoLuong" class="form-label"></label>
+                    <input asp-for="SoLuong" class="form-control" />
+                    <span asp-validation-for="SoLuong" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="TrangThai" class="form-label"></label>
+                    <select asp-for="TrangThai" class="form-select" asp-items="Html.GetEnumSelectList<DoAn.Models.Voucher.TrangThaiVoucher>()"></select>
+                    <span asp-validation-for="TrangThai" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-12 mb-3">
+                    <label asp-for="MoTa" class="form-label"></label>
+                    <textarea asp-for="MoTa" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="MoTa" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-12 mb-4">
+                    <label asp-for="ID_TaiKhoan" class="form-label"></label>
+                    <select asp-for="ID_TaiKhoan" class="form-select" asp-items="ViewBag.ID_TaiKhoan"></select>
+                    <span asp-validation-for="ID_TaiKhoan" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Lưu thay đổi</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

@@ -1,0 +1,25 @@
+﻿@model DoAn.Models.KhachHang
+
+@{
+    ViewData["Title"] = "Xác nhận khóa khách hàng";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h3 class="text-danger mb-4">Xác nhận KHÓA khách hàng</h3>
+
+<div class="alert alert-warning">
+    <p>Bạn có chắc chắn muốn <strong>KHÓA</strong> tài khoản của khách hàng này không?</p>
+    <ul>
+        <li><strong>Họ tên:</strong> @Model.Ten_KhachHang</li>
+        <li><strong>Email:</strong> @Model.Email</li>
+        <li><strong>Tên đăng nhập:</strong> @Model.TaiKhoan?.Uername</li>
+    </ul>
+</div>
+
+<form asp-action="KhoaConfirmed" method="post">
+    <input type="hidden" name="id" value="@Model.ID_KhachHang" />
+    <button type="submit" class="btn btn-danger">
+        <i class="fas fa-lock"></i> Khóa khách hàng
+    </button>
+    <a asp-action="Index" class="btn btn-secondary">Hủy</a>
+</form>

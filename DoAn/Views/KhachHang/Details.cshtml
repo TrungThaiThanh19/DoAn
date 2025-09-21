@@ -1,0 +1,64 @@
+﻿@model DoAn.Models.KhachHang
+
+@{
+    ViewData["Title"] = "Chi tiết khách hàng";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h3 class="mb-4">Thông tin chi tiết khách hàng</h3>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <strong>Khách hàng: @Model.Ten_KhachHang</strong>
+    </div>
+    <div class="card-body">
+        <div class="row mb-2">
+            <div class="col-sm-4"><strong>Họ tên:</strong></div>
+            <div class="col-sm-8">@Model.Ten_KhachHang</div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-sm-4"><strong>Số điện thoại:</strong></div>
+            <div class="col-sm-8">@Model.SoDienThoai</div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-sm-4"><strong>Email:</strong></div>
+            <div class="col-sm-8">@Model.Email</div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-sm-4"><strong>Giới tính:</strong></div>
+            <div class="col-sm-8">@Model.GioiTinh</div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-sm-4"><strong>Ngày sinh:</strong></div>
+            <div class="col-sm-8">@Model.NgaySinh?.ToString("dd/MM/yyyy")</div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-sm-4"><strong>Ngày tạo:</strong></div>
+            <div class="col-sm-8">@Model.NgayTao.ToString("dd/MM/yyyy")</div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-sm-4"><strong>Tài khoản:</strong></div>
+            <div class="col-sm-8">@Model.TaiKhoan?.Uername</div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-sm-4"><strong>Trạng thái:</strong></div>
+            <div class="col-sm-8">
+                <span class="badge @(Model.TrangThai == 1 ? "bg-success" : "bg-danger")">
+                    @(Model.TrangThai == 1 ? "Hoạt động" : "Đã khóa")
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Quay lại danh sách
+    </a>
+</div>
+
+@section Scripts {
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+}

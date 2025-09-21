@@ -1,0 +1,33 @@
+﻿﻿﻿@{
+    ViewData["Title"] = "➕ Thêm thương hiệu mới";
+}
+
+<h2 class="mb-4 text-primary">➕ Thêm thương hiệu mới</h2>
+
+<form method="post">
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+    <div class="card shadow rounded-4 mb-4">
+        <div class="card-header bg-primary text-white">Thông tin thương hiệu</div>
+        <div class="card-body row g-3">
+
+            <div class="col-md-6">
+                <label class="form-label">Mã thương hiệu</label>
+                <input type="text" name="maThuongHieu" class="form-control" value="@ViewBag.MaThuongHieu" />
+                <span class="text-danger">@Html.ValidationMessage("MaThuongHieu")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Tên thương hiệu</label>
+                <input type="text" name="tenThuongHieu" class="form-control" value="@ViewBag.TenThuongHieu" />
+                <span class="text-danger">@Html.ValidationMessage("TenThuongHieu")</span>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between">
+        <a asp-action="Create" asp-controller="Products" class="btn btn-outline-secondary rounded-pill px-4">← Quay lại</a>
+        <button type="submit" class="btn btn-success rounded-pill px-4">Thêm thương hiệu</button>
+    </div>
+</form>

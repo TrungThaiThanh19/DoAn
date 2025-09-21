@@ -1,0 +1,105 @@
+﻿@model DoAn.Models.NhanVien
+
+@{
+    ViewData["Title"] = "Chi tiết nhân viên";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+}
+
+<div class="container mt-4">
+    <div class="card shadow rounded-4">
+        <div class="card-header bg-primary text-white fw-bold">
+            Thông tin chi tiết nhân viên
+        </div>
+        <div class="card-body">
+            <div class="row px-4 py-3">
+                <!-- Cột trái -->
+                <div class="col-md-6">
+                    <table class="table border-0 table-sm mb-0">
+                        <tr>
+                            <td class="fw-semibold text-secondary border-0 ps-0" style="min-width:120px;">Mã nhân viên:</td>
+                            <td class="fw-bold border-0 ps-2">@Model.Ma_NhanVien</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold text-secondary border-0 ps-0">Tên nhân viên:</td>
+                            <td class="border-0 ps-2">@Model.Ten_NhanVien</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold text-secondary border-0 ps-0">Số điện thoại:</td>
+                            <td class="border-0 ps-2">@Model.SoDienThoai</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold text-secondary border-0 ps-0">Email:</td>
+                            <td class="border-0 ps-2">@Model.Email</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold text-secondary border-0 ps-0">Ngày sinh:</td>
+                            <td class="border-0 ps-2">@Model.NgaySinh.ToString("dd/MM/yyyy")</td>
+                        </tr>
+                    </table>
+                </div>
+                <!-- Cột phải -->
+                <div class="col-md-6">
+                    <table class="table border-0 table-sm mb-0">
+                        <tr>
+                            <td class="fw-semibold text-secondary border-0 ps-0" style="min-width:110px;">Giới tính:</td>
+                            <td class="border-0 ps-2">@Model.GioiTinh</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold text-secondary border-0 ps-0">Địa chỉ liên hệ:</td>
+                            <td class="border-0 ps-2">@Model.DiaChiLienHe</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold text-secondary border-0 ps-0">Trạng thái:</td>
+                            <td class="border-0 ps-2">
+                                @if (Model.TrangThai == 1)
+                                {
+                                    <span class="badge bg-success px-3 py-2">Hoạt động</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger px-3 py-2">Không hoạt động</span>
+                                }
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer bg-white border-0">
+            <div class="d-flex justify-content-between align-items-center px-4 py-2">
+                <a asp-action="Index" class="btn btn-outline-success rounded-pill px-4">
+                    Quay lại
+                </a>
+                @if (Model.TrangThai == 1)
+                {
+                    <form id="lockAccountForm" asp-action="LockAccount" method="post" class="d-inline">
+                        <input type="hidden" name="id" value="@Model.ID_NhanVien" />
+                        <button type="button" id="lockAccountBtn" class="btn btn-danger rounded-pill px-4">
+                            Khóa tài khoản
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.getElementById('lockAccountBtn').addEventListener('click', function (e) {
+        Swal.fire({
+            title: 'Khóa tài khoản?',
+            text: "Bạn chắc chắn muốn khóa tài khoản nhân viên này?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Khóa',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('lockAccountForm').submit();
+            }
+        });
+    });
+</script>

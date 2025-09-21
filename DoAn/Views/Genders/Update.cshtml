@@ -1,0 +1,50 @@
+﻿@model DoAn.Models.GioiTinh
+@{
+    ViewData["Title"] = "Cập nhật giới tính";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+}
+
+<h2 class="mb-4 text-primary">Cập nhật giới tính</h2>
+
+<form method="post">
+    <input type="hidden" name="id" value="@Model.ID_GioiTinh" />
+
+    <div class="card shadow rounded-4 mb-4">
+        <div class="card-header bg-primary text-white">Thông tin giới tính</div>
+        <div class="card-body row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Mã giới tính</label>
+                <input name="maGioiTinh" class="form-control" value="@Model.MaGioiTinh" />
+                <span class="text-danger">@Html.ValidationMessage("MaGioiTinh")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Tên giới tính</label>
+                <input name="tenGioiTinh" class="form-control" value="@Model.Ten_GioiTinh" />
+                <span class="text-danger">@Html.ValidationMessage("Ten_GioiTinh")</span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Trạng thái</label>
+                <select name="trangThai" class="form-select">
+                    @if (Model.TrangThai == 1)
+                    {
+                        <option value="1" selected>Hoạt động</option>
+                        <option value="0">Không hoạt động</option>
+                    }
+                    else
+                    {
+                        <option value="1">Hoạt động</option>
+                        <option value="0" selected>Không hoạt động</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between">
+        <a asp-action="Details" asp-route-idGioiTinh="@Model.ID_GioiTinh" class="btn btn-outline-secondary rounded-pill px-4">← Quay lại</a>
+        <button type="submit" class="btn btn-primary rounded-pill px-4">Cập nhật</button>
+    </div>
+</form>

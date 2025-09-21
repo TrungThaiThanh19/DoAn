@@ -1,0 +1,14 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace DoAn.Models
+{
+    public class GioiTinh
+    {
+        [Key]
+        public Guid ID_GioiTinh { get; set; }
+        public string Ten_GioiTinh { get; set; }
+        public string MaGioiTinh { get; set; }
+        public int TrangThai { get; set; }
+        public ICollection<SanPham> SanPhams { get; set; }
+    }
+}
