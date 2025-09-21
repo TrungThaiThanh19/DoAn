@@ -120,6 +120,19 @@ namespace DoAn.Controllers
 				ModelState.AddModelError("Ngay_Sinh", "Ngày sinh không được để trống");
 			else if (ngaySinh >= DateTime.Now.Date)
 				ModelState.AddModelError("Ngay_Sinh", "Ngày sinh phải nhỏ hơn ngày hiện tại");
+			else
+			{
+				var today = DateTime.Today; // Lấy ngày tháng năm hiện tại
+				int age = today.Year - ngaySinh.Year; // Tính chênh lệch năm hiện tại và năm sinh
+
+				if (ngaySinh.Date > today.AddYears(-age)) // Nếu chưa đến sinh nhật trong năm nay, giảm tuổi đi 1
+					age--;
+
+				if (age < 18)
+				{
+					ModelState.AddModelError("Ngay_Sinh", "Nhân viên phải đủ 18 tuổi");
+				}
+			}
 
 			if (string.IsNullOrWhiteSpace(email))
 				ModelState.AddModelError("Email", "Email không được để trống");
