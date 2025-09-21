@@ -491,7 +491,7 @@ namespace DoAn.Controllers
 			return View();
 		}
 		[HttpPost]
-		public async Task<IActionResult> Create(Guid idSanPham, Guid idSanPhamChiTiet, string tenSanPham, string maSanPham, string maBienThe, string moTa, string thoiGianLuuHuong,
+		public async Task<IActionResult> Create(Guid idSanPham, Guid idSanPhamChiTiet, string tenSanPham, string moTa, string thoiGianLuuHuong,
 			string huongDau, string huongGiua, string huongCuoi, string soLuong, int trangThai, string giaNhap, string giaBan, IFormFile hinhAnh, IFormFile hinhAnhBienThe,
 			Guid idTheTich, Guid idThuongHieu, Guid idQuocGia, Guid idGioiTinh)
 		{
@@ -499,6 +499,8 @@ namespace DoAn.Controllers
 			decimal giaNhapParse = 0, giaBanParse = 0;
 			//ClearModelErrors("TenSanPham", "MaSanPham", "MoTa", "ThoiGianLuuHuong", "SoLuong", "HuongDau", "HuongGiua", "HuongCuoi", "GiaBan", "GiaNhap", "HinhAnh");
 			ModelState.Clear();
+			string maSanPham = await GenerateMaSanPham();
+			string maBienThe = await GenerateMaSanPhamChiTiet();
 
 			// Nếu thời gian lưu hương bỏ trống hoặc nhập toàn khoảng trắng thì báo lỗi
 			if (string.IsNullOrWhiteSpace(thoiGianLuuHuong))
@@ -791,6 +793,22 @@ namespace DoAn.Controllers
 				if (ModelState.ContainsKey(key))
 					ModelState[key].Errors.Clear();
 			}
+		}
+
+		private async Task<string> GenerateMaSanPham()
+		{
+			// Lấy số lượng sp hiện có, tăng lên 1 để lấy mã mới
+			int count = await _context.SanPhams.CountAsync();
+			int newNumber = count + 1;
+			// Định dạng 2 chữ số, luôn có số 0 phía trước nếu <10
+			return $"SP-{newNumber:00}";
+		}
+
+		private async Task<string> GenerateMaSanPhamChiTiet()
+		{
+			int count = await _context.SanPhamChiTiets.CountAsync();
+			int newNumber = count + 1;
+			return $"SPCT-{newNumber:00}";
 		}
 	}
 }

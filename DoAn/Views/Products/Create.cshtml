@@ -19,12 +19,6 @@
             </div>
 
             <div class="col-md-6">
-                <label class="form-label">Mã sản phẩm</label>
-                <input name="maSanPham" type="text" class="form-control" value="@ViewBag.MaSanPham" />
-                <span class="text-danger">@Html.ValidationMessage("MaSanPham")</span>
-            </div>
-
-            <div class="col-md-6">
                 <label class="form-label">Thời gian lưu hương (giờ)</label>
                 <input name="thoiGianLuuHuong" type="text" class="form-control" value="@ViewBag.ThoiGianLuuHuong" />
                 <span class="text-danger">@Html.ValidationMessage("ThoiGianLuuHuong")</span>
@@ -94,12 +88,6 @@
     <div class="card mb-4 shadow rounded-4">
         <div class="card-header bg-secondary text-white">Thông tin chi tiết</div>
         <div class="card-body row g-3">
-            <div class="col-md-6">
-                <label class="form-label">Mã biến thể</label>
-                <input name="maBienThe" type="text" class="form-control" value="@ViewBag.MaBienThe" />
-                <span class="text-danger">@Html.ValidationMessage("MaBienThe")</span>
-            </div>
-
             <div class="col-md-6">
                 <label class="form-label">Hình ảnh biến thể</label>
                 <input type="file" name="hinhAnhBienThe" class="form-control" />
