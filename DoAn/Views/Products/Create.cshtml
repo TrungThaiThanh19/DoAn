@@ -69,16 +69,33 @@
                 <span class="text-danger">@Html.ValidationMessage("ID_ThuongHieu")</span>
             </div>
 
-
             <div class="col-md-6">
                 <label class="form-label">Quốc gia</label>
-                @Html.DropDownList("idQuocGia", (SelectList)ViewBag.QuocGiaList, "-- Chọn --", new { @class = "form-select" })
+                <div class="d-flex">
+                    @Html.DropDownList("idQuocGia", (SelectList)ViewBag.QuocGiaList, "-- Chọn --",
+                             new { @class = "form-select", style = "flex: 7 1 0%;" })
+                    <a asp-action="CreateNew" asp-controller="Countries"
+                       class="btn btn-outline-primary btn-sm rounded-pill ms-2 d-flex align-items-center justify-content-center"
+                       style="flex: 3 1 0%; min-width: 0; white-space: nowrap; height:38px;"
+                       title="Thêm quốc gia mới">
+                        <i class="bi bi-plus"></i> <span class="d-none d-md-inline ms-1">Thêm quốc gia mới</span>
+                    </a>
+                </div>
                 <span class="text-danger">@Html.ValidationMessage("ID_QuocGia")</span>
             </div>
 
             <div class="col-md-6">
                 <label class="form-label">Giới tính</label>
-                @Html.DropDownList("idGioiTinh", (SelectList)ViewBag.GioiTinhList, "-- Chọn --", new { @class = "form-select" })
+                <div class="d-flex">
+                    @Html.DropDownList("idGioiTinh", (SelectList)ViewBag.GioiTinhList, "-- Chọn --",
+                             new { @class = "form-select", style = "flex: 7 1 0%;" })
+                    <a asp-action="CreateNew" asp-controller="Genders"
+                       class="btn btn-outline-primary btn-sm rounded-pill ms-2 d-flex align-items-center justify-content-center"
+                       style="flex: 3 1 0%; min-width: 0; white-space: nowrap; height:38px;"
+                       title="Thêm giới tính mới">
+                        <i class="bi bi-plus"></i> <span class="d-none d-md-inline ms-1">Thêm giới tính mới</span>
+                    </a>
+                </div>
                 <span class="text-danger">@Html.ValidationMessage("ID_GioiTinh")</span>
             </div>
         </div>
@@ -108,7 +125,16 @@
 
             <div class="col-md-6">
                 <label class="form-label">Thể tích</label>
-                @Html.DropDownList("idTheTich", (SelectList)ViewBag.TheTichList, "-- Chọn --", new { @class = "form-select" })
+                <div class="d-flex">
+                    @Html.DropDownList("idTheTich", (SelectList)ViewBag.TheTichList, "-- Chọn --",
+                             new { @class = "form-select", style = "flex: 7 1 0%;" })
+                    <a asp-action="CreateNew" asp-controller="Volumes"
+                       class="btn btn-outline-primary btn-sm rounded-pill ms-2 d-flex align-items-center justify-content-center"
+                       style="flex: 3 1 0%; min-width: 0; white-space: nowrap; height:38px;"
+                       title="Thêm thể tích mới">
+                        <i class="bi bi-plus"></i> <span class="d-none d-md-inline ms-1">Thêm thể tích mới</span>
+                    </a>
+                </div>
                 <span class="text-danger">@Html.ValidationMessage("ID_TheTich")</span>
             </div>
 

@@ -53,19 +53,13 @@ namespace DoAn.Controllers
 		}
 
 		[HttpPost]
-		public async Task<IActionResult> Update(Guid idThuongHieu, string maThuongHieu, string tenThuongHieu, int trangThai)
+		public async Task<IActionResult> Update(Guid idThuongHieu, string tenThuongHieu, int trangThai)
 		{
 			var thuongHieu = await _context.ThuongHieus.FindAsync(idThuongHieu);
 			if (thuongHieu == null)
 				return NotFound();
 
 			ModelState.Clear();
-
-			if (string.IsNullOrWhiteSpace(maThuongHieu))
-				ModelState.AddModelError("MaThuongHieu", "Mã thương hiệu không được để trống");
-
-			else if (_context.ThuongHieus.Any(x => x.Ma_ThuongHieu == maThuongHieu && x.ID_ThuongHieu != idThuongHieu))
-				ModelState.AddModelError("MaThuongHieu", "Mã thương hiệu đã tồn tại");
 
 			if (string.IsNullOrWhiteSpace(tenThuongHieu))
 				ModelState.AddModelError("TenThuongHieu", "Tên thương hiệu không được để trống");
@@ -78,13 +72,11 @@ namespace DoAn.Controllers
 
 			if (!ModelState.IsValid)
 			{
-				ViewBag.MaThuongHieu = maThuongHieu;
 				ViewBag.TenThuongHieu = tenThuongHieu;
 				ViewBag.TrangThai = trangThai;
 				return View(thuongHieu);
 			}
 
-			thuongHieu.Ma_ThuongHieu = maThuongHieu;
 			thuongHieu.Ten_ThuongHieu = tenThuongHieu.Trim();
 			thuongHieu.TrangThai = trangThai;
 
@@ -103,15 +95,11 @@ namespace DoAn.Controllers
 		}
 
 		[HttpPost]
-		public async Task<IActionResult> Create(string maThuongHieu, string tenThuongHieu)
+		public async Task<IActionResult> Create(string tenThuongHieu)
 		{
 			ModelState.Clear();
 
-			if (string.IsNullOrWhiteSpace(maThuongHieu))
-				ModelState.AddModelError("MaThuongHieu", "Mã thương hiệu không được để trống");
-
-			else if (_context.ThuongHieus.Any(x => x.Ma_ThuongHieu.ToLower() == maThuongHieu.Trim().ToLower()))
-				ModelState.AddModelError("MaThuongHieu", "Mã thương hiệu đã tồn tại");
+			string maThuongHieu = await GenerateMaThuongHieu();
 
 			if (string.IsNullOrWhiteSpace(tenThuongHieu))
 				ModelState.AddModelError("TenThuongHieu", "Tên thương hiệu không được để trống");
@@ -124,7 +112,6 @@ namespace DoAn.Controllers
 
 			if (!ModelState.IsValid)
 			{
-				ViewBag.MaThuongHieu = maThuongHieu;
 				ViewBag.TenThuongHieu = tenThuongHieu;
 				return View();
 			}
@@ -134,7 +121,7 @@ namespace DoAn.Controllers
 				ID_ThuongHieu = Guid.NewGuid(),
 				Ma_ThuongHieu = maThuongHieu.Trim(),
 				Ten_ThuongHieu = tenThuongHieu.Trim(),
-				TrangThai = 1 
+				TrangThai = 1
 			};
 
 			_context.ThuongHieus.Add(thuongHieu);
@@ -151,15 +138,11 @@ namespace DoAn.Controllers
 		}
 
 		[HttpPost]
-		public async Task<IActionResult> CreateNew(string maThuongHieu, string tenThuongHieu)
+		public async Task<IActionResult> CreateNew(string tenThuongHieu)
 		{
 			ModelState.Clear();
 
-			if (string.IsNullOrWhiteSpace(maThuongHieu))
-				ModelState.AddModelError("MaThuongHieu", "Mã thương hiệu không được để trống");
-
-			else if (_context.ThuongHieus.Any(x => x.Ma_ThuongHieu.ToLower() == maThuongHieu.Trim().ToLower()))
-				ModelState.AddModelError("MaThuongHieu", "Mã thương hiệu đã tồn tại");
+			string maThuongHieu = await GenerateMaThuongHieu();
 
 			if (string.IsNullOrWhiteSpace(tenThuongHieu))
 				ModelState.AddModelError("TenThuongHieu", "Tên thương hiệu không được để trống");
@@ -172,7 +155,6 @@ namespace DoAn.Controllers
 
 			if (!ModelState.IsValid)
 			{
-				ViewBag.MaThuongHieu = maThuongHieu;
 				ViewBag.TenThuongHieu = tenThuongHieu;
 				return View();
 			}
@@ -189,6 +171,16 @@ namespace DoAn.Controllers
 			await _context.SaveChangesAsync();
 
 			return RedirectToAction("Create", "Products");
+		}
+
+
+		private async Task<string> GenerateMaThuongHieu()
+		{
+			// Lấy số lượng thương hiệu hiện có, tăng lên 1 để lấy mã mới
+			int count = await _context.ThuongHieus.CountAsync();
+			int newNumber = count + 1;
+			// Định dạng 2 chữ số, luôn có số 0 phía trước nếu <10
+			return $"TH-{newNumber:00}";
 		}
 	}
 }

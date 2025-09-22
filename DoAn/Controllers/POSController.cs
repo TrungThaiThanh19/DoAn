@@ -99,7 +99,7 @@ namespace DoAn.Controllers
 			{
 				return Json(new { success = false, message = "Kiểu giảm giá không hợp lệ" });
 			}
-
+			giamGia = Math.Min(giamGia, tongTienHang);
 			return Json(new { success = true, giamGia = giamGia, idVoucher = voucher.ID_Voucher });
 		}
 

@@ -3,7 +3,7 @@
     ViewData["Title"] = "Cập nhật thương hiệu";
 }
 
-<h2 class="mb-4 text-primary">✏️ Cập nhật thương hiệu</h2>
+<h2 class="mb-4 text-primary">Cập nhật thương hiệu</h2>
 
 <form method="post">
     <input type="hidden" name="idThuongHieu" value="@Model.ID_ThuongHieu" />
@@ -11,13 +11,6 @@
     <div class="card shadow rounded-4 mb-4">
         <div class="card-header bg-primary text-white">Thông tin thương hiệu</div>
         <div class="card-body row g-3">
-
-            <div class="col-md-6">
-                <label class="form-label">Mã thương hiệu</label>
-                <input type="text" name="maThuongHieu" class="form-control" value="@Model.Ma_ThuongHieu" />
-                <span class="text-danger">@Html.ValidationMessage("MaThuongHieu")</span>
-            </div>
-
             <div class="col-md-6">
                 <label class="form-label">Tên thương hiệu</label>
                 <input type="text" name="tenThuongHieu" class="form-control" value="@Model.Ten_ThuongHieu" />
@@ -39,7 +32,6 @@
                     }
                 </select>
             </div>
-
         </div>
     </div>
 

@@ -54,7 +54,7 @@ namespace DoAn.Controllers
 
 
 		[HttpPost]
-		public async Task<IActionResult> Update(Guid idGioiTinh, string tenGioiTinh, string maGioiTinh, int trangThai)
+		public async Task<IActionResult> Update(Guid idGioiTinh, string tenGioiTinh, int trangThai)
 		{
 			var gioiTinh = await _context.GioiTinhs.FindAsync(idGioiTinh);
 			if (gioiTinh == null)
@@ -62,12 +62,6 @@ namespace DoAn.Controllers
 
 			// Xóa lỗi mặc định
 			ModelState.Clear();
-
-			if (string.IsNullOrWhiteSpace(maGioiTinh))
-				ModelState.AddModelError("MaGioiTinh", "Mã giới tính không được để trống");
-
-			else if (_context.GioiTinhs.Any(x => x.MaGioiTinh == maGioiTinh && x.ID_GioiTinh != idGioiTinh))
-				ModelState.AddModelError("MaGioiTinh", "Mã giới tính đã tồn tại");
 
 			if (string.IsNullOrWhiteSpace(tenGioiTinh))
 				ModelState.AddModelError("Ten_GioiTinh", "Tên giới tính không được để trống");
@@ -82,13 +76,11 @@ namespace DoAn.Controllers
 			if (!ModelState.IsValid)
 			{
 				ViewBag.Ten_GioiTinh = tenGioiTinh;
-				ViewBag.MaGioiTinh = tenGioiTinh;
 				ViewBag.TrangThai = trangThai;
 				return View(gioiTinh);
 			}
 
 			gioiTinh.Ten_GioiTinh = tenGioiTinh;
-			gioiTinh.MaGioiTinh = maGioiTinh;
 			gioiTinh.TrangThai = trangThai;
 			_context.GioiTinhs.Update(gioiTinh);
 			await _context.SaveChangesAsync();
@@ -104,16 +96,12 @@ namespace DoAn.Controllers
 		}
 
 		[HttpPost]
-		public async Task<IActionResult> Create(string tenGioiTinh, string maGioiTinh)
+		public async Task<IActionResult> Create(string tenGioiTinh)
 		{
 			// Xóa lỗi mặc định
 			ModelState.Clear();
 
-			if (string.IsNullOrWhiteSpace(maGioiTinh))
-				ModelState.AddModelError("MaGioiTinh", "Mã giới tính không được để trống");
-
-			else if (_context.GioiTinhs.Any(x => x.MaGioiTinh.ToLower() == maGioiTinh.Trim().ToLower()))
-				ModelState.AddModelError("MaGioiTinh", "Mã giới tính đã tồn tại");
+			string maGioiTinh = await GenerateMaGioiTinh();
 
 			if (string.IsNullOrWhiteSpace(tenGioiTinh))
 			{
@@ -122,7 +110,7 @@ namespace DoAn.Controllers
 			// Kiểm tra tên quốc gia chỉ được chứa chữ
 			else if (!Regex.IsMatch(tenGioiTinh, @"^[\p{L}\s]+$"))
 			{
-				ModelState.AddModelError("TenGioiTinh", "Tên giới tính chỉ được chứa chữ cái");
+				ModelState.AddModelError("TenGioiTinh", "Tên giới tính chỉ được chứa chữ");
 			}
 			else if (_context.GioiTinhs.Any(x => x.Ten_GioiTinh.ToLower() == tenGioiTinh.Trim().ToLower()))
 			{
@@ -132,7 +120,6 @@ namespace DoAn.Controllers
 			if (!ModelState.IsValid)
 			{
 				ViewBag.TenGioiTinh = tenGioiTinh;
-				ViewBag.MaGioiTinh = maGioiTinh;
 				return View();
 			}
 
@@ -148,6 +135,64 @@ namespace DoAn.Controllers
 			await _context.SaveChangesAsync();
 
 			return RedirectToAction("Index");
+		}
+
+
+		[HttpGet]
+		public IActionResult CreateNew()
+		{
+			return View();
+		}
+
+		[HttpPost]
+		public async Task<IActionResult> CreateNew(string tenGioiTinh)
+		{
+			// Xóa lỗi mặc định
+			ModelState.Clear();
+
+			string maGioiTinh = await GenerateMaGioiTinh();
+
+			if (string.IsNullOrWhiteSpace(tenGioiTinh))
+			{
+				ModelState.AddModelError("TenGioiTinh", "Tên giới tính không được để trống");
+			}
+			// Kiểm tra tên quốc gia chỉ được chứa chữ
+			else if (!Regex.IsMatch(tenGioiTinh, @"^[\p{L}\s]+$"))
+			{
+				ModelState.AddModelError("TenGioiTinh", "Tên giới tính chỉ được chứa chữ");
+			}
+			else if (_context.GioiTinhs.Any(x => x.Ten_GioiTinh.ToLower() == tenGioiTinh.Trim().ToLower()))
+			{
+				ModelState.AddModelError("TenGioiTinh", "Tên giới tính đã tồn tại");
+			}
+
+			if (!ModelState.IsValid)
+			{
+				ViewBag.TenGioiTinh = tenGioiTinh;
+				return View();
+			}
+
+			var gioiTinh = new GioiTinh
+			{
+				ID_GioiTinh = Guid.NewGuid(),
+				Ten_GioiTinh = tenGioiTinh.Trim(),
+				MaGioiTinh = maGioiTinh.Trim(),
+				TrangThai = 1
+			};
+
+			_context.GioiTinhs.Add(gioiTinh);
+			await _context.SaveChangesAsync();
+
+			return RedirectToAction("Create", "Products");
+		}
+
+		private async Task<string> GenerateMaGioiTinh()
+		{
+			// Lấy số lượng giới tính hiện có, tăng lên 1 để lấy mã mới
+			int count = await _context.GioiTinhs.CountAsync();
+			int newNumber = count + 1;
+			// Định dạng 2 chữ số, luôn có số 0 phía trước nếu <10
+			return $"GT-{newNumber:00}";
 		}
 	}
 }

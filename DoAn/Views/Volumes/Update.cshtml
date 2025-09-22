@@ -11,13 +11,6 @@
     <div class="card shadow rounded-4 mb-4">
         <div class="card-header bg-primary text-white">Thông tin thể tích</div>
         <div class="card-body row g-3">
-
-            <div class="col-md-6">
-                <label class="form-label">Mã thể tích</label>
-                <input name="maTheTich" class="form-control" value="@Model.Ma_TheTich" />
-                <span class="text-danger">@Html.ValidationMessage("MaTheTich")</span>
-            </div>
-
             <div class="col-md-6">
                 <label class="form-label">Giá trị</label>
                 <input name="giaTri" class="form-control" value="@Model.GiaTri.ToString("0.##")" />
@@ -37,7 +30,6 @@
                     <option value="0" selected="@(@Model.TrangThai == 0)">Không hoạt động</option>
                 </select>
             </div>
-
         </div>
     </div>
 

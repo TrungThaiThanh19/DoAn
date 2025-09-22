@@ -7,7 +7,7 @@ namespace DoAn.Controllers
 {
 	public class CountriesController : Controller
 	{
-		private  readonly DoAnDbContext _context;
+		private readonly DoAnDbContext _context;
 		public CountriesController(DoAnDbContext context)
 		{
 			_context = context;
@@ -53,7 +53,7 @@ namespace DoAn.Controllers
 		}
 
 		[HttpPost]
-		public async Task<IActionResult> Update(Guid idQuocGia, string tenQuocGia, string maQuocGia, int trangThai)
+		public async Task<IActionResult> Update(Guid idQuocGia, string tenQuocGia, int trangThai)
 		{
 			var quocGia = await _context.QuocGias.FindAsync(idQuocGia);
 			if (quocGia == null)
@@ -61,11 +61,6 @@ namespace DoAn.Controllers
 
 			// Xóa lỗi mặc định
 			ModelState.Clear();
-			if (string.IsNullOrWhiteSpace(maQuocGia))
-				ModelState.AddModelError("MaQuocGia", "Mã quốc gia không được để trống");
-
-			else if (_context.QuocGias.Any(x => x.MaQuocGia == maQuocGia && x.ID_QuocGia != idQuocGia))
-				ModelState.AddModelError("MaQuocGia", "Mã quốc gia đã tồn tại");
 
 			if (string.IsNullOrWhiteSpace(tenQuocGia))
 				ModelState.AddModelError("Ten_QuocGia", "Tên quốc gia không được để trống");
@@ -80,13 +75,11 @@ namespace DoAn.Controllers
 			if (!ModelState.IsValid)
 			{
 				ViewBag.Ten_QuocGia = tenQuocGia;
-				ViewBag.MaQuocGia = maQuocGia;
 				ViewBag.TrangThai = trangThai;
 				return View(quocGia);
 			}
 
 			quocGia.Ten_QuocGia = tenQuocGia;
-			quocGia.MaQuocGia = maQuocGia;
 			quocGia.TrangThai = trangThai;
 			_context.QuocGias.Update(quocGia);
 			await _context.SaveChangesAsync();
@@ -101,16 +94,12 @@ namespace DoAn.Controllers
 		}
 
 		[HttpPost]
-		public async Task<IActionResult> Create(string tenQuocGia, string maQuocGia)
+		public async Task<IActionResult> Create(string tenQuocGia)
 		{
 			// Xóa lỗi mặc định
 			ModelState.Clear();
 
-			if (string.IsNullOrWhiteSpace(maQuocGia))
-				ModelState.AddModelError("MaQuocGia", "Mã quốc gia không được để trống");
-
-			else if (_context.QuocGias.Any(x => x.MaQuocGia.ToLower() == maQuocGia.Trim().ToLower()))
-				ModelState.AddModelError("MaQuocGia", "Mã quốc gia đã tồn tại");
+			string maQuocGia = await GenerateMaQuocGia();
 
 			if (string.IsNullOrWhiteSpace(tenQuocGia))
 			{
@@ -129,7 +118,6 @@ namespace DoAn.Controllers
 			if (!ModelState.IsValid)
 			{
 				ViewBag.TenQuocGia = tenQuocGia;
-				ViewBag.MaQuocGia = maQuocGia;
 				return View();
 			}
 
@@ -147,5 +135,63 @@ namespace DoAn.Controllers
 			return RedirectToAction("Index");
 		}
 
+
+		[HttpGet]
+		public IActionResult CreateNew()
+		{
+			return View();
+		}
+
+		[HttpPost]
+		public async Task<IActionResult> CreateNew(string tenQuocGia)
+		{
+			// Xóa lỗi mặc định
+			ModelState.Clear();
+
+			string maQuocGia = await GenerateMaQuocGia();
+
+			if (string.IsNullOrWhiteSpace(tenQuocGia))
+			{
+				ModelState.AddModelError("TenQuocGia", "Tên quốc gia không được để trống");
+			}
+			// Kiểm tra tên quốc gia chỉ được chứa chữ
+			else if (!Regex.IsMatch(tenQuocGia, @"^[\p{L}\s]+$"))
+			{
+				ModelState.AddModelError("TenQuocGia", "Tên quốc gia chỉ được chứa chữ cái");
+			}
+			else if (_context.QuocGias.Any(x => x.Ten_QuocGia.ToLower() == tenQuocGia.Trim().ToLower()))
+			{
+				ModelState.AddModelError("TenQuocGia", "Tên quốc gia đã tồn tại");
+			}
+
+			if (!ModelState.IsValid)
+			{
+				ViewBag.TenQuocGia = tenQuocGia;
+				return View();
+			}
+
+			var quocGia = new QuocGia
+			{
+				ID_QuocGia = Guid.NewGuid(),
+				Ten_QuocGia = tenQuocGia.Trim(),
+				MaQuocGia = maQuocGia.Trim(),
+				TrangThai = 1
+			};
+
+			_context.QuocGias.Add(quocGia);
+			await _context.SaveChangesAsync();
+
+			return RedirectToAction("Create", "Products");
+		}
+
+
+		private async Task<string> GenerateMaQuocGia()
+		{
+			// Lấy số lượng quốc gia hiện có, tăng lên 1 để lấy mã mới
+			int count = await _context.QuocGias.CountAsync();
+			int newNumber = count + 1;
+			// Định dạng 2 chữ số, luôn có số 0 phía trước nếu <10
+			return $"QG-{newNumber:00}";
+		}
 	}
 }
