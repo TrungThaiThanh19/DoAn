@@ -166,11 +166,18 @@ namespace DoAn.Controllers
         }
 
         // Xem chi tiết 1 phiếu trả hàng
+        // Trong LichSuTraHangController
         public async Task<IActionResult> ChiTiet(Guid traHangId)
         {
             var phieu = await _db.QuanLyTraHangs
                 .Include(th => th.HoaDon)
                     .ThenInclude(h => h.KhachHang)
+                // => include chi tiết hóa đơn để có DonGia
+                .Include(th => th.HoaDon)
+                    .ThenInclude(h => h.HoaDonChiTiets)
+                        .ThenInclude(hct => hct.SanPhamChiTiet)
+                            .ThenInclude(spct => spct.SanPham)
+                // chi tiết trả hàng + product info
                 .Include(th => th.ChiTietTraHangs)
                     .ThenInclude(ct => ct.SanPhamChiTiet)
                         .ThenInclude(spct => spct.SanPham)
@@ -187,5 +194,6 @@ namespace DoAn.Controllers
 
             return View(phieu);
         }
+
     }
 }

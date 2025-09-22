@@ -33,7 +33,8 @@
                     <div class="col-md-6">
                         <p><strong>Nhân viên xử lý:</strong> @Model.NhanVienXuLy</p>
                         <p><strong>Ngày tạo:</strong> @Model.NgayTao.ToString("dd/MM/yyyy HH:mm")</p>
-                        <p><strong>Trạng thái:</strong> 
+                        <p>
+                            <strong>Trạng thái:</strong>
                             @{
                                 var statusText = Model.TrangThai switch
                                 {
@@ -61,16 +62,6 @@
                 <hr>
                 <div class="text-center">
                     <h4 class="text-success">Tổng tiền hoàn: @Model.TongTienHoan.ToString("N0") VND</h4>
-                    @if (Model.HoaDon != null)
-                    {
-                        var tongHang = Model.HoaDon.HoaDonChiTiets?.Sum(x => x.SoLuong * x.DonGia) ?? 0;
-                        var ship = Model.HoaDon.PhuThu ?? 0;
-                        var tongTienTruocGiam = tongHang + ship;
-                        var tongTienSauGiam = Model.HoaDon.TongTienSauGiam != 0 ? Model.HoaDon.TongTienSauGiam : tongTienTruocGiam;
-                        var chenhLech = tongTienSauGiam - Model.TongTienHoan;
-                        
-                        
-                    }
                 </div>
             </div>
         </div>
@@ -78,7 +69,7 @@
         <!-- Chi tiết sản phẩm hoàn -->
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">Chi tiết sản phẩm hoàn</h5>
+                <h5 class="mb-0">Chi tiết phiếu hoàn</h5>
             </div>
             <div class="card-body">
                 @if (Model.ChiTietTraHangs?.Any() == true)
@@ -88,35 +79,94 @@
                             <thead>
                                 <tr>
                                     <th>STT</th>
+                                    <th>Mã sản phẩm</th>
                                     <th>Sản phẩm</th>
                                     <th>Thể tích</th>
                                     <th>Số lượng</th>
                                     <th>Giá gốc</th>
                                     <th>Tiền hoàn</th>
-                                    <th>Chênh lệch</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @{
                                     int stt = 1;
+                                    // --- Tính subtotal của hóa đơn gốc (fallback nếu cần) ---
+                                    decimal subtotalInvoice = 0m;
+                                    if (Model.HoaDon?.HoaDonChiTiets?.Any() == true)
+                                    {
+                                        foreach (var hct in Model.HoaDon.HoaDonChiTiets)
+                                        {
+                                            // ưu tiên DonGia trên chi tiết hóa đơn; nếu bằng 0 thì fallback về SanPhamChiTiet.GiaBan
+                                            decimal p = (hct.DonGia > 0m) ? hct.DonGia : (hct.SanPhamChiTiet?.GiaBan ?? 0m);
+                                            subtotalInvoice += p * (hct.SoLuong);
+                                        }
+                                    }
+
+                                    // fallback thêm: nếu subtotal vẫn 0 thì tính từ ChiTietTraHangs (tính unit từ TienHoan/SoLuong hoặc GiaBan)
+                                    if (subtotalInvoice == 0m)
+                                    {
+                                        foreach (var ct in Model.ChiTietTraHangs)
+                                        {
+                                            decimal unitFromCt = ct.SanPhamChiTiet?.GiaBan ?? (ct.SoLuong > 0 ? Math.Round(ct.TienHoan / ct.SoLuong, 0) : ct.TienHoan);
+                                            subtotalInvoice += unitFromCt * ct.SoLuong;
+                                        }
+                                    }
+
+                                    decimal shipInvoice = Model.HoaDon?.PhuThu ?? 0m;
+                                    decimal totalBeforeDiscountInvoice = subtotalInvoice + shipInvoice;
+
+                                    decimal tongTienSauGiamInvoice = Model.HoaDon?.TongTienSauGiam ?? 0m;
+                                    if (tongTienSauGiamInvoice == 0m) tongTienSauGiamInvoice = totalBeforeDiscountInvoice;
+
+                                    decimal totalDiscountInvoice = totalBeforeDiscountInvoice - tongTienSauGiamInvoice; // >=0 nếu có giảm
+
+                                    // Tổng gross của các dòng đang hoàn (đã lưu trong TienHoan của từng dòng)
+                                    decimal returnedGross = Model.ChiTietTraHangs.Sum(ct => ct.TienHoan);
+
+                                    // Phân bổ giảm giá theo tỷ lệ (an toàn với subtotalInvoice = 0)
+                                    decimal discountAllocated = 0m;
+                                    if (totalDiscountInvoice > 0m)
+                                    {
+                                        if (subtotalInvoice > 0m)
+                                        {
+                                            discountAllocated = decimal.Round(totalDiscountInvoice * (returnedGross / subtotalInvoice), 0, MidpointRounding.AwayFromZero);
+                                        }
+                                        else
+                                        {
+                                            // nếu không có subtotal để so sánh, phân bổ toàn bộ theo tỉ lệ = returnedGross/returnedGross => toàn bộ giảm
+                                            discountAllocated = decimal.Round(totalDiscountInvoice, 0, MidpointRounding.AwayFromZero);
+                                        }
+                                    }
+
+                                    // Tổng sau giảm cho phần trả hàng (KHÔNG tính phí ship)
+                                    decimal returnedAfterDiscount = returnedGross - discountAllocated;
+
+                                    // So sánh với Model.TongTienHoan (giá trị đã lưu)
+                                    decimal computedDiff = returnedAfterDiscount - (Model.TongTienHoan);
+
                                 }
-                                @{
-                                    // Tính toán chung cho tất cả items
-                                    var tongHangTotal = Model.HoaDon?.HoaDonChiTiets?.Sum(x => x.SoLuong * x.DonGia) ?? 0;
-                                    var shipTotal = Model.HoaDon?.PhuThu ?? 0;
-                                }
+
                                 @foreach (var item in Model.ChiTietTraHangs)
                                 {
-                                    // Tìm giá gốc từ hóa đơn
+                                    // Lấy giá gốc từ chi tiết hóa đơn nếu có, ngược lại fallback
                                     var hoaDonChiTiet = Model.HoaDon?.HoaDonChiTiets?.FirstOrDefault(x => x.ID_SanPhamChiTiet == item.ID_ChiTietSanPham);
-                                    var giaGoc = hoaDonChiTiet?.DonGia ?? 0;
-                                    
-                                    // Giá gốc chỉ là giá sản phẩm (không bao gồm phí ship)
-                                    var tongGiaGocItem = giaGoc * item.SoLuong;
-                                    var chenhLech = tongGiaGocItem - item.TienHoan;
-                                    
+                                    decimal unitPrice = 0m;
+                                    if (hoaDonChiTiet != null && hoaDonChiTiet.DonGia > 0m)
+                                    {
+                                        unitPrice = hoaDonChiTiet.DonGia;
+                                    }
+                                    else
+                                    {
+                                        unitPrice = item.SanPhamChiTiet?.GiaBan ?? (item.SoLuong > 0 ? Math.Round(item.TienHoan / item.SoLuong, 0) : item.TienHoan);
+                                    }
+
+                                    decimal lineOriginalTotal = unitPrice * item.SoLuong; // giá gốc tổng của dòng
+                                    decimal lineTienHoan = item.TienHoan; // tiền hoàn dòng (controller lưu)
+                                    decimal lineChenhLech = lineOriginalTotal - lineTienHoan;
+
                                     <tr>
                                         <td>@stt</td>
+                                        <td>@(item.SanPhamChiTiet?.SanPham?.Ma_SanPham ?? "Không rõ")</td>
                                         <td>@(item.SanPhamChiTiet?.SanPham?.Ten_SanPham ?? "Không rõ sản phẩm")</td>
                                         <td>
                                             @if (item.SanPhamChiTiet?.TheTich != null)
@@ -129,43 +179,35 @@
                                             }
                                         </td>
                                         <td>@item.SoLuong</td>
-                                        <td class="text-end">@tongGiaGocItem.ToString("N0") VND</td>
-                                        <td class="text-end text-success">@item.TienHoan.ToString("N0") VND</td>
-                                        <td class="text-end @(chenhLech > 0 ? "text-warning" : "text-muted")">
-                                            @if (chenhLech > 0)
-                                            {
-                                                <span>-@chenhLech.ToString("N0") VND</span>
-                                            }
-                                            else
-                                            {
-                                                <span>@chenhLech.ToString("N0") VND</span>
-                                            }
-                                        </td>
+                                        <td class="text-end">@unitPrice.ToString("N0") VND</td>
+                                        <td class="text-end text-success">@lineTienHoan.ToString("N0") VND</td>
+                                      
                                     </tr>
                                     stt++;
                                 }
                             </tbody>
+
                             <tfoot>
-                                @{
-                                    var tongGiaGocSanPham = tongHangTotal; // Chỉ tính giá sản phẩm
-                                    var tongChenhLech = tongGiaGocSanPham - Model.TongTienHoan;
-                                }
-                                <tr class="table-success">
-                                    <th colspan="4" class="text-end">Tổng cộng:</th>
-                                    <th class="text-end">@tongGiaGocSanPham.ToString("N0") VND</th>
-                                    <th class="text-end">@Model.TongTienHoan.ToString("N0") VND</th>
-                                    <th class="text-end @(tongChenhLech > 0 ? "text-warning" : "text-muted")">
-                                        @if (tongChenhLech > 0)
-                                        {
-                                            <span>-@tongChenhLech.ToString("N0") VND</span>
-                                        }
-                                        else
-                                        {
-                                            <span>@tongChenhLech.ToString("N0") VND</span>
-                                        }
-                                    </th>
+                                <tr>
+                                    <td colspan="6" class="text-end"><strong>Tạm tính (trước giảm):</strong></td>
+                                    <td class="text-end">@returnedGross.ToString("N0") VND</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="6" class="text-end"><strong>Giảm giá:</strong></td>
+                                    <td class="text-end text-danger">
+                                        -@discountAllocated.ToString("N0") VND
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="6" class="text-end"><strong>Tổng tiền sản phẩm (sau giảm):</strong></td>
+                                    <td class="text-end">@returnedAfterDiscount.ToString("N0") VND</td>
+                                </tr>
+                                <tr class="table-primary">
+                                    <td colspan="6" class="text-end"><strong>Tổng thanh toán hoàn:</strong></td>
+                                    <td class="text-end"><strong>@Model.TongTienHoan.ToString("N0") VND</strong></td>
                                 </tr>
                             </tfoot>
+
                         </table>
                     </div>
                 }
@@ -191,10 +233,12 @@
                     <p><strong>Mã hóa đơn:</strong> @Model.HoaDon.Ma_HoaDon</p>
                     <p><strong>Khách hàng:</strong> @(Model.HoaDon.HoTen ?? Model.HoaDon.KhachHang?.Ten_KhachHang ?? "Khách lẻ")</p>
                     <p><strong>Ngày tạo:</strong> @Model.HoaDon.NgayTao.ToString("dd/MM/yyyy HH:mm")</p>
-                    <p><strong>Loại hóa đơn:</strong> 
+                    <p>
+                        <strong>Loại hóa đơn:</strong>
                         <span class="badge bg-info">@Model.HoaDon.LoaiHoaDon</span>
                     </p>
-                    <p><strong>Trạng thái:</strong> 
+                    <p>
+                        <strong>Trạng thái:</strong>
                         @{
                             var hoaDonStatusText = Model.HoaDon.TrangThai switch
                             {

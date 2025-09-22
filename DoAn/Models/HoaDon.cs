@@ -32,6 +32,8 @@ namespace DoAn.Models
         [Required]
         public decimal TongTienSauGiam { get; set; }
 
+        [Required]
+        public decimal TongTienGiam { get; set; }
         public decimal? PhuThu { get; set; }
 
         [Required]

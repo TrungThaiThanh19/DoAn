@@ -204,11 +204,11 @@
                     <span>Tổng cộng:</span>
                     <span id="tongCong">0 đ</span>
                 </div>
-                <div class="mb-2 d-flex justify-content-between align-items-center">
+                <div id="rowTienKhachDua" class="mb-2 d-flex justify-content-between align-items-center">
                     <span>Tiền khách đưa:</span>
                     <input class="form-control" type="text" id="tienKhachDua" placeholder="Nhập số tiền khách đưa..." style="width: 150px;" autocomplete="off" />
                 </div>
-                <div class="mb-2 d-flex justify-content-between">
+                <div id="rowTienThua" class="mb-2 d-flex justify-content-between">
                     <span>Tiền thừa trả khách:</span>
                     <span id="tienThua" class="fw-bold text-success">0 đ</span>
                 </div>
@@ -228,15 +228,13 @@
         font-weight: bold;
         color: #ad5600;
     }
-</style>
-<style>
+
     .selected-row {
         background-color: #ffe6b3 !important;
         font-weight: bold;
         color: #ad5600;
     }
-</style>
-<style>
+
     #tienThua.text-danger {
         color: #e53935 !important;
         font-weight: bold;
@@ -245,6 +243,10 @@
     #tienThua.text-success {
         color: #00897b !important;
         font-weight: bold;
+    }
+
+    .d-none {
+        display: none !important;
     }
 </style>
 
@@ -385,11 +387,13 @@
         }
 
 
+
         // Cập nhật bảng hóa đơn chờ chi tiết
         let dsChiTietHoaDon = [];
 
         async function loadChiTietHoaDon(idHoaDon) {
             idHoaDonCho = idHoaDon;
+            resetVoucher(); // Reset voucher mỗi khi click vào hóa đơn khác
             if (selectedSanPhamId) {
                 loadBienThe(selectedSanPhamId);
             }
@@ -627,13 +631,13 @@
 
 
         async function payHoaDonCho() {
-            // Lấy danh sách chi tiết hóa đơn
+            // Kiểm tra có chi tiết hóa đơn chưa
             if (!dsChiTietHoaDon || dsChiTietHoaDon.length === 0) {
                 showError("Hóa đơn trống, không thể thanh toán!");
                 return;
             }
 
-            // Lấy dữ liệu form
+            // Lấy dữ liệu từ form
             const hoTen = document.querySelector('[name="tenKhachHang"]')?.value?.trim() || null;
             const email = document.querySelector('[name="email"]')?.value?.trim() || null;
             const sdt = document.querySelector('[name="sdt"]')?.value?.trim() || null;
@@ -650,18 +654,86 @@
                 DonGia: x.DonGia || x.donGia,
             }));
 
-            // Tổng tiền hàng
             let tongTienHang = chiTietList.reduce((sum, ct) => sum + (ct.DonGia * ct.SoLuong), 0);
-
-            // Ưu đãi MGG
             let uuDai = window.currentVoucherValue || 0;
-
-            let tienKhachDuaInput = document.getElementById("tienKhachDua");
-            let tienKhachDuaStr = tienKhachDuaInput?.value?.trim() || "";
-            let tienKhachDua = toNumber(tienKhachDuaStr);
             let tongCong = getTongCong();
 
-            // Đóng gói payload đúng DTO
+            // 3. Nếu là chuyển khoản thì hiện popup QR VÀ CHỈ KHI xác nhận đã nhận tiền mới tiếp tục
+            if (phuongThuc === "Chuyển khoản") {
+                // Lấy mã hóa đơn
+                let maHoaDon = "";
+                try {
+                    const rowHD = document.querySelector(`tr.selected-invoice-row td:first-child`);
+                    if (rowHD) maHoaDon = rowHD.textContent.trim();
+                } catch (e) { maHoaDon = ""; }
+                if (!maHoaDon) maHoaDon = "HD" + new Date().toISOString().replace(/\D/g, '').slice(0, 12);
+
+                let soTienChuyen = Math.round(tongCong);
+                let bankId = "techcombank";
+                let stk = "4150000000";
+                let accountName = "NGUYEN VAN HOANG";
+                let qrUrl = `https://img.vietqr.io/image/${bankId}-${stk}-print.png?amount=${soTienChuyen}&addInfo=${encodeURIComponent(maHoaDon)}&accountName=${encodeURIComponent(accountName)}`;
+
+                // Show popup QR
+                const {isConfirmed} = await Swal.fire({
+                    title: "Quét QR để chuyển khoản",
+                    html: `
+                        <div class="mb-3">
+                            <img src="${qrUrl}" alt="QR chuyển khoản" style="max-width:240px;border-radius:16px;" />
+                        </div>
+                        <div style="text-align:left;line-height:1.8;">
+                            <b>Số tài khoản:</b> ${stk}<br/>
+                            <b>Chủ tài khoản:</b> ${accountName}<br/>
+                            <b>Ngân hàng:</b> Techcombank<br/>
+                            <b>Số tiền:</b> <span style="color:#e53935;font-weight:bold;">${soTienChuyen.toLocaleString("vi-VN")} đ</span><br/>
+                            <b>Nội dung CK:</b> <span style="color:#2196f3;font-weight:bold;">${maHoaDon}</span><br/>
+                        </div>
+                        <div class="mt-3 text-danger" style="font-size:0.96em">
+                            Vui lòng chuyển khoản ĐÚNG SỐ TIỀN & NỘI DUNG!
+                        </div>
+                        <div class="form-check mt-4 mb-0">
+                            <input type="checkbox" class="form-check-input" id="ckXacNhanCK">
+                            <label for="ckXacNhanCK" class="form-check-label" style="font-weight:500;">Đã nhận được tiền</label>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: "Xác nhận đã nhận tiền & In hóa đơn",
+                    cancelButtonText: "Hủy",
+                    preConfirm: () => {
+                        if (!document.getElementById('ckXacNhanCK').checked) {
+                            Swal.showValidationMessage('Bạn phải xác nhận đã nhận được tiền!');
+                            return false;
+                        }
+                    },
+                    allowOutsideClick: () => !Swal.isLoading()
+                });
+
+                if (!isConfirmed) return; // Nếu không xác nhận thì dừng luôn
+            }
+
+            // Nếu là tiền mặt thì kiểm tra số tiền khách đưa
+            let tienKhachDua = 0;
+            let tienThua = 0;
+            if (phuongThuc !== "Chuyển khoản") {
+                let tienKhachDuaInput = document.getElementById("tienKhachDua");
+                let tienKhachDuaStr = tienKhachDuaInput?.value?.trim() || "";
+                tienKhachDua = toNumber(tienKhachDuaStr);
+                if (tienKhachDuaStr === "" || isNaN(tienKhachDua) || tienKhachDua < 0) {
+                    showError("Vui lòng nhập số tiền khách đưa");
+                    tienKhachDuaInput.focus();
+                    return;
+                }
+                if (tienKhachDua < tongCong) {
+                    showError("Tiền khách đưa chưa đủ để thanh toán");
+                    tienKhachDuaInput.focus();
+                    return;
+                }
+                tienThua = tienKhachDua - tongCong;
+            } else {
+                tienKhachDua = tongCong;
+                tienThua = 0;
+            }
+
             const payload = {
                 ID_HoaDon: idHoaDonCho,
                 HoTen: hoTen,
@@ -670,28 +742,15 @@
                 DiaChi: diaChi,
                 HinhThucThanhToan: phuongThuc,
                 TongTienTruocGiam: tongTienHang,
-                TongTienSauGiam: tongTienHang - uuDai + (phuThu || 0),
+                TongTienSauGiam: tongCong,
                 PhuThu: phuThu,
                 GhiChu: ghiChu,
                 ID_Voucher: idVoucher,
                 HoaDonChiTiets: chiTietList,
                 TienKhachDua: tienKhachDua,
-                TienThua: tienKhachDua - tongCong
+                TienThua: tienThua
             };
 
-        if (tienKhachDuaStr === "" || isNaN(tienKhachDua) || tienKhachDua < 0) {
-            showError("Vui lòng nhập số tiền khách đưa");
-            tienKhachDuaInput.focus();
-            return;
-        }
-        if (tienKhachDua < tongCong) {
-            showError("Tiền khách đưa chưa đủ để thanh toán");
-            tienKhachDuaInput.focus();
-            return;
-        }
-
-
-            // Gửi request
             const btn = document.getElementById("btnThanhToan");
             if (btn) btn.disabled = true;
             try {
@@ -712,13 +771,13 @@
                         <b>File hóa đơn:</b> <a href="${data.fileUrl}" download target="_blank">${data.fileName}</a>
                         `,
                     });
-                if (data.fileUrl) {
-                    const link = document.createElement('a');
-                    link.href = data.fileUrl;
-                    link.download = data.fileName;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+                    if (data.fileUrl) {
+                        const link = document.createElement('a');
+                        link.href = data.fileUrl;
+                        link.download = data.fileName;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
                     }
                     // Reset form
                     idHoaDonCho = null;
@@ -726,7 +785,6 @@
                     document.getElementById("danhSachHoaDon").innerHTML = "";
                     capNhatChiTietThanhToan(0, 0, 0);
                     await loadHoaDonCho();
-                    // Thanh toán thành công thì clear input
                     document.querySelector('[name="tenKhachHang"]').value = "";
                     document.querySelector('[name="sdt"]').value = "";
                     document.querySelector('[name="email"]').value = "";
@@ -737,9 +795,6 @@
                     document.querySelector('[name="phuongThucThanhToan"]').selectedIndex = 0;
                     document.getElementById("tienKhachDua").value = "";
                     document.getElementById("tienThua").innerText = "0 đ";
-
-
-                    // Clear luôn danh sách biến thể đang hiển thị sau khi thanh toán thành công
                     const tbodyBienThe = document.getElementById("danhSachBienThe");
                     if (tbodyBienThe) {
                         tbodyBienThe.innerHTML = `<tr><td colspan="4" class="text-muted">Vui lòng chọn sản phẩm để xem biến thể</td></tr>`;
@@ -754,6 +809,7 @@
                 if (btn) btn.disabled = false;
             }
         }
+
 
 
         // Xử lý nhập phụ thu
@@ -911,6 +967,26 @@
                     if (value !== e.target.value) e.target.value = value;
                     capNhatTienThua();
                 });
+            }
+
+            const phuongThucSelect = document.querySelector('[name="phuongThucThanhToan"]');
+            const rowTienKhachDua = document.getElementById("rowTienKhachDua");
+            const rowTienThua = document.getElementById("rowTienThua");
+
+            function updateHienThiTienKhach() {
+                const value = phuongThucSelect.value;
+                if (value === "Chuyển khoản") {
+                    rowTienKhachDua.classList.add("d-none");
+                    rowTienThua.classList.add("d-none");
+                } else {
+                    rowTienKhachDua.classList.remove("d-none");
+                    rowTienThua.classList.remove("d-none");
+                }
+            }
+
+            if (phuongThucSelect) {
+                phuongThucSelect.addEventListener("change", updateHienThiTienKhach);
+                updateHienThiTienKhach(); // Khởi tạo theo trạng thái đầu
             }
         });
     </script>

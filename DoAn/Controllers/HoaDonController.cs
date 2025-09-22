@@ -19,7 +19,7 @@ namespace DoAn.Controllers
         public HoaDonController(DoAnDbContext context) => _context = context;
 
 
-        public IActionResult Index(string? loaiHoaDon, int? trangThai)
+        public IActionResult Index(string? loaiHoaDon, int? trangThai, int page = 1, int pageSize = 10)
         {
             var query = _context.HoaDons
                 .Include(h => h.KhachHang)
@@ -35,80 +35,75 @@ namespace DoAn.Controllers
             if (trangThai.HasValue)
                 query = query.Where(h => h.TrangThai == trangThai.Value);
 
-            var list = query
+            // ---- Tổng số hóa đơn (để phân trang)
+            int totalItems = query.Count();
+
+            // ---- Phân trang
+            var data = query
                 .OrderByDescending(h => h.NgayTao)
-                .AsEnumerable()
-                .Select(h =>
-                {
-                    var lastActor = h.TrangThaiDonHangs?
-                        .OrderByDescending(t => t.NgayChuyen)
-                        .FirstOrDefault()?.NhanVienDoi;
-
-                    var isOffline = string.Equals(h.LoaiHoaDon?.Trim(), "offline", StringComparison.OrdinalIgnoreCase);
-                    var nhanVienTen = isOffline
-                        ? (h.NhanVien?.Ten_NhanVien ?? (!string.IsNullOrWhiteSpace(lastActor) ? lastActor : "Không có"))
-                        : (!string.IsNullOrWhiteSpace(lastActor) ? lastActor : (h.NhanVien?.Ten_NhanVien ?? "Không có"));
-
-                    // --- Phân tích trạng thái hoàn hàng chi tiết ---
-                    var hasReturnDone = h.TraHangs?.Any(p => p.TrangThai == 3) ?? false; // đã hoàn tiền (trạng thái 3)
-                    var hasReturnApproved = h.TraHangs?.Any(p => p.TrangThai == 1) ?? false; // đã duyệt hoàn hàng (trạng thái 1)
-                    var hasReturnReceived = h.TraHangs?.Any(p => p.TrangThai == 2) ?? false; // đã nhận hàng hoàn (trạng thái 2)
-                    var hasReturnRequest =
-                        (h.TrangThaiDonHangs?.Any(t => t.TrangThai == 6) ?? false) ||    // log "KH bấm hoàn"
-                        (h.TraHangs?.Any(t => t.TrangThai == 0) ?? false); // yêu cầu hoàn (trạng thái 0)
-
-                    // --- Xác định text trạng thái theo độ ưu tiên ---
-                    string trangThaiText;
-                    if (hasReturnDone)
-                    {
-                        trangThaiText = "Đã hoàn hàng";
-                    }
-                    else if (hasReturnReceived)
-                    {
-                        trangThaiText = "Đã nhận hàng hoàn";
-                    }
-                    else if (hasReturnApproved)
-                    {
-                        trangThaiText = "Đã duyệt hoàn hàng";
-                    }
-                    else if (hasReturnRequest)
-                    {
-                        trangThaiText = "Có yêu cầu hoàn hàng";
-                    }
-                    else
-                    {
-                        trangThaiText = GetTrangThaiText(h.TrangThai);
-                    }
-
-                    // --- tiền giảm / tổng tiền như bạn đang làm ---
-                    var ship = h.PhuThu ?? 0m;
-                    var tongHang_Goc = h.HoaDonChiTiets?.Sum(ct => ct.SoLuong * ct.DonGia) ?? 0m;
-                    var tongSauGiam = h.TongTienSauGiam != 0m ? h.TongTienSauGiam : (tongHang_Goc + ship);
-                    var tienGiam = Math.Max(0m, (tongHang_Goc + ship) - tongSauGiam);
-
-                    return new HoaDonViewModel
-                    {
-                        ID_HoaDon = h.ID_HoaDon,
-                        Ma_HoaDon = h.Ma_HoaDon,
-                        HoTen = h.HoTen ?? "Khách lẻ",
-                        NhanVienTen = nhanVienTen,
-                        LoaiHoaDon = h.LoaiHoaDon,
-                        NgayTao = h.NgayTao,
-                        PhuThu = ship,
-                        TongTienSauGiam = tongSauGiam,
-                        TienGiam = tienGiam,
-                        TrangThai = h.TrangThai,
-                        TrangThaiText = trangThaiText,
-                        HasReturnRequest = hasReturnRequest || hasReturnApproved || hasReturnReceived,
-                        HasReturnDone = hasReturnDone
-                    };
-                })
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToList();
 
+            var list = data.Select(h =>
+            {
+                var lastActor = h.TrangThaiDonHangs?
+                    .OrderByDescending(t => t.NgayChuyen)
+                    .FirstOrDefault()?.NhanVienDoi;
+
+                var isOffline = string.Equals(h.LoaiHoaDon?.Trim(), "offline", StringComparison.OrdinalIgnoreCase);
+                var nhanVienTen = isOffline
+                    ? (h.NhanVien?.Ten_NhanVien ?? (!string.IsNullOrWhiteSpace(lastActor) ? lastActor : "Không có"))
+                    : (!string.IsNullOrWhiteSpace(lastActor) ? lastActor : (h.NhanVien?.Ten_NhanVien ?? "Không có"));
+
+                var hasReturnDone = h.TraHangs?.Any(p => p.TrangThai == 3) ?? false;
+                var hasReturnApproved = h.TraHangs?.Any(p => p.TrangThai == 1) ?? false;
+                var hasReturnReceived = h.TraHangs?.Any(p => p.TrangThai == 2) ?? false;
+                var hasReturnRequest =
+                    (h.TrangThaiDonHangs?.Any(t => t.TrangThai == 6) ?? false) ||
+                    (h.TraHangs?.Any(t => t.TrangThai == 0) ?? false);
+
+                string trangThaiText;
+                if (hasReturnDone) trangThaiText = "Đã hoàn hàng";
+                else if (hasReturnReceived) trangThaiText = "Đã nhận hàng hoàn";
+                else if (hasReturnApproved) trangThaiText = "Đã duyệt hoàn hàng";
+                else if (hasReturnRequest) trangThaiText = "Có yêu cầu hoàn hàng";
+                else trangThaiText = GetTrangThaiText(h.TrangThai);
+
+                var ship = h.PhuThu ?? 0m;
+                var tongHang_Goc = h.HoaDonChiTiets?.Sum(ct => ct.SoLuong * ct.DonGia) ?? 0m;
+                var tongSauGiam = h.TongTienSauGiam != 0m ? h.TongTienSauGiam : (tongHang_Goc + ship);
+                var tienGiam = Math.Max(0m, (tongHang_Goc + ship) - tongSauGiam);
+
+                return new HoaDonViewModel
+                {
+                    ID_HoaDon = h.ID_HoaDon,
+                    Ma_HoaDon = h.Ma_HoaDon,
+                    HoTen = h.HoTen ?? "Khách lẻ",
+                    NhanVienTen = nhanVienTen,
+                    LoaiHoaDon = h.LoaiHoaDon,
+                    NgayTao = h.NgayTao,
+                    PhuThu = ship,
+                    TongTienSauGiam = tongSauGiam,
+                    TienGiam = tienGiam,
+                    TrangThai = h.TrangThai,
+                    TrangThaiText = trangThaiText,
+                    HasReturnRequest = hasReturnRequest || hasReturnApproved || hasReturnReceived,
+                    HasReturnDone = hasReturnDone
+                };
+            }).ToList();
+
+            // ---- Truyền dữ liệu phân trang xuống View
             ViewBag.LoaiHoaDon = loaiHoaDon;
             ViewBag.TrangThai = trangThai;
+            ViewBag.Page = page;
+            ViewBag.PageSize = pageSize;
+            ViewBag.TotalItems = totalItems;
+            ViewBag.TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
             return View(list);
         }
+
 
 
         // Helper đọc giá gốc theo nhiều tên thuộc tính

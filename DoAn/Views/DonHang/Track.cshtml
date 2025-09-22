@@ -58,22 +58,25 @@
         gap: 20px;
         padding: 18px
     }
+
     .step {
         flex: 1;
         text-align: center;
         position: relative;
         color: #6b7280
     }
-    .step:not(:last-child)::after {
-        content: "";
-        position: absolute;
-        top: 22px;
-        left: 50%;
-        right: -50%;
-        height: 4px;
-        background: #e5e7eb;
-        z-index: 0
-    }
+
+        .step:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            top: 22px;
+            left: 50%;
+            right: -50%;
+            height: 4px;
+            background: #e5e7eb;
+            z-index: 0
+        }
+
     .dot {
         width: 40px;
         height: 40px;
@@ -88,11 +91,25 @@
         position: relative;
         z-index: 1
     }
-    .step.done .dot { background: #22c55e }
-    .step.active .dot { background: #0d6efd }
+
+    .step.done .dot {
+        background: #22c55e
+    }
+
+    .step.active .dot {
+        background: #0d6efd
+    }
+
     .step.done, .step.active {
         color: #111827;
         font-weight: 700
+    }
+
+    /* nhỏ: style nút */
+    .btn-brand-warning {
+        background: #fbbf24;
+        color: #111;
+        border: 0;
     }
 </style>
 
@@ -188,13 +205,13 @@
                 </thead>
                 <tbody>
                     @{
-                        var idx = 1; decimal sum = 0;
+                        var idx = 1;
                         if (Model.HoaDonChiTiets != null)
                         {
                             foreach (var it in Model.HoaDonChiTiets)
                             {
                                 var ten = it.SanPhamChiTiet?.SanPham?.Ten_SanPham ?? "Sản phẩm";
-                                var line = it.SoLuong * it.DonGia; sum += line;
+                                var line = it.SoLuong * it.DonGia;
                                 <tr>
                                     <td>@idx</td>
                                     <td class="fw-semibold">@ten</td>
@@ -208,10 +225,25 @@
                     }
                 </tbody>
                 <tfoot>
+                    @{
+                        // preTotal: tạm tính (giá gốc)
+                        var preTotal = Model.TongTienTruocGiam;
+                        // afterDiscountNoShip: thực thu sau giảm (không tính ship)
+                        var afterDiscountNoShip = (Model.TongTienSauGiam - (Model.PhuThu ?? 0m));
+                        var discount = preTotal - afterDiscountNoShip;
+                        if (discount < 0m) discount = 0m;
+                    }
                     <tr>
                         <td colspan="4" class="text-end text-muted">Tạm tính</td>
-                        <td class="text-end">@Currency(Model.HoaDonChiTiets?.Sum(x => x.SoLuong * x.DonGia) ?? 0m)</td>
+                        <td class="text-end">@Currency(preTotal)</td>
                     </tr>
+                    @if (discount > 0m)
+                    {
+                        <tr>
+                            <td colspan="4" class="text-end text-muted">Giảm giá</td>
+                            <td class="text-end text-success">-@Currency(discount)</td>
+                        </tr>
+                    }
                     <tr>
                         <td colspan="4" class="text-end text-muted">Phí vận chuyển</td>
                         <td class="text-end">@Currency(Model.PhuThu ?? 0m)</td>
@@ -221,6 +253,7 @@
                         <td class="text-end fw-bold text-danger">@Currency(Model.TongTienSauGiam)</td>
                     </tr>
                 </tfoot>
+
             </table>
         </div>
 
@@ -250,7 +283,7 @@
                       onsubmit="return confirm('Xác nhận gửi yêu cầu hoàn hàng cho đơn @Model.Ma_HoaDon ?');">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="id" value="@Model.ID_HoaDon" />
-                    <button class="btn btn-warning">
+                    <button class="btn btn-brand-warning">
                         <i class="fa-solid fa-rotate-left me-1"></i> Hoàn hàng
                     </button>
                 </form>

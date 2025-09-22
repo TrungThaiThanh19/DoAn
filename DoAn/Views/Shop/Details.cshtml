@@ -141,7 +141,7 @@
     .desc-card {
         border-radius: 16px;
         border: 1px solid rgba(99,102,241,.25);
-        background: #ffffff;
+        background: #fff;
         box-shadow: 0 8px 20px rgba(31,41,55,.08)
     }
 
@@ -259,7 +259,7 @@
                         <tbody>
                             @foreach (var ct in Model.SanPhamChiTiets.OrderBy(c => c.GiaBan))
                             {
-                                var now = DateTime.UtcNow.AddHours(7); // UTC+7 nhất quán với trang chủ
+                                var now = DateTime.UtcNow.AddHours(7); // UTC+7
                                 decimal giaGoc = ct.GiaBan;
                                 decimal giaHienThi = giaGoc;
                                 int giamPhanTram = 0;
@@ -284,7 +284,7 @@
                                             discount = Math.Min(giaGoc, Math.Max(0, km.GiaTriGiam));
                                         }
                                         var price = Math.Max(0, giaGoc - discount);
-                                        if (price < giaHienThi) giaHienThi = price; // chọn giá tốt nhất
+                                        if (price < giaHienThi) giaHienThi = price;
                                     }
                                     if (giaHienThi < giaGoc)
                                     {
@@ -320,18 +320,48 @@
 @section Scripts {
     <script>
         // ===== Badge giỏ hàng =====
-        function renderCartCount(n){const badge=document.getElementById('cart-badge');if(!badge)return;const c=Number(n)||0;badge.textContent=c;badge.style.display=c>0?'inline-block':'none'}
-        async function refreshCartCount(){try{const r=await fetch('/Cart/Count',{credentials:'same-origin'});const d=await r.json();renderCartCount(d.count)}catch(_){}}
-        document.addEventListener('DOMContentLoaded',refreshCartCount);
+        function renderCartCount(n) {
+            const badge = document.getElementById('cart-badge');
+            if (!badge) return;
+            const c = Number(n) || 0;
+            badge.textContent = c;
+            badge.style.display = c > 0 ? 'inline-block' : 'none'
+        }
+        async function refreshCartCount() {
+            try {
+                const r = await fetch('/Cart/Count', { credentials: 'same-origin' });
+                const d = await r.json();
+                renderCartCount(d.count)
+            } catch (_) { }
+        }
+        document.addEventListener('DOMContentLoaded', refreshCartCount);
 
         // ===== Toast =====
-        function showToast(message, ok=true){const box=document.getElementById('toast-container');const el=document.createElement('div');el.className='toast-item';el.style.background= ok? 'linear-gradient(135deg,#22c55e,#16a34a)':'linear-gradient(135deg,#ef4444,#dc2626)';el.textContent=message;box.appendChild(el);setTimeout(()=>el.remove(),2600)}
+        function showToast(message, ok = true) {
+            const box = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            el.className = 'toast-item';
+            el.style.background = ok
+                ? 'linear-gradient(135deg,#22c55e,#16a34a)'
+                : 'linear-gradient(135deg,#ef4444,#dc2626)';
+            el.textContent = message;
+            box.appendChild(el);
+            setTimeout(() => el.remove(), 2600)
+        }
 
         // ===== Thêm biến thể vào giỏ =====
-        function addToCartByVariant(variantId){
-          fetch(`/Cart/AddDetail?id=${variantId}`,{method:'GET',credentials:'same-origin'})
-            .then(async r=>{if(r.status===200){showToast('Đã thêm vào giỏ hàng!',true);await refreshCartCount();return;}if(r.status===401)throw new Error('Bạn cần đăng nhập.');throw new Error('Không thể thêm vào giỏ.');})
-            .catch(e=>showToast(e.message||'Lỗi kết nối',false));
+        function addToCartByVariant(variantId) {
+            fetch(`/Cart/AddDetail?id=${variantId}`, { method: 'GET', credentials: 'same-origin' })
+                .then(async r => {
+                    if (r.status === 200) {
+                        showToast('Đã thêm vào giỏ hàng!', true);
+                        await refreshCartCount();
+                        return;
+                    }
+                    if (r.status === 401) throw new Error('Bạn cần đăng nhập.');
+                    throw new Error('Không thể thêm vào giỏ.');
+                })
+                .catch(e => showToast(e.message || 'Lỗi kết nối', false));
         }
     </script>
 }

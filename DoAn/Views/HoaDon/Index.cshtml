@@ -30,7 +30,6 @@
        asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="5">Hủy</a>
     <a class="btn btn-outline-secondary @(trangThai == 7 ? "active" : "")"
        asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="7">Hoàn hàng thành công</a>
-   
 </div>
 
 <!-- Lọc loại hóa đơn -->
@@ -85,7 +84,7 @@
                 var isOnline = string.Equals(item.LoaiHoaDon?.Trim(), "online", StringComparison.OrdinalIgnoreCase);
 
                 <tr>
-                    <td>@(i + 1)</td>
+                    <td>@(i + 1 + ((ViewBag.Page - 1) * ViewBag.PageSize))</td>
                     <td>@item.Ma_HoaDon</td>
                     <td>@(string.IsNullOrWhiteSpace(item.HoTen) ? "Khách lẻ" : item.HoTen)</td>
                     <td>@(string.IsNullOrWhiteSpace(item.NhanVienTen) ? "Không có" : item.NhanVienTen)</td>
@@ -102,27 +101,20 @@
                     </td>
 
                     <td>@item.NgayTao.ToString("HH:mm:ss dd-MM-yyyy")</td>
-
-                    <!-- Tiền giảm (khuyến mãi/voucher) -->
                     <td>@Money(item.TienGiam)</td>
-
-                    <!-- Phụ thu / phí vận chuyển -->
                     <td>@Money(item.PhuThu)</td>
-
-                    <!-- Tổng phải thu (đã gồm ship) -->
                     <td>@Money(item.TongTienSauGiam)</td>
 
                     <td>
+                        @* Badge trạng thái *@
                         @if (!isOnline)
                         {
-                            <!-- Offline thì luôn là thành công -->
                             <span class="badge bg-success rounded-pill px-2 py-1">
                                 <i class="fa-solid fa-check-double me-1"></i>Thành công
                             </span>
                         }
                         else
                         {
-                            <!-- Online: hiển thị trạng thái với badge -->
                             @if (item.TrangThaiText == "Đã hoàn hàng")
                             {
                                 <span class="badge bg-warning text-dark rounded-pill px-2 py-1">
@@ -190,7 +182,6 @@
                                 </span>
                             }
 
-                            @* Badge bổ sung cho các trường hợp đặc biệt *@
                             @if (item.HasReturnRequest && !item.HasReturnDone && !item.TrangThaiText.Contains("hoàn"))
                             {
                                 <br>
@@ -216,3 +207,45 @@
         }
     </tbody>
 </table>
+
+<!-- Phân trang -->
+@if (ViewBag.TotalPages > 1)
+{
+    <nav aria-label="Pagination">
+        <ul class="pagination justify-content-center">
+
+            <!-- Nút Previous -->
+            <li class="page-item @(ViewBag.Page <= 1 ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("Index", new {
+                        loaiHoaDon = ViewBag.LoaiHoaDon,
+                        trangThai = ViewBag.TrangThai,
+                        page = ViewBag.Page - 1,
+                        pageSize = ViewBag.PageSize
+                })">Trước</a>
+            </li>
+
+            <!-- Các trang -->
+            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+            {
+                <li class="page-item @(i == ViewBag.Page ? "active" : "")">
+                    <a class="page-link" href="@Url.Action("Index", new {
+                            loaiHoaDon = ViewBag.LoaiHoaDon,
+                            trangThai = ViewBag.TrangThai,
+                            page = i,
+                            pageSize = ViewBag.PageSize
+                    })">@i</a>
+                </li>
+            }
+
+            <!-- Nút Next -->
+            <li class="page-item @(ViewBag.Page >= ViewBag.TotalPages ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("Index", new {
+                        loaiHoaDon = ViewBag.LoaiHoaDon,
+                        trangThai = ViewBag.TrangThai,
+                        page = ViewBag.Page + 1,
+                        pageSize = ViewBag.PageSize
+                })">Tiếp</a>
+            </li>
+        </ul>
+    </nav>
+}

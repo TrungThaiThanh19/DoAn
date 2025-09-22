@@ -190,7 +190,8 @@
     @if (!isCanceled)
     {
         <div class="d-flex justify-content-end gap-2 mb-4">
-            @if (isOnline && Model.TrangThai < steps.Length - 1)
+            @* Nếu KH chưa bấm hoàn hàng thì vẫn có thể chuyển trạng thái *@
+            @if (isOnline && Model.TrangThai < steps.Length - 1 && !hasYeuCauHoan)
             {
                 <form asp-action="CapNhatTrangThai" method="post" class="m-0">
                     @Html.AntiForgeryToken()
@@ -202,8 +203,8 @@
                 </form>
             }
 
-            @* Nút HOÀN TẤT CẢ (chỉ cho 3|4 & đã có yêu cầu) *@
-            @if (!hasReturnDone && (Model.TrangThai == 3 || Model.TrangThai == 4))
+            @* Nút HOÀN TẤT CẢ (chỉ online, trạng thái 3|4 & đã có yêu cầu) *@
+            @if (isOnline && !hasReturnDone && (Model.TrangThai == 3 || Model.TrangThai == 4))
             {
                 if (canReturn)
                 {
@@ -221,6 +222,7 @@
                 }
             }
 
+
             @if (Model.TrangThai == 0 || Model.TrangThai == 1)
             {
                 <button type="button" class="btn btn-outline-danger px-4 py-2"
@@ -230,6 +232,7 @@
             }
         </div>
     }
+
 
     <div class="row g-3">
         <div class="col-lg-7">
@@ -297,6 +300,7 @@
                             <thead>
                                 <tr>
                                     <th style="width:56px">#</th>
+                                    <th style="width:140px">Mã sản phẩm</th>
                                     <th>Tên sản phẩm</th>
                                     <th class="text-center" style="width:120px">Số lượng</th>
                                     <th class="text-end" style="width:220px">Đơn giá</th>
@@ -325,8 +329,10 @@
                                         sumGoc += lineTotalGoc; sumSale += lineTotalSale;
 
                                         var ten = sp?.Ten_SanPham ?? "(Chưa nạp tên sản phẩm)";
+                                        var maSp = sp?.Ma_SanPham ?? "(N/A)";
                                         <tr>
                                             <td>@idx</td>
+                                            <td>@maSp</td>
                                             <td><div class="fw-bold">@ten</div></td>
                                             <td class="text-center">@item.SoLuong</td>
                                             <td class="text-end price-cell">
@@ -366,23 +372,23 @@
                                     var afterDiscount = subtotalDisplay - discount; // 👉 tổng tiền sau giảm giá
                                 }
                                 <tr>
-                                    <td colspan="4" class="text-end text-muted">Tạm tính (trước giảm)</td>
+                                    <td colspan="5" class="text-end text-muted">Tạm tính (trước giảm)</td>
                                     <td class="text-end">@Currency(subtotalDisplay)</td>
                                 </tr>
                                 <tr>
-                                    <td colspan="4" class="text-end text-muted">Giảm giá</td>
+                                    <td colspan="5" class="text-end text-muted">Giảm giá</td>
                                     <td class="text-end">-@Currency(discount)</td>
                                 </tr>
                                 <tr>
-                                    <td colspan="4" class="text-end text-muted">Tổng tiền sản phẩm (sau giảm)</td>
+                                    <td colspan="5" class="text-end text-muted">Tổng tiền sản phẩm (sau giảm)</td>
                                     <td class="text-end">@Currency(afterDiscount)</td>
                                 </tr>
                                 <tr>
-                                    <td colspan="4" class="text-end text-muted">Phụ thu( Phí ship)</td>
+                                    <td colspan="5" class="text-end text-muted">Phụ thu( Phí ship)</td>
                                     <td class="text-end">@Currency(shipping)</td>
                                 </tr>
                                 <tr class="fw-bold" style="background-color:#007bff; color:white;">
-                                    <td colspan="4" class="text-end">Tổng thanh toán</td>
+                                    <td colspan="5" class="text-end">Tổng thanh toán</td>
                                     <td class="text-end">@Currency(total)</td>
                                 </tr>
                             </tfoot>
@@ -407,21 +413,14 @@
                             <i class="fa-solid fa-arrow-left-long me-2"></i>Quay lại danh sách
                         </a>
 
-                        @if (Model.TrangThai < steps.Length - 1)
+                        @if (isOnline && Model.TrangThai < steps.Length - 1 && !hasYeuCauHoan)
                         {
-                            <form asp-action="CapNhatTrangThai" method="post" class="m-0">
+                            <form asp-action="CapNhatTrangThai" method="post" class="d-inline">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="idHoaDon" value="@Model.ID_HoaDon" />
-                                <button class="btn btn-success px-4 py-2">
-                                    <i class="fa-solid fa-hand-point-right me-2"></i>
-                                    @if (isOnline)
-                                    {
-                                        @:Chuyển sang bước: <strong>@steps[Model.TrangThai + 1]</strong>
-                                    }
-                                    else
-                                    {
-                                        @:Hoàn tất: <strong>Thành công</strong>
-                                    }
+                                <button class="btn btn-success px-3 py-1">
+                                    <i class="fa-solid fa-hand-point-right me-1"></i>
+                                    Chuyển sang bước: <strong>@steps[Model.TrangThai + 1]</strong>
                                 </button>
                             </form>
                         }

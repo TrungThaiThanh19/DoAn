@@ -18,7 +18,7 @@ namespace DoAn.Controllers
         private const int TrangThaiConBan = 1;
         private const int TrangThaiHetHang = 0;
 
-        public CheckoutController(DoAnDbContext db, IGioHangService cart,  IHoaDonService hoaDonService)
+        public CheckoutController(DoAnDbContext db, IGioHangService cart, IHoaDonService hoaDonService)
         {
             _db = db;
             _hoaDonService = hoaDonService;
@@ -180,10 +180,12 @@ namespace DoAn.Controllers
         {
             var khId = await GetKhachHangIdAsync();
 
+            // --- kiểm tra địa chỉ ---
             var addr = await _db.DiaChiKhachHangs
                 .FirstOrDefaultAsync(a => a.ID_DiaChiKhachHang == dto.AddressId && a.ID_KhachHang == khId);
             if (addr == null) return RedirectToAction(nameof(Address), new { lines });
 
+            // --- kiểm tra giỏ hàng ---
             var cart = await _cart.GetCartAsync(khId);
             if (cart == null || !cart.Items.Any())
             {
@@ -191,6 +193,7 @@ namespace DoAn.Controllers
                 return RedirectToAction(nameof(Review), new { addressId = dto.AddressId, lines });
             }
 
+            // --- lọc sản phẩm được chọn ---
             HashSet<Guid>? selectedIds = null;
             if (!string.IsNullOrWhiteSpace(lines))
             {
@@ -210,9 +213,57 @@ namespace DoAn.Controllers
                 return RedirectToAction(nameof(Review), new { addressId = dto.AddressId, lines });
             }
 
-            var subtotal = items.Sum(x => x.ThanhTien);
-            var shipping = TinhPhiShip(subtotal, addr.Tinh_ThanhPho);
+            // === TÍNH TOÁN ===
+            decimal preDiscountTotal = 0m;
+            decimal afterDiscountTotal = 0m;
+            decimal totalDiscount = 0m;
 
+            foreach (var item in items)
+            {
+                var spct = await _db.SanPhamChiTiets
+                    .Include(x => x.ChiTietKhuyenMais)
+                        .ThenInclude(ctkm => ctkm.KhuyenMai)
+                    .FirstOrDefaultAsync(x => x.ID_SanPhamChiTiet == item.SanPhamChiTietId);
+
+                if (spct == null) continue;
+
+                var lineSubtotal = item.SoLuong * item.DonGia;
+                decimal lineTotalAfterDiscount = lineSubtotal;
+
+                // Tìm khuyến mãi còn hiệu lực
+                var km = spct.ChiTietKhuyenMais
+                    .Where(ctkm => ctkm.KhuyenMai.NgayBatDau <= DateTime.Now
+                                && ctkm.KhuyenMai.NgayHetHan >= DateTime.Now
+                                && ctkm.KhuyenMai.TrangThai == 1)
+                    .Select(ctkm => ctkm.KhuyenMai)
+                    .FirstOrDefault();
+
+                if (km != null)
+                {
+                    decimal giam = 0m;
+
+                    if (km.KieuGiamGia == "percent")
+                        giam = lineSubtotal * (km.GiaTriGiam / 100m);
+                    else if (km.KieuGiamGia == "amount")
+                        giam = km.GiaTriGiam * item.SoLuong;
+
+                    // Giới hạn giảm giá
+                    if (km.GiaTriToiDa > 0 && giam > km.GiaTriToiDa)
+                        giam = km.GiaTriToiDa;
+
+                    lineTotalAfterDiscount -= giam;
+                    totalDiscount += giam;
+                }
+
+                if (lineTotalAfterDiscount < 0) lineTotalAfterDiscount = 0;
+
+                preDiscountTotal += lineSubtotal;
+                afterDiscountTotal += lineTotalAfterDiscount;
+            }
+
+            var shipping = TinhPhiShip(afterDiscountTotal, addr.Tinh_ThanhPho);
+
+            // === TẠO HOÁ ĐƠN ===
             var hd = new HoaDon
             {
                 ID_HoaDon = Guid.NewGuid(),
@@ -223,8 +274,9 @@ namespace DoAn.Controllers
                 DiaChi = $"{addr.SoNha}, {addr.Xa_Phuong}, {addr.Quan_Huyen}, {addr.Tinh_ThanhPho}",
                 HinhThucThanhToan = dto.PaymentMethod,
                 PhuongThucNhanHang = "Giao hàng",
-                TongTienTruocGiam = subtotal,
-                TongTienSauGiam = subtotal + shipping,
+                TongTienTruocGiam = preDiscountTotal,
+                TongTienGiam = totalDiscount, // 👈 dùng đúng tổng đã cộng
+                TongTienSauGiam = afterDiscountTotal + shipping,
                 PhuThu = shipping,
                 LoaiHoaDon = "Online",
                 TrangThai = 0,
@@ -246,6 +298,7 @@ namespace DoAn.Controllers
 
             await _db.SaveChangesAsync();
 
+            // Xoá sản phẩm khỏi giỏ
             if (selectedIds != null && selectedIds.Count > 0)
             {
                 foreach (var lineId in selectedIds)

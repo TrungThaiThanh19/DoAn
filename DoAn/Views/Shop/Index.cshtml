@@ -381,8 +381,6 @@
     </div>
 </div>
 
-
-
 <!-- ==== PRODUCTS ==== -->
 <div class="shop-wrap">
     <div class="container">
@@ -405,10 +403,10 @@
                 decimal giaHienThi = giaGoc;
                 int giamPhanTram = 0;
 
-                // === ÁP DỤNG KM: quét toàn bộ, hỗ trợ percent/fixed, timezone VN ===
+                // === ÁP DỤNG KM ===
                 if (ctBan?.ChiTietKhuyenMais != null)
                 {
-                    var now = DateTime.UtcNow.AddHours(7); // UTC+7
+                    var now = DateTime.UtcNow.AddHours(7);
                     foreach (var ctkm in ctBan.ChiTietKhuyenMais)
                     {
                         var km = ctkm.KhuyenMai;
@@ -430,7 +428,7 @@
                         }
 
                         var price = Math.Max(0, giaGoc - discount);
-                        if (price < giaHienThi) giaHienThi = price; // chọn giá tốt nhất
+                        if (price < giaHienThi) giaHienThi = price;
                     }
 
                     if (giaHienThi < giaGoc)
@@ -440,6 +438,7 @@
                 }
 
                 bool hetHang = !sp.SanPhamChiTiets.Any(c => c.SoLuong > 0);
+                int soBienThe = sp.SanPhamChiTiets.Count;
 
                 <div class="col">
                     <div class="card product-card h-100 border-0">
@@ -458,9 +457,23 @@
 
                             @if (ctBan != null)
                             {
-                                <button type="button" class="cart-fab" title="Thêm vào giỏ" onclick="addToCartByProduct('@sp.ID_SanPham')">
-                                    <i class="fa-solid fa-cart-plus"></i>
-                                </button>
+                                if (soBienThe == 1)
+                                {
+                                    <!-- 1 biến thể: add trực tiếp -->
+                                    <button type="button" class="cart-fab" title="Thêm vào giỏ"
+                                            onclick="addToCartByVariant('@ctBan.ID_SanPhamChiTiet')">
+                                        <i class="fa-solid fa-cart-plus"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <!-- Nhiều biến thể: bấm giỏ hàng nhưng chuyển sang chi tiết -->
+                                    <a asp-action="Details" asp-route-id="@sp.ID_SanPham"
+                                       class="cart-fab text-decoration-none d-flex align-items-center justify-content-center"
+                                       title="Chọn thể tích">
+                                        <i class="fa-solid fa-cart-plus"></i>
+                                    </a>
+                                }
                             }
                             else
                             {
@@ -478,14 +491,31 @@
                                     <span class="old-price">@string.Format("{0:N0} ₫", giaGoc)</span>
                                 }
                             </div>
+
+                            <!-- ========== Thêm phần hiển thị biến thể ========== -->
+                            @if (sp.SanPhamChiTiets != null && sp.SanPhamChiTiets.Any())
+                            {
+                                <div class="mt-2 small text-muted">
+                                    Dung tích:
+                                    @foreach (var bienThe in sp.SanPhamChiTiets)
+                                    {
+                                        <span class="badge bg-light text-dark border">
+                                            @bienThe.TheTich.GiaTri @bienThe.TheTich.DonVi
+                                        </span>
+                                    }
+                                    @if (sp.SanPhamChiTiets.Count > 3)
+                                    {
+                                        <span class="badge bg-secondary">+@((sp.SanPhamChiTiets.Count - 3))</span>
+                                    }
+                                </div>
+                            }
+
                             <a asp-action="Details" asp-route-id="@sp.ID_SanPham" class="btn btn-link p-0 mt-2">Xem chi tiết</a>
                         </div>
                     </div>
                 </div>
             }
         </div>
-    </div>
-</div>
 
 <div id="toast-container"></div>
 
@@ -575,10 +605,18 @@
         function showToast(msg, ok=true){const box=document.getElementById('toast-container');const el=document.createElement('div');el.className='toast-item';el.style.background= ok? 'linear-gradient(135deg,#22c55e,#16a34a)': 'linear-gradient(135deg,#ef4444,#dc2626)';el.textContent=msg;box.appendChild(el);setTimeout(()=>el.remove(),2600)}
 
         // ===== Thêm vào giỏ =====
-        function addToCartByProduct(productId){
-          fetch(`/Cart/Add?id=${productId}`,{method:'GET',credentials:'same-origin'})
-            .then(async r=>{if(r.status===200){showToast('Đã thêm vào giỏ hàng!',true);await refreshCartCount();return;}if(r.status===401)throw new Error('Bạn cần đăng nhập.');throw new Error('Không thể thêm vào giỏ.');})
-            .catch(e=>showToast(e.message||'Lỗi kết nối',false));
+        function addToCartByVariant(variantId) {
+            fetch(`/Cart/AddDetail?id=${variantId}`, { method: 'GET', credentials: 'same-origin' })
+                .then(async r => {
+                    if (r.status === 200) {
+                        showToast('Đã thêm vào giỏ hàng!', true);
+                        await refreshCartCount();
+                        return;
+                    }
+                    if (r.status === 401) throw new Error('Bạn cần đăng nhập.');
+                    throw new Error('Không thể thêm vào giỏ.');
+                })
+                .catch(e => showToast(e.message || 'Lỗi kết nối', false));
         }
     </script>
 }

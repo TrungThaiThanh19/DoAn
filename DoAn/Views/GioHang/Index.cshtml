@@ -404,65 +404,71 @@
         background: #fff url('https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://yourdomain.example') center/cover no-repeat;
     }
 
-    /* ===== Responsive - SỬA LẠI MEDIA QUERIES CHUẨN ===== */
-   
+    /* ===== Responsive - MEDIA QUERIES CHUẨN ===== */
 
-    {
-        grid-template-columns: 28px 1fr 110px 130px 120px 80px;
+    /* Tablet: ≤ 992px */
+    @@media (max-width: 992px) {
+        .cart-header, .cart-row {
+            grid-template-columns: 28px 1fr 110px 130px 120px 80px;
+        }
     }
 
-    }
-    
-
-    {
-        display: none;
-    }
-
-    .cart-row {
-        grid-template-columns: 1fr 100px;
-        grid-template-areas: "prod   prod" "qty    price" "total  act";
-        row-gap: 8px;
-    }
-
-        .cart-row .prod {
-            grid-area: prod;
+    /* Mobile: ≤ 768px */
+    @@media (max-width: 768px) {
+        .cart-header {
+            display: none;
         }
 
-        .cart-row .qty-box {
-            grid-area: qty;
-            justify-content: flex-start;
+        .cart-row {
+            grid-template-columns: 1fr 100px;
+            grid-template-areas:
+                "prod   prod"
+                "qty    price"
+                "total  act";
+            row-gap: 8px;
         }
 
-        .cart-row .price {
-            grid-area: price;
-            text-align: right;
+            .cart-row .prod {
+                grid-area: prod;
+            }
+
+            .cart-row .qty-box {
+                grid-area: qty;
+                justify-content: flex-start;
+            }
+
+            .cart-row .price {
+                grid-area: price;
+                text-align: right;
+            }
+
+            .cart-row .total {
+                grid-area: total;
+                text-align: left;
+            }
+
+            .cart-row .act {
+                grid-area: act;
+                text-align: right;
+            }
+
+        .ft-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    /* Extra small: ≤ 480px */
+    @@media (max-width: 480px) {
+        .cart-row {
+            grid-template-columns: 1fr;
         }
 
-        .cart-row .total {
-            grid-area: total;
-            text-align: left;
+        .ft-grid {
+            grid-template-columns: 1fr;
         }
-
-        .cart-row .act {
-            grid-area: act;
-            text-align: right;
-        }
-
     }
-    
+</style>
 
-    {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    }
-    
-
-    {
-        grid-template-columns: 1fr;
-    }
-
-    }</style>
 
 <!-- ===== HEADER ===== -->
 <header class="shp-header">

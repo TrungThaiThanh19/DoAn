@@ -137,7 +137,7 @@ namespace DoAn.Controllers
             }
 
             // ✅ Tiền hoàn cuối cùng = Tổng tiền hàng gốc - Giảm giá + Ship
-            var tongHoan = tongHoanHang - discount + ship;
+            var tongHoan = tongHoanHang - discount ;
 
             // Tạo phiếu
             var phieu = new QuanLyTraHang

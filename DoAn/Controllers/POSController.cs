@@ -7,18 +7,15 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using QuestPDF.Drawing;
-using DoAn.IService;
 
 namespace DoAn.Controllers
 {
     public class POSController : Controller
     {
         private readonly DoAnDbContext _context;
-        private readonly IHoaDonService _hoaDonService;
-        public POSController(DoAnDbContext context, IHoaDonService hoaDonService)
+        public POSController(DoAnDbContext context)
         {
             _context = context;
-            _hoaDonService = hoaDonService;
         }
 
 
@@ -102,7 +99,7 @@ namespace DoAn.Controllers
             {
                 return Json(new { success = false, message = "Kiểu giảm giá không hợp lệ" });
             }
-
+            giamGia = Math.Min(giamGia, tongTienHang);
             return Json(new { success = true, giamGia = giamGia, idVoucher = voucher.ID_Voucher });
         }
 
@@ -178,7 +175,7 @@ namespace DoAn.Controllers
                 var hoaDon = new HoaDon
                 {
                     ID_HoaDon = idHoaDon,
-                    Ma_HoaDon = _hoaDonService.GenerateMaHoaDon(),
+                    Ma_HoaDon = TaoMaHoaDon("HD"),
                     PhuongThucNhanHang = "Nhận tại quầy",
                     LoaiHoaDon = "Offline",
                     NgayTao = DateTime.Now,
@@ -469,7 +466,7 @@ namespace DoAn.Controllers
                         ID_Voucher = voucher?.ID_Voucher,
                         LoaiHoaDon = "Offline",
                         NgayTao = DateTime.Now,
-                        TrangThai = 1,
+                        TrangThai = 4,
                         //ID_NhanVien = idNhanVien,
                     };
 
