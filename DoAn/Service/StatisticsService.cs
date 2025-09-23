@@ -39,18 +39,14 @@ namespace DoAn.Service
 
             var hoaDons = await q.AsNoTracking().ToListAsync(ct);
 
-            // ====== Doanh thu theo công thức ======
-            decimal revenueGross = hoaDons.Sum(hd =>
-                hd.HoaDonChiTiets.Sum(ct => ct.SoLuong * ct.DonGia)
-            );
-
-            decimal refundRevenue = hoaDons.Sum(hd =>
-                hd.TraHangs.Sum(tr =>
+            // ====== Doanh thu theo công thức chuẩn ======
+            decimal revenueNet = hoaDons.Sum(hd =>
+                ((decimal?)hd.TongTienSauGiam ?? 0m)   // tổng sau giảm giá
+                + ((decimal?)hd.PhuThu ?? 0m)          // phụ thu (nếu có)
+                - hd.TraHangs.Sum(tr =>                // trừ tiền trả hàng
                     tr.ChiTietTraHangs.Sum(r => ((decimal?)r.TienHoan ?? 0m))
-                )
+                  )
             );
-
-            decimal revenueNet = revenueGross - refundRevenue;
 
             // ====== Giá vốn theo công thức ======
             decimal cogsGross = hoaDons.Sum(hd =>
@@ -60,12 +56,12 @@ namespace DoAn.Service
             );
 
             decimal refundCOGS = hoaDons.Sum(hd =>
-    hd.TraHangs.Sum(tr =>
-        tr.ChiTietTraHangs.Sum(r =>
-            ((decimal?)(r.SanPhamChiTiet?.GiaNhap) ?? 0m) * r.SoLuong
-        )
-    )
-);
+                hd.TraHangs.Sum(tr =>
+                    tr.ChiTietTraHangs.Sum(r =>
+                        ((decimal?)(r.SanPhamChiTiet?.GiaNhap) ?? 0m) * r.SoLuong
+                    )
+                )
+            );
 
             decimal cogsNet = cogsGross - refundCOGS;
 
@@ -81,7 +77,11 @@ namespace DoAn.Service
                     DoanhThu = revenueNet,
                     TongGiaNhap = cogsNet,
                     ChiPhiVanChuyen = shipCostPaidByShop,
-                    HoanTienTraHang = refundRevenue,
+                    HoanTienTraHang = hoaDons.Sum(hd =>
+                        hd.TraHangs.Sum(tr =>
+                            tr.ChiTietTraHangs.Sum(r => ((decimal?)r.TienHoan ?? 0m))
+                        )
+                    ),
                     DonHoanTat = hoaDons.Count,
                     KhachHangMoi = await _db.KhachHangs.CountAsync(
                         x => x.NgayTao.Year == DateTime.Now.Year, ct),
@@ -148,7 +148,13 @@ namespace DoAn.Service
                 {
                     TenNhanVien = g.Key,
                     SoDon = g.Count(),
-                    DoanhThu = g.Sum(h => h.HoaDonChiTiets.Sum(ct => ct.SoLuong * ct.DonGia))
+                    DoanhThu = g.Sum(h =>
+                        ((decimal?)h.TongTienSauGiam ?? 0m)
+                        + ((decimal?)h.PhuThu ?? 0m)
+                        - h.TraHangs.Sum(tr =>
+                            tr.ChiTietTraHangs.Sum(r => ((decimal?)r.TienHoan ?? 0m))
+                          )
+                    )
                 })
                 .OrderByDescending(x => x.DoanhThu)
                 .ToList();
@@ -158,8 +164,11 @@ namespace DoAn.Service
             var toDateExcl = (to?.Date ?? DateTime.Today).AddDays(1);
 
             decimal OrderNet(HoaDon hd) =>
-                hd.HoaDonChiTiets.Sum(ct => ct.SoLuong * ct.DonGia)
-              - hd.TraHangs.Sum(tr => tr.ChiTietTraHangs.Sum(r => ((decimal?)r.TienHoan ?? 0m)));
+                ((decimal?)hd.TongTienSauGiam ?? 0m)
+                + ((decimal?)hd.PhuThu ?? 0m)
+                - hd.TraHangs.Sum(tr =>
+                    tr.ChiTietTraHangs.Sum(r => ((decimal?)r.TienHoan ?? 0m))
+                  );
 
             var daily = new List<RevenuePointVM>();
             for (var d = fromDate; d < toDateExcl; d = d.AddDays(1))
