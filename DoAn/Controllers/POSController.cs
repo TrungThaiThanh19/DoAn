@@ -41,19 +41,65 @@ namespace DoAn.Controllers
 			var danhSachBienThe = await _context.SanPhamChiTiets
 				.Include(ct => ct.TheTich)
 				.Include(ct => ct.SanPham)
+				.Include(ct => ct.ChiTietKhuyenMais)
+				.ThenInclude(ctkm => ctkm.KhuyenMai)
 				.Where(ct => ct.ID_SanPham == idSanPham && ct.TrangThai == 1 && ct.SoLuong > 0)
-				.Select(ct => new {
+				.ToListAsync();
+
+			var now = DateTime.UtcNow.AddHours(7); // UTC+7
+			var result = danhSachBienThe.Select(ct => {
+				decimal giaGoc = ct.GiaBan;
+				decimal giaHienThi = giaGoc;
+				int giamPhanTram = 0;
+
+				// Áp dụng khuyến mãi tự động
+				if (ct.ChiTietKhuyenMais != null)
+				{
+					foreach (var ctkm in ct.ChiTietKhuyenMais)
+					{
+						var km = ctkm.KhuyenMai;
+						if (km == null) continue;
+						if (km.TrangThai != 1 || now < km.NgayBatDau || now > km.NgayHetHan) continue;
+
+						decimal discount = 0M;
+						var kieu = (km.KieuGiamGia ?? "").Trim().ToLowerInvariant();
+
+						if (kieu == "percent")
+						{
+							var pct = Math.Clamp(km.GiaTriGiam, 0, 100);
+							discount = giaGoc * (pct / 100m);
+							if (km.GiaTriToiDa > 0 && discount > km.GiaTriToiDa) discount = km.GiaTriToiDa;
+						}
+						else if (kieu == "fixed")
+						{
+							discount = Math.Min(giaGoc, Math.Max(0, km.GiaTriGiam));
+						}
+
+						var price = Math.Max(0, giaGoc - discount);
+						if (price < giaHienThi) giaHienThi = price; // chọn giá tốt nhất
+					}
+
+					if (giaHienThi < giaGoc)
+					{
+						giamPhanTram = (int)Math.Clamp(Math.Round((1 - (giaHienThi / giaGoc)) * 100M), 0, 100);
+					}
+				}
+
+				return new
+				{
 					id_SanPhamChiTiet = ct.ID_SanPhamChiTiet,
 					TenSanPham = ct.SanPham.Ten_SanPham,
 					TheTich = ct.TheTich.GiaTri.ToString("0.#") + ct.TheTich.DonVi,
-					ct.GiaBan,
+					GiaBan = giaHienThi, // Sử dụng giá đã áp dụng khuyến mãi
+					GiaGoc = giaGoc, // Giá gốc để hiển thị
+					GiamPhanTram = giamPhanTram, // Phần trăm giảm giá
 					ct.SoLuong,
 					MaBienThe = ct.MaSanPhamChiTiet,
 					HinhAnhBienThe = ct.HinhAnh
-				})
-				.ToListAsync();
+				};
+			}).ToList();
 
-			return Json(danhSachBienThe);
+			return Json(result);
 		}
 
 
