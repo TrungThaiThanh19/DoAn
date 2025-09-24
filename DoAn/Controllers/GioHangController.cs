@@ -52,11 +52,57 @@ namespace DoAn.Controllers
             try
             {
                 var khId = await GetKhachHangIdAsync();
-                var vm = await _cart.GetCartAsync(khId);
+
+                // Lấy giỏ hàng của KH từ DB
+                var cartItems = await _db.ChiTietGioHangs
+                    .Include(ct => ct.SanPhamChiTiet)
+                        .ThenInclude(spct => spct.SanPham)
+                    .Include(ct => ct.SanPhamChiTiet)
+                        .ThenInclude(spct => spct.TheTich)
+                    .Where(ct => ct.ID_GioHang == _db.GioHangs
+                                    .Where(g => g.ID_KhachHang == khId)
+                                    .Select(g => g.ID_GioHang)
+                                    .FirstOrDefault())
+                    .ToListAsync();
+
+                // Build ViewModel
+                var vm = new GioHangVMD
+                {
+                    Items = cartItems.Select(ct => new GioHangItemVMD
+                    {
+                        ChiTietGioHangId = ct.ID_ChiTietGioHang,
+                        SanPhamChiTietId = ct.ID_SanPhamChiTiet,
+
+                        // ---- thêm Mã sản phẩm ----
+                        MaSanPham = ct.SanPhamChiTiet.SanPham.Ma_SanPham,
+
+                        TenSanPham = ct.SanPhamChiTiet.SanPham.Ten_SanPham,
+                        ThuongHieu = ct.SanPhamChiTiet.SanPham.ThuongHieu?.Ten_ThuongHieu,
+                        TheTich = ct.SanPhamChiTiet.TheTich != null
+    ? $"{ct.SanPhamChiTiet.TheTich.GiaTri} {ct.SanPhamChiTiet.TheTich.DonVi}"
+    : null,
+                        HinhAnh = ct.SanPhamChiTiet.SanPham.HinhAnh,
+
+                        DonGia = ct.SanPhamChiTiet.GiaBan,
+                        SoLuong = ct.SoLuong,
+                        ThanhTien = ct.SoLuong * ct.SanPhamChiTiet.GiaBan,
+
+                        TonKho = ct.SanPhamChiTiet.SoLuong,
+
+                        // Tạm để mặc định vì bạn chưa có logic KM
+                        GiaSauKhuyenMai = ct.SanPhamChiTiet.GiaBan,
+                        GiamPhanTram = 0
+                    }).ToList()
+                };
+
                 return View(vm);
             }
-            catch { return RedirectToAction("Login", "TaiKhoan"); }
+            catch
+            {
+                return RedirectToAction("Login", "TaiKhoan");
+            }
         }
+
 
         // ===================== SỬA 1: Add (POST) kiểm tra tồn kho =====================
         [HttpPost]

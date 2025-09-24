@@ -18,7 +18,7 @@ namespace DoAn.Controllers
         private const int TrangThaiConBan = 1;
         private const int TrangThaiHetHang = 0;
 
-        public CheckoutController(DoAnDbContext db, IGioHangService cart,  IHoaDonService hoaDonService)
+        public CheckoutController(DoAnDbContext db, IGioHangService cart, IHoaDonService hoaDonService)
         {
             _db = db;
             _hoaDonService = hoaDonService;
@@ -146,14 +146,43 @@ namespace DoAn.Controllers
                          .Where(g => g != Guid.Empty)
                 );
             }
-            var items = (selectedIds == null || selectedIds.Count == 0)
+            var rawItems = (selectedIds == null || selectedIds.Count == 0)
                 ? cart.Items
                 : cart.Items.Where(x => selectedIds.Contains(x.ChiTietGioHangId)).ToList();
 
-            if (!items.Any())
+            if (!rawItems.Any())
             {
                 TempData["OrderError"] = "Không có sản phẩm nào được chọn.";
                 return RedirectToAction("Index", "GioHang");
+            }
+
+            // 🔥 Map lại để lấy MaSanPham từ bảng SanPham
+            var items = new List<GioHangItemVMD>();
+            foreach (var i in rawItems)
+            {
+                var spct = await _db.SanPhamChiTiets
+                    .Include(ct => ct.SanPham)
+                    .Include(ct => ct.TheTich)
+                    .FirstOrDefaultAsync(ct => ct.ID_SanPhamChiTiet == i.SanPhamChiTietId);
+
+                if (spct == null) continue;
+
+                items.Add(new GioHangItemVMD
+                {
+                    ChiTietGioHangId = i.ChiTietGioHangId,
+                    SanPhamChiTietId = i.SanPhamChiTietId,
+                    MaSanPham = spct.SanPham.Ma_SanPham,   // 👈 lấy mã sản phẩm
+                    TenSanPham = spct.SanPham.Ten_SanPham,
+                    TheTich = spct.TheTich != null
+    ? $"{spct.TheTich.GiaTri} {spct.TheTich.DonVi}"
+    : null,
+
+                    HinhAnh = spct.SanPham.HinhAnh,
+                    DonGia = i.DonGia,
+                    SoLuong = i.SoLuong,
+                    ThanhTien = i.ThanhTien,
+                    TonKho = spct.SoLuong
+                });
             }
 
             var subtotal = items.Sum(x => x.ThanhTien);
@@ -172,6 +201,7 @@ namespace DoAn.Controllers
             ViewBag.Lines = lines;
             return View(vm);
         }
+
 
         // ===== B3: ĐẶT HÀNG =====
         [HttpPost]
@@ -316,7 +346,11 @@ namespace DoAn.Controllers
         {
             var hd = await _db.HoaDons
                 .Include(h => h.HoaDonChiTiets)
-                .ThenInclude(ct => ct.SanPhamChiTiet)
+                    .ThenInclude(ct => ct.SanPhamChiTiet)
+                        .ThenInclude(spct => spct.SanPham) // 👈 thêm Include SanPham
+                .Include(h => h.HoaDonChiTiets)
+                    .ThenInclude(ct => ct.SanPhamChiTiet)
+                        .ThenInclude(spct => spct.TheTich) // 👈 thêm Include Thể tích
                 .FirstOrDefaultAsync(h => h.ID_HoaDon == id);
 
             if (hd == null) return RedirectToAction("Index", "GioHang");

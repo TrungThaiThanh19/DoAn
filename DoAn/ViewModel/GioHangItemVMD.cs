@@ -7,6 +7,7 @@ namespace DoAn.ViewModel
         public Guid ChiTietGioHangId { get; set; }
         public Guid SanPhamChiTietId { get; set; }
 
+        public string MaSanPham { get; set; } = "";   // <-- thêm mới
         public string TenSanPham { get; set; } = "";
         public string? ThuongHieu { get; set; }
         public string? TheTich { get; set; }

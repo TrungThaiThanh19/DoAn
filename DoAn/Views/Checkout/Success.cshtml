@@ -7,65 +7,65 @@
 
 <style>
     .shp-header {
-        background: linear-gradient(180deg,#16a34a,#22c55e);
-        color: #fff
+    background: linear-gradient(180deg,#16a34a,#22c55e);
+    color: #fff
     }
 
     .shp-brand {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: #fff;
-        text-decoration: none;
-        font-weight: 800;
-        font-size: 1.5rem
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 1.5rem
     }
 
-        .shp-brand img {
-            height: 36px
-        }
+    .shp-brand img {
+    height: 36px
+    }
 
     .wrap {
-        max-width: 1000px;
-        margin: 24px auto
+    max-width: 1000px;
+    margin: 24px auto
     }
 
     .sum {
-        font-weight: 800;
-        color: #ef4444
+    font-weight: 800;
+    color: #ef4444
     }
 
     .order-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 10px;
-        border-radius: 999px;
-        background: #ecfdf5;
-        color: #065f46;
-        font-weight: 700
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #ecfdf5;
+    color: #065f46;
+    font-weight: 700
     }
 
     .info-card {
-        border: 1px solid #e5e7eb;
-        border-radius: 14px;
-        overflow: hidden
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    overflow: hidden
     }
 
-        .info-card .card-header {
-            background: #fff;
-            font-weight: 800
-        }
+    .info-card .card-header {
+    background: #fff;
+    font-weight: 800
+    }
 
     .meta {
-        color: #6b7280
+    color: #6b7280
     }
 
     .btn-brand {
-        background: linear-gradient(135deg,#16a34a,#22c55e);
-        color: #fff;
-        border: 0;
-        font-weight: 800
+    background: linear-gradient(135deg,#16a34a,#22c55e);
+    color: #fff;
+    border: 0;
+    font-weight: 800
     }
 </style>
 
@@ -127,56 +127,72 @@
     <div class="card info-card">
         <div class="card-header"><i class="fa-solid fa-box-open me-2"></i>Chi tiết sản phẩm</div>
         <div class="table-responsive">
-            <table class="table align-middle mb-0">
+            <table class="table align-middle mb-0 text-center" style="table-layout: fixed; width: 100%;">
+
                 <thead>
                     <tr>
-                        <th style="min-width:320px">Sản phẩm</th>
-                        <th class="text-end">Đơn giá</th>
-                        <th class="text-center">SL</th>
-                        <th class="text-end">Thành tiền</th>
+                        <th style="width:16.6%">Mã SP</th>
+                        <th style="width:16.6%">Sản phẩm</th>
+                        <th style="width:16.6%">Thể tích</th>
+                        <th style="width:16.6%">SL</th>
+                        <th style="width:16.6%">Đơn giá</th>
+                        <th style="width:16.6%">Thành tiền</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     @foreach (var d in Model.HoaDonChiTiets)
                     {
+                        var ma = d.SanPhamChiTiet?.SanPham?.Ma_SanPham ?? "---";
                         var ten = d.SanPhamChiTiet?.SanPham?.Ten_SanPham ?? "Sản phẩm";
-                        var variant = d.SanPhamChiTiet?.TheTich?.DonVi;
+                        var variant = d.SanPhamChiTiet?.TheTich != null
+                        ? $"{d.SanPhamChiTiet.TheTich.GiaTri} {d.SanPhamChiTiet.TheTich.DonVi}"
+                        : null;
+
                         <tr>
+                            <td>@ma</td>
                             <td>
-                                <div class="fw-semibold">@ten</div>
-                                @if (!string.IsNullOrWhiteSpace(variant))
+                                <div class="d-flex align-items-center">                                 
+                                        <div>@ten</div>                                       
+                                </div>
+
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(variant))
                                 {
-                                    <div class="meta">Biến thể: @variant</div>
+                                    <small class="text-muted">@variant</small>
                                 }
                             </td>
-                            <td class="text-end">@d.DonGia.ToString("n0") đ</td>
                             <td class="text-center">@d.SoLuong</td>
+                            <td class="text-end">@d.DonGia.ToString("n0") đ</td>
                             <td class="text-end">@((d.SoLuong * d.DonGia).ToString("n0")) đ</td>
                         </tr>
                     }
                 </tbody>
+
+
                 <tfoot>
                     <tr>
-                        <th colspan="3" class="text-end">Tạm tính</th>
+                        <th colspan="5" class="text-end">Tạm tính</th>
                         <th class="text-end">@Model.TongTienTruocGiam.ToString("n0") đ</th>
                     </tr>
                     <tr>
-                        <th colspan="3" class="text-end">Giảm giá</th>
+                        <th colspan="5" class="text-end">Giảm giá</th>
                         <th class="text-end text-success">-@Model.TongTienGiam.ToString("n0") đ</th>
                     </tr>
                     <tr>
-                        <th colspan="3" class="text-end">Phí vận chuyển</th>
+                        <th colspan="5" class="text-end">Phí vận chuyển</th>
                         <th class="text-end">@((Model.PhuThu ?? 0).ToString("n0")) đ</th>
                     </tr>
                     <tr>
-                        <th colspan="3" class="text-end">Thành tiền</th>
+                        <th colspan="5" class="text-end">Thành tiền</th>
                         <th class="text-end sum">@Model.TongTienSauGiam.ToString("n0") đ</th>
                     </tr>
                 </tfoot>
-
             </table>
         </div>
     </div>
+
 
     <!-- Nút thao tác -->
     <div class="mt-3 d-flex gap-2">

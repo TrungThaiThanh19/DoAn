@@ -18,7 +18,11 @@ namespace DoAn.Controllers
         // 4: hoàn thành, 5: đã hủy, 6: KH yêu cầu hoàn (log), 7: hoàn hàng thành công
         private const int TT_HUY = 5;
         private const int TT_DA_THANH_TOAN = 3;
-        private const int TT_HOAN_HANG_THANH_CONG = 7;
+        private const int TT_YEU_CAU_HOAN = 6;       // KH yêu cầu hoàn
+        private const int TT_DUYET_HOAN = 7;         // Nhân viên duyệt
+        private const int TT_NHAN_HANG_HOAN = 8;    // Nhân viên nhận hàng hoàn
+        private const int TT_HOAN_HANG_THANH_CONG = 9; // Hoàn thành
+
 
         private async Task<Guid?> TryGetTaiKhoanIdAsync()
         {
@@ -66,10 +70,25 @@ namespace DoAn.Controllers
                 .AsNoTracking()
                 .Where(h => h.ID_KhachHang == khId)
                 .OrderByDescending(h => h.NgayTao)
+                .Select(h => new HoaDon
+                {
+                    ID_HoaDon = h.ID_HoaDon,
+                    Ma_HoaDon = h.Ma_HoaDon,
+                    NgayTao = h.NgayTao,
+                    LoaiHoaDon = h.LoaiHoaDon,
+                    TongTienSauGiam = h.TongTienSauGiam,
+
+                    // ✅ Lấy trạng thái mới nhất từ bảng TrangThaiDonHang
+                    TrangThai = h.TrangThaiDonHangs
+                        .OrderByDescending(t => t.NgayChuyen)
+                        .Select(t => t.TrangThai)
+                        .FirstOrDefault()
+                })
                 .ToListAsync();
 
             return View(list);
         }
+
 
         [HttpGet]
         public async Task<IActionResult> Track(Guid id)
@@ -87,6 +106,9 @@ namespace DoAn.Controllers
                 .Include(h => h.HoaDonChiTiets)
                     .ThenInclude(ct => ct.SanPhamChiTiet)
                     .ThenInclude(v => v.SanPham)
+                    .Include(h => h.HoaDonChiTiets)
+                    .ThenInclude(ct => ct.SanPhamChiTiet)
+                        .ThenInclude(spct => spct.TheTich) // 👈 thêm Include Thể tích
                 .Include(h => h.TrangThaiDonHangs)
                 .FirstOrDefaultAsync(h => h.ID_HoaDon == id && h.ID_KhachHang == khId);
 
@@ -195,50 +217,6 @@ namespace DoAn.Controllers
             return RedirectToAction("Track", new { id });
         }
 
-        // ===== ADMIN/NHÂN VIÊN CHẤP NHẬN HOÀN HÀNG -> TrangThai = 7, cộng trả kho =====
-        [HttpPost]
-        [Authorize(Roles = "admin,nhanvien")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AcceptReturn(Guid id, string? ghiChu)
-        {
-            var hd = await _db.HoaDons
-                .Include(h => h.HoaDonChiTiets)
-                .ThenInclude(ct => ct.SanPhamChiTiet)
-                .FirstOrDefaultAsync(h => h.ID_HoaDon == id);
-
-            if (hd == null) return NotFound();
-
-            if (hd.TrangThai == TT_HUY || hd.TrangThai == TT_HOAN_HANG_THANH_CONG)
-            {
-                TempData["Error"] = "Đơn đã hủy hoặc đã hoàn xong.";
-                return RedirectToAction("Track", new { id });
-            }
-
-            foreach (var ct in hd.HoaDonChiTiets)
-            {
-                if (ct.SanPhamChiTiet == null) continue;
-                ct.SanPhamChiTiet.SoLuong += ct.SoLuong;
-                if (ct.SanPhamChiTiet.SoLuong > 0 && ct.SanPhamChiTiet.TrangThai == 0)
-                    ct.SanPhamChiTiet.TrangThai = 1;
-            }
-
-            hd.TrangThai = TT_HOAN_HANG_THANH_CONG;
-            hd.NgayCapNhat = DateTime.Now;
-
-            _db.TrangThaiDonHangs.Add(new TrangThaiDonHang
-            {
-                ID_TrangThaiDonHang = Guid.NewGuid(),
-                ID_HoaDon = hd.ID_HoaDon,
-                TrangThai = TT_HOAN_HANG_THANH_CONG,
-                NgayChuyen = DateTime.Now,
-                NoiDungDoi = string.IsNullOrWhiteSpace(ghiChu) ? "Đã chấp nhận hoàn hàng." : ghiChu,
-                NhanVienDoi = User?.Identity?.Name ?? "Nhân viên"
-            });
-
-            await _db.SaveChangesAsync();
-            TempData["Success"] = "Đã cập nhật: Hoàn hàng thành công.";
-            return RedirectToAction("Track", new { id });
-        }
 
         // (Tùy chọn) Từ chối hoàn: chỉ ghi log, không đổi trạng thái đơn
         [HttpPost]
@@ -298,5 +276,110 @@ namespace DoAn.Controllers
                 reason = string.IsNullOrWhiteSpace(reason) ? null : reason
             });
         }
+        public async Task<IActionResult> DuyetHoanHang(Guid id, string? ghiChu)
+        {
+            var hd = await _db.HoaDons.FirstOrDefaultAsync(h => h.ID_HoaDon == id);
+            if (hd == null) return NotFound();
+
+            // chỉ duyệt khi khách đã yêu cầu hoàn
+            if (hd.TrangThai != TT_DA_THANH_TOAN && hd.TrangThai != TT_YEU_CAU_HOAN)
+            {
+                TempData["Error"] = "Đơn không ở trạng thái có thể duyệt hoàn.";
+                return RedirectToAction("Track", new { id });
+            }
+
+            hd.TrangThai = TT_DUYET_HOAN;
+            hd.NgayCapNhat = DateTime.Now;
+
+            _db.TrangThaiDonHangs.Add(new TrangThaiDonHang
+            {
+                ID_TrangThaiDonHang = Guid.NewGuid(),
+                ID_HoaDon = hd.ID_HoaDon,
+                TrangThai = TT_DUYET_HOAN,
+                NgayChuyen = DateTime.Now,
+                NoiDungDoi = string.IsNullOrWhiteSpace(ghiChu) ? "Nhân viên duyệt yêu cầu hoàn hàng." : ghiChu,
+                NhanVienDoi = User?.Identity?.Name ?? "Nhân viên"
+            });
+
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Đã duyệt yêu cầu hoàn hàng.";
+            return RedirectToAction("Track", new { id });
+        }
+
+        // Kho đã nhận hàng hoàn
+        [HttpPost]
+        [Authorize(Roles = "admin,nhanvien")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> NhanHangHoan(Guid id, string? ghiChu)
+        {
+            var hd = await _db.HoaDons
+                .Include(h => h.HoaDonChiTiets)
+                .ThenInclude(ct => ct.SanPhamChiTiet)
+                .FirstOrDefaultAsync(h => h.ID_HoaDon == id);
+
+            if (hd == null) return NotFound();
+            if (hd.TrangThai != TT_DUYET_HOAN)
+            {
+                TempData["Error"] = "Đơn chưa được duyệt hoàn hàng.";
+                return RedirectToAction("Track", new { id });
+            }
+
+            // cộng trả kho
+            foreach (var ct in hd.HoaDonChiTiets)
+            {
+                if (ct.SanPhamChiTiet == null) continue;
+                ct.SanPhamChiTiet.SoLuong += ct.SoLuong;
+            }
+
+            hd.TrangThai = TT_NHAN_HANG_HOAN;
+            hd.NgayCapNhat = DateTime.Now;
+
+            _db.TrangThaiDonHangs.Add(new TrangThaiDonHang
+            {
+                ID_TrangThaiDonHang = Guid.NewGuid(),
+                ID_HoaDon = hd.ID_HoaDon,
+                TrangThai = TT_NHAN_HANG_HOAN,
+                NgayChuyen = DateTime.Now,
+                NoiDungDoi = string.IsNullOrWhiteSpace(ghiChu) ? "Đã nhận hàng hoàn." : ghiChu,
+                NhanVienDoi = User?.Identity?.Name ?? "Nhân viên"
+            });
+
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Đã nhận hàng hoàn. Chờ xác nhận hoàn tất.";
+            return RedirectToAction("Track", new { id });
+        }
+
+        // Hoàn tất hoàn hàng (hoàn tiền)
+        [HttpPost]
+        [Authorize(Roles = "admin,nhanvien")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> HoanTatHoan(Guid id, string? ghiChu)
+        {
+            var hd = await _db.HoaDons.FirstOrDefaultAsync(h => h.ID_HoaDon == id);
+            if (hd == null) return NotFound();
+            if (hd.TrangThai != TT_NHAN_HANG_HOAN)
+            {
+                TempData["Error"] = "Đơn chưa ở trạng thái 'Đã nhận hàng hoàn'.";
+                return RedirectToAction("Track", new { id });
+            }
+
+            hd.TrangThai = TT_HOAN_HANG_THANH_CONG;
+            hd.NgayCapNhat = DateTime.Now;
+
+            _db.TrangThaiDonHangs.Add(new TrangThaiDonHang
+            {
+                ID_TrangThaiDonHang = Guid.NewGuid(),
+                ID_HoaDon = hd.ID_HoaDon,
+                TrangThai = TT_HOAN_HANG_THANH_CONG,
+                NgayChuyen = DateTime.Now,
+                NoiDungDoi = string.IsNullOrWhiteSpace(ghiChu) ? "Hoàn hàng thành công." : ghiChu,
+                NhanVienDoi = User?.Identity?.Name ?? "Nhân viên"
+            });
+
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Đã hoàn tất quá trình hoàn hàng.";
+            return RedirectToAction("Track", new { id });
+        }
+
     }
 }
