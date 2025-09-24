@@ -1,4 +1,4 @@
-﻿@model List<DoAn.Models.HoaDon>
+﻿﻿@model List<DoAn.Models.HoaDon>
 @{
     ViewData["Title"] = "Đơn hàng của tôi";
 
@@ -10,7 +10,11 @@
         3 => "💳 Chờ thanh toán",
         4 => "🎉 Hoàn thành",
         5 => "❌ Đã hủy",
-        7 => "↩️ Hoàn hàng thành công",
+        6 => "📩 Yêu cầu hoàn hàng",      // 👈 thêm icon thư
+        7 => "📝 Đã duyệt hoàn hàng",     // 👈 thêm icon giấy bút
+        8 => "📦 Đã nhận hoàn hàng",      // 👈 thêm icon hộp hàng
+        9 => "↩️ Hoàn hàng thành công",
+        10 => "🚫 Giao Hàng Không Thành Công",
         _ => "❔ Không rõ"
     };
 
@@ -22,7 +26,11 @@
         3 => "badge bg-secondary",
         4 => "badge bg-success",
         5 => "badge bg-danger",
-        7 => "badge bg-success",
+        6 => "badge bg-warning text-dark", // 👈 thêm riêng
+        7 => "badge bg-primary",           // 👈 thêm riêng
+        8 => "badge bg-info text-dark",    // 👈 thêm riêng
+        9 => "badge bg-success",
+        10 => "badge bg-danger",
         _ => "badge bg-dark"
     };
 }

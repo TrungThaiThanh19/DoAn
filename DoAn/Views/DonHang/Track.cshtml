@@ -1,11 +1,12 @@
-﻿@model DoAn.Models.HoaDon
+﻿﻿@model DoAn.Models.HoaDon
+@using System
+
 @{
     ViewData["Title"] = "Theo dõi đơn hàng " + Model.Ma_HoaDon;
 
     bool isCanceled = Model.TrangThai == 5;
     bool isReturnDone = Model.TrangThai == 7;
 
-    // lấy log mới nhất theo trạng thái để hiển thị lý do/người thực hiện
     var cancelLog = Model.TrangThaiDonHangs?
         .Where(x => x.TrangThai == 5)
         .OrderByDescending(x => x.NgayChuyen)
@@ -15,6 +16,10 @@
         .Where(x => x.TrangThai == 7)
         .OrderByDescending(x => x.NgayChuyen)
         .FirstOrDefault();
+
+    // kiểm tra đã gửi yêu cầu hoàn hàng (log = 6) chưa
+    bool hasReturnRequest = Model.TrangThaiDonHangs?
+        .Any(x => x.TrangThai == 6) ?? false;
 
     string Currency(decimal v) => string.Format("{0:N0} đ", v);
 
@@ -51,7 +56,6 @@
         font-weight: 800
     }
 
-    /* Stepper */
     .stepper {
         display: flex;
         align-items: center;
@@ -105,7 +109,6 @@
         font-weight: 700
     }
 
-    /* nhỏ: style nút */
     .btn-brand-warning {
         background: #fbbf24;
         color: #111;
@@ -130,7 +133,6 @@
     <div class="alert alert-danger"><i class="fa fa-triangle-exclamation me-1"></i>@TempData["Error"]</div>
 }
 
-@* ====== BANNER: ĐƠN ĐÃ HỦY ====== *@
 @if (isCanceled && cancelLog != null)
 {
     var byCustomer = string.Equals(cancelLog.NhanVienDoi, "Khách hàng", StringComparison.OrdinalIgnoreCase);
@@ -151,7 +153,6 @@
     </div>
 }
 
-@* ====== BANNER: HOÀN HÀNG THÀNH CÔNG ====== *@
 @if (isReturnDone && returnDoneLog != null)
 {
     <div class="alert alert-success d-flex align-items-start">
@@ -171,7 +172,6 @@
     </div>
 }
 
-@* Khi đã hủy hoặc đã hoàn xong -> chỉ hiển thị banner trên, KHÔNG stepper *@
 @if (!(isCanceled || isReturnDone))
 {
     <div class="order-head mb-4">
@@ -188,72 +188,76 @@
     </div>
 }
 
-<!-- Thông tin & chi tiết -->
 <div class="card card-soft shadow-sm border-0">
     <div class="card-body">
         <h5 class="fw-bold mb-3"><i class="fa-solid fa-box-open me-2"></i>Chi tiết sản phẩm</h5>
         <div class="table-responsive">
-            <table class="table align-middle">
+            <table class="table align-middle mb-0 text-center" style="table-layout: fixed; width: 100%;">
+
                 <thead>
                     <tr>
-                        <th style="width:56px">#</th>
-                        <th>Sản phẩm</th>
-                        <th class="text-center" style="width:120px">SL</th>
-                        <th class="text-end" style="width:160px">Đơn giá</th>
-                        <th class="text-end" style="width:180px">Thành tiền</th>
+                        <th style="width:16.6%">Mã SP</th>
+                        <th style="width:16.6%">Sản phẩm</th>
+                        <th style="width:16.6%">Thể tích</th>
+                        <th style="width:16.6%">SL</th>
+                        <th style="width:16.6%">Đơn giá</th>
+                        <th style="width:16.6%">Thành tiền</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @{
-                        var idx = 1;
-                        if (Model.HoaDonChiTiets != null)
+                    @if (Model.HoaDonChiTiets != null)
+                    {
+                        foreach (var it in Model.HoaDonChiTiets)
                         {
-                            foreach (var it in Model.HoaDonChiTiets)
-                            {
-                                var ten = it.SanPhamChiTiet?.SanPham?.Ten_SanPham ?? "Sản phẩm";
-                                var line = it.SoLuong * it.DonGia;
-                                <tr>
-                                    <td>@idx</td>
-                                    <td class="fw-semibold">@ten</td>
-                                    <td class="text-center">@it.SoLuong</td>
-                                    <td class="text-end">@Currency(it.DonGia)</td>
-                                    <td class="text-end">@Currency(line)</td>
-                                </tr>
-                                idx++;
-                            }
+                            var ma = it.SanPhamChiTiet?.SanPham?.Ma_SanPham ?? "N/A";
+                            var ten = it.SanPhamChiTiet?.SanPham?.Ten_SanPham ?? "Sản phẩm";
+                            var variant = it.SanPhamChiTiet?.TheTich != null
+                            ? $"{it.SanPhamChiTiet.TheTich.GiaTri} {it.SanPhamChiTiet.TheTich.DonVi}"
+                            : null;
+                            var line = it.SoLuong * it.DonGia;
+                            <tr>
+                                <td>@ma</td>
+                                <td class="fw-semibold">@ten</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(variant))
+                                    {
+                                        <small class="text-muted">@variant</small>
+                                    }
+                                </td>
+                                <td class="text-center">@it.SoLuong</td>
+                                <td class="text-end">@Currency(it.DonGia)</td>
+                                <td class="text-end">@Currency(line)</td>
+                            </tr>
                         }
                     }
                 </tbody>
                 <tfoot>
                     @{
-                        // preTotal: tạm tính (giá gốc)
                         var preTotal = Model.TongTienTruocGiam;
-                        // afterDiscountNoShip: thực thu sau giảm (không tính ship)
                         var afterDiscountNoShip = (Model.TongTienSauGiam - (Model.PhuThu ?? 0m));
                         var discount = preTotal - afterDiscountNoShip;
                         if (discount < 0m) discount = 0m;
                     }
                     <tr>
-                        <td colspan="4" class="text-end text-muted">Tạm tính</td>
+                        <td colspan="5" class="text-end text-muted">Tạm tính</td>
                         <td class="text-end">@Currency(preTotal)</td>
                     </tr>
                     @if (discount > 0m)
                     {
                         <tr>
-                            <td colspan="4" class="text-end text-muted">Giảm giá</td>
+                            <td colspan="5" class="text-end text-muted">Giảm giá</td>
                             <td class="text-end text-success">-@Currency(discount)</td>
                         </tr>
                     }
                     <tr>
-                        <td colspan="4" class="text-end text-muted">Phí vận chuyển</td>
+                        <td colspan="5" class="text-end text-muted">Phí vận chuyển</td>
                         <td class="text-end">@Currency(Model.PhuThu ?? 0m)</td>
                     </tr>
                     <tr>
-                        <td colspan="4" class="text-end fw-bold">Tổng thanh toán</td>
+                        <td colspan="5" class="text-end fw-bold">Tổng thanh toán</td>
                         <td class="text-end fw-bold text-danger">@Currency(Model.TongTienSauGiam)</td>
                     </tr>
                 </tfoot>
-
             </table>
         </div>
 
@@ -262,7 +266,6 @@
                 <i class="fa-solid fa-arrow-left-long me-1"></i>Quay lại danh sách
             </a>
 
-            @* Cho phép hủy nếu trạng thái còn sớm (0/1) *@
             @if (Model.TrangThai <= 1)
             {
                 <form asp-action="Huy" asp-controller="DonHang" method="post" class="d-flex align-items-center gap-2"
@@ -276,18 +279,34 @@
                 </form>
             }
 
-            @* Nút HOÀN HÀNG: chỉ hiện khi ĐÃ THANH TOÁN (3) và chưa hoàn xong *@
             @if (Model.TrangThai == 3)
             {
-                <form asp-action="HoanHang" asp-controller="DonHang" method="post" class="d-inline"
-                      onsubmit="return confirm('Xác nhận gửi yêu cầu hoàn hàng cho đơn @Model.Ma_HoaDon ?');">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@Model.ID_HoaDon" />
-                    <button class="btn btn-brand-warning">
-                        <i class="fa-solid fa-rotate-left me-1"></i> Hoàn hàng
-                    </button>
-                </form>
+                if (!hasReturnRequest)
+                {
+                    <form asp-action="HoanHang" asp-controller="DonHang" method="post" class="d-inline"
+                          onsubmit="return confirm('Xác nhận gửi yêu cầu hoàn hàng cho đơn @Model.Ma_HoaDon ?');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.ID_HoaDon" />
+                        <button class="btn btn-brand-warning">
+                            <i class="fa-solid fa-rotate-left me-1"></i> Hoàn hàng
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <div class="alert alert-info mb-0">
+                        <i class="fa-solid fa-circle-info me-1"></i>
+                        Bạn đã gửi yêu cầu hoàn hàng. Shop sẽ liên hệ sớm.
+                    </div>
+                }
             }
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // Có thể dùng cho auto refresh trạng thái nếu cần
+        // setInterval(() => location.reload(), 60000); // reload mỗi phút
+    </script>
+}

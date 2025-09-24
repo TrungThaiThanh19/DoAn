@@ -1,4 +1,4 @@
-﻿@model DoAn.ViewModel.GioHangVMD
+﻿﻿@model DoAn.ViewModel.GioHangVMD
 @using Microsoft.AspNetCore.Antiforgery
 @using Microsoft.AspNetCore.Http
 @inject IAntiforgery Antiforgery
@@ -306,6 +306,12 @@
         height: 18px;
     }
 
+    .code-col {
+        font-size: 12px;
+        color: #6b7280;
+        margin-top: 2px;
+    }
+
     /* ===== FOOTER ===== */
     .site-footer {
         background: #fff;
@@ -507,7 +513,6 @@
         </div>
     </div>
 </header>
-
 <!-- ===== CART ===== -->
 <div class="cart-wrap">
     <div class="cart-title">Giỏ hàng</div>
@@ -558,6 +563,7 @@
                                     <span> • <span style="color:#ef4444;font-weight:700">Còn @i.TonKho</span></span>
                                 }
                             </div>
+                            <div class="code-col">Mã SP: @i.MaSanPham</div>
                         </div>
                     </div>
 
