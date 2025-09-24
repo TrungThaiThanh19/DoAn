@@ -4,6 +4,7 @@ using DoAn.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DoAn.Migrations
 {
     [DbContext(typeof(DoAnDbContext))]
-    partial class DoAnDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250924170111_khanh9")]
+    partial class khanh9
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -438,10 +441,10 @@ namespace DoAn.Migrations
                             ID_TaiKhoan = new Guid("b0000000-0000-0000-0000-000000000001"),
                             Ma_NhanVien = "NV001",
                             NgaySinh = new DateTime(1990, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            NgayThamGia = new DateTime(2025, 9, 24, 17, 2, 37, 265, DateTimeKind.Utc).AddTicks(7972),
+                            NgayThamGia = new DateTime(2025, 9, 24, 17, 1, 8, 461, DateTimeKind.Utc).AddTicks(9639),
                             SoDienThoai = "0345667892",
                             Ten_NhanVien = "Admin",
-                            TrangThai = 1
+                            TrangThai = 0
                         });
                 });
 

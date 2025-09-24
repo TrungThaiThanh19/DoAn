@@ -300,11 +300,23 @@
                     tbody.innerHTML = "";
 
                     if (!data || data.length === 0) {
-                        tbody.innerHTML = `<tr><td colspan="4" class="text-muted">Không có biến thể còn hàng</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="6" class="text-muted">Không có biến thể còn hàng</td></tr>`;
                         return;
                     }
 
                     data.forEach((bt, index) => {
+                        // Xử lý giá khuyến mại
+                        let giaDisplay = '';
+                        if (bt.giamPhanTram > 0) {
+                            giaDisplay = `
+                                <div class="text-decoration-line-through text-muted small">${bt.giaGoc.toLocaleString('vi-VN')} đ</div>
+                                <div class="text-danger fw-bold">${bt.giaBan.toLocaleString('vi-VN')} đ</div>
+                                <div class="badge bg-danger">-${bt.giamPhanTram}%</div>
+                            `;
+                        } else {
+                            giaDisplay = `<div class="fw-bold">${bt.giaBan.toLocaleString('vi-VN')} đ</div>`;
+                        }
+
                         let disabledBtn = !idHoaDonCho ? 'style="display:none"' : '';
                         const row = `
                             <tr>
@@ -313,7 +325,7 @@
                                 </td>
                                 <td>${bt.maBienThe}</td>
                                 <td>${bt.theTich}</td>
-                                <td>${bt.giaBan.toLocaleString('vi-VN')} đ</td>
+                                <td>${giaDisplay}</td>
                                 <td>${bt.soLuong}</td>
                                 <td>
                                     <button class="btn btn-sm btn-outline-success" onclick="themVaoHoaDonCho(${index})"${disabledBtn}>➕</button>
@@ -324,9 +336,8 @@
                 })
                 .catch(() => {
                     document.getElementById("danhSachBienThe").innerHTML =
-                        `<tr><td colspan="4" class="text-danger">Không thể tải biến thể.</td></tr>`;
+                        `<tr><td colspan="6" class="text-danger">Không thể tải biến thể</td></tr>`;
                 });
-
         }
 
 

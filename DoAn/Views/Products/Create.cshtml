@@ -2,10 +2,9 @@
     ViewData["Title"] = "Thêm sản phẩm mới";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 
-
 }
 
-<h2 class="mb-4 text-primary">➕ Thêm sản phẩm mới</h2>
+<h2 class="mb-4 text-primary">Thêm sản phẩm mới</h2>
 
 <form method="post" enctype="multipart/form-data">
     @Html.ValidationSummary(true, "", new { @class = "text-danger" })
@@ -15,7 +14,7 @@
         <div class="card-header bg-primary text-white">Thông tin chung</div>
         <div class="card-body row g-3">
 
-            <div class="col-md-12">
+            <div class="col-md-6">
                 <label class="form-label">Tên sản phẩm</label>
                 <input name="tenSanPham" class="form-control" value="@ViewBag.TenSanPham" />
                 <span class="text-danger">@Html.ValidationMessage("TenSanPham")</span>
@@ -154,3 +153,21 @@
         <button type="submit" class="btn btn-success rounded-pill px-4">Thêm sản phẩm</button>
     </div>
 </form>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.querySelector('form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Xác nhận thêm sản phẩm',
+            text: 'Bạn có chắc chắn muốn thêm sản phẩm này không?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Thêm',
+            cancelButtonText: 'Huỷ'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                e.target.submit();
+            }
+        });
+    });
+</script>

@@ -30,6 +30,10 @@
        asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="5">Hủy</a>
     <a class="btn btn-outline-secondary @(trangThai == 7 ? "active" : "")"
        asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="7">Hoàn hàng thành công</a>
+    <a class="btn btn-outline-secondary @(trangThai == 10 ? "active" : "")"
+       asp-route-loaiHoaDon="@loaiHD" asp-route-trangThai="10">
+        Giao hàng không thành công
+    </a>
 </div>
 
 <!-- Lọc loại hóa đơn -->
@@ -175,6 +179,13 @@
                                     <i class="fa-solid fa-times-circle me-1"></i>Đã hủy
                                 </span>
                             }
+                            else if (item.TrangThaiText == "Giao hàng không thành công")
+                            {
+                                <span class="badge bg-warning text-dark rounded-pill px-2 py-1">
+                                    <i class="fa fa-truck-fast me-2"></i>Giao không thành công
+                                </span>
+                            }
+
                             else
                             {
                                 <span class="badge bg-light text-dark rounded-pill px-2 py-1">

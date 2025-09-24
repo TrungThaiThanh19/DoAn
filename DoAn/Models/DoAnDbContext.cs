@@ -158,9 +158,9 @@ namespace DoAn.Models
                 .IsUnique();
 
             // ======================= SEED DATA ========================
-            var adminRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000003");
-            var nhanvienRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000002");
             var khachhangRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000001");
+            var nhanvienRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000002");
+            var adminRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000003");
 
             modelBuilder.Entity<Roles>().HasData(
                 new Roles { ID_Roles = khachhangRoleId, Ma_Roles = "KH", Ten_Roles = "khachhang" },
@@ -168,6 +168,7 @@ namespace DoAn.Models
                 new Roles { ID_Roles = adminRoleId, Ma_Roles = "AD", Ten_Roles = "admin" }
             );
 
+            // Tài khoản admin
             var adminAccountId = Guid.Parse("B0000000-0000-0000-0000-000000000001");
 
             modelBuilder.Entity<TaiKhoan>().HasData(
@@ -175,10 +176,30 @@ namespace DoAn.Models
                 {
                     ID_TaiKhoan = adminAccountId,
                     Uername = "admin",
-                    Password = "admin", // ⚠ Bạn nên mã hóa sau khi có đăng nhập thực
+                    Password = "admin", // ⚠ Bạn nên mã hóa trong thực tế
                     ID_Roles = adminRoleId,
                 }
             );
+
+            // Nhân viên cho admin (liên kết với tài khoản trên)
+            var adminNhanVienId = Guid.Parse("C0000000-0000-0000-0000-000000000001");
+
+            modelBuilder.Entity<NhanVien>().HasData(
+                new NhanVien
+                {
+                    ID_NhanVien = adminNhanVienId,
+                    ID_TaiKhoan = adminAccountId,
+                    Ten_NhanVien = "Admin",
+                    NgaySinh = new DateTime(1990, 1, 1),
+                    SoDienThoai = "0345667892",
+                    DiaChiLienHe = "Hệ thống",
+                     Email = "admin@gamil.com",
+                     GioiTinh = "Khác",
+                    Ma_NhanVien = "NV001",
+                    TrangThai = 1
+                }
+            );
+
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

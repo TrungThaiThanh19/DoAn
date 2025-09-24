@@ -330,13 +330,14 @@ namespace DoAn.Controllers
             ViewBag.TrangThaiList = new SelectList(new[]
             {
                 new { Value = 1, Text = "Còn hàng" },
-                new { Value = 2, Text = "Tạm ngừng kinh doanh" }
+                new { Value = 2, Text = "Tạm ngừng kinh doanh" },
+                new { Value = 0, Text = "Hết hàng" }
             }, "Value", "Text", bienThe.TrangThai);
 
             return View(bienThe);
         }
         [HttpPost]
-        public async Task<IActionResult> UpdateDetails(Guid id, string soLuong, string giaNhap, string giaBan, int trangThai, Guid idTheTich)
+        public async Task<IActionResult> UpdateDetails(Guid id, string soLuong, string giaNhap, string giaBan, int trangThai, Guid idTheTich, IFormFile hinhAnhBienThe)
         {
             var bienThe = await _context.SanPhamChiTiets
                 .Include(ct => ct.SanPham)
@@ -349,14 +350,15 @@ namespace DoAn.Controllers
             {
 				// Tạm thời ngừng bán để chờ dịp sale
 				new { Value = 1, Text = "Còn hàng" },
-                new { Value = 2, Text = "Tạm ngừng kinh doanh" }
+                new { Value = 2, Text = "Tạm ngừng kinh doanh" },
+                new { Value = 0, Text = "Hết hàng" }
             }, "Value", "Text", trangThai);
 
             // Parse dữ liệu
             int soLuongParse = 0;
             decimal giaNhapParse = 0, giaBanParse = 0;
 
-            ClearModelErrors("SoLuong", "GiaNhap", "GiaBan", "ID_TheTich");
+            ModelState.Clear();
 
             if (string.IsNullOrWhiteSpace(soLuong))
             {
@@ -406,6 +408,11 @@ namespace DoAn.Controllers
                 ModelState.AddModelError("GiaBan", "Giá bán phải lớn hơn giá nhập");
             }
 
+            if (trangThai == 0)
+            {
+                ModelState.AddModelError("TrangThai", "Chỉ được chọn trạng thái \"Còn hàng\" hoặc \"Tạm ngừng kinh doanh\"");
+            }
+
             // Kiểm tra trùng thể tích
             bool daCo = await _context.SanPhamChiTiets.AnyAsync(ct =>
                 ct.ID_SanPham == bienThe.ID_SanPham &&
@@ -427,16 +434,44 @@ namespace DoAn.Controllers
                         HienThi = t.GiaTri.ToString("0.#") + t.DonVi
                     })
                     .ToListAsync(),
-                    "ID_TheTich", "HienThi"
+                    "ID_TheTich", "HienThi", bienThe.ID_TheTich
                     );
 
                 ViewBag.TrangThaiList = new SelectList(new[]
                 {
+                    new { Value = 2, Text = "Tạm ngừng kinh doanh" },
                     new { Value = 1, Text = "Còn hàng" },
-                    new { Value = 2, Text = "Tạm ngừng kinh doanh" }
+                    new { Value = 0, Text = "Hết hàng" }
                 }, "Value", "Text", trangThai);
 
                 return View(bienThe);
+            }
+
+            if (hinhAnhBienThe != null && hinhAnhBienThe.Length > 0)
+            {
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+                var extension = Path.GetExtension(hinhAnhBienThe.FileName).ToLower();
+
+                if (!allowedExtensions.Contains(extension))
+                {
+                    ModelState.AddModelError("HinhAnhBienThe", "Chỉ chấp nhận các định dạng ảnh: JPG, JPEG, PNG, WEBP.");
+                }
+                else
+                {
+                    // Lưu ảnh mới
+                    var uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(hinhAnhBienThe.FileName);
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+                    if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await hinhAnhBienThe.CopyToAsync(stream);
+                    }
+
+                    // Cập nhật lại đường dẫn hình ảnh mới
+                    bienThe.HinhAnh = "/images/" + uniqueFileName;
+                }
             }
 
             bienThe.SoLuong = soLuongParse;

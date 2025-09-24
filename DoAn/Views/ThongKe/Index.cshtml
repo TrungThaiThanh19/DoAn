@@ -277,36 +277,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Hiệu suất nhân viên -->
-    <div class="card card-shadow">
-        <div class="card-body">
-            <h5 class="mb-3">Hiệu suất nhân viên</h5>
-            <div class="table-responsive">
-                <table class="table table-sm align-middle">
-                    <thead><tr><th>Nhân viên</th><th class="text-end">Số đơn</th><th class="text-end">Doanh thu</th></tr></thead>
-                    <tbody>
-                        @if (Model.SalesByStaff?.Any() == true)
-                        {
-                            foreach (var s in Model.SalesByStaff)
-                            {
-                                <tr>
-                                    <td>@s.TenNhanVien</td>
-                                    <td class="text-end">@s.SoDon</td>
-                                    <td class="text-end">@Currency(s.DoanhThu)</td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr><td colspan="3" class="text-center text-secondary py-3">Chưa có dữ liệu.</td></tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
 </div>
 
 <script>

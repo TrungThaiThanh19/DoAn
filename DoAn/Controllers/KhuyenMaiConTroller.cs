@@ -66,12 +66,14 @@ namespace DoAn.Controllers
         // GET: form tạo khuyến mãi
         public async Task<IActionResult> Create()
         {
+            var autoCode = await GenerateNewCodeAsync();
             await LoadSPCTListAsync(); // load toàn bộ SPCT
             await LoadBrandListAsync(); // load danh sách thương hiệu
 
             // Trả về form với giá trị mặc định
             return View(new KhuyenMaiFormVM
             {
+                Ma_KhuyenMai = autoCode,
                 NgayBatDau = Now(),
                 NgayHetHan = Now().AddDays(7),
                 KieuGiamGia = "percent",
@@ -85,6 +87,8 @@ namespace DoAn.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(KhuyenMaiFormVM m)
         {
+
+
             await ValidateFormAsync(m); // validate các rule cơ bản
 
             // Nếu chọn thương hiệu => không bắt buộc chọn SPCT
@@ -331,6 +335,19 @@ namespace DoAn.Controllers
                 if (m.GiaTriGiam <= 0)
                     ModelState.AddModelError(nameof(m.GiaTriGiam), "Giảm tiền phải > 0.");
             }
+        }
+        private async Task<string> GenerateNewCodeAsync()
+        {
+            var prefix = "KM";
+            var datePart = DateTime.UtcNow.AddHours(7).ToString("yyyyMMdd");
+
+            // Đếm số KM tạo trong ngày để đánh số tăng dần
+            var countToday = await _db.KhuyenMais
+                .CountAsync(x => x.NgayBatDau.Date == DateTime.UtcNow.AddHours(7).Date);
+
+            var numberPart = (countToday + 1).ToString("D3"); // luôn 3 chữ số
+
+            return $"{prefix}{datePart}-{numberPart}";
         }
     }
 }

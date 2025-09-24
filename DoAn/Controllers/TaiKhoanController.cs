@@ -116,8 +116,6 @@ namespace DoAn.Controllers
 
             return View();
         }
-
-        // POST: /TaiKhoan/Login
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
@@ -126,8 +124,10 @@ namespace DoAn.Controllers
             if (!ModelState.IsValid) return View(model);
 
             var taiKhoan = await _context.TaiKhoans
-                                         .Include(tk => tk.Roles)
-                                         .FirstOrDefaultAsync(tk => tk.Uername == model.Username);
+                .Include(tk => tk.Roles)
+                .Include(tk => tk.KhachHangs)
+                .Include(tk => tk.NhanViens)
+                .FirstOrDefaultAsync(tk => tk.Uername == model.Username);
 
             if (taiKhoan == null || taiKhoan.Password != model.Password)
             {
@@ -135,24 +135,56 @@ namespace DoAn.Controllers
                 return View(model);
             }
 
-            // ===== TẠO COOKIE ĐĂNG NHẬP (CLAIMS + ROLE) =====
+            // 🔒 Check trạng thái (khách hàng)
+            if (taiKhoan.Roles.Ten_Roles == "khachhang")
+            {
+                var kh = taiKhoan.KhachHangs.FirstOrDefault();
+                if (kh != null && kh.TrangThai == 0)
+                {
+                    ModelState.AddModelError("", "Tài khoản khách hàng đã bị khóa.");
+                    return View(model);
+                }
+            }
+
+            // 🔒 Check trạng thái (nhân viên + admin)
+            if (taiKhoan.Roles.Ten_Roles == "nhanvien" || taiKhoan.Roles.Ten_Roles == "admin")
+            {
+                var nv = taiKhoan.NhanViens.FirstOrDefault();
+                if (nv != null && nv.TrangThai == 0)
+                {
+                    ModelState.AddModelError("", "Tài khoản nhân viên đã bị khóa.");
+                    return View(model);
+                }
+            }
+
+            // ===== TẠO COOKIE LOGIN =====
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, taiKhoan.ID_TaiKhoan.ToString()),
-                new Claim(ClaimTypes.Name, taiKhoan.Uername),
-                new Claim(ClaimTypes.Role, taiKhoan.Roles.Ten_Roles) // "admin"/"nhanvien"/"khachhang"
-            };
+        new Claim(ClaimTypes.NameIdentifier, taiKhoan.ID_TaiKhoan.ToString()),
+        new Claim(ClaimTypes.Name, taiKhoan.Uername),
+        new Claim(ClaimTypes.Role, taiKhoan.Roles.Ten_Roles)
+    };
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var principal = new ClaimsPrincipal(identity);
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
 
-            // (tuỳ chọn) vẫn lưu Session nếu bạn còn dùng ở nơi khác
+            // ===== LƯU SESSION =====
             HttpContext.Session.SetString("UserID", taiKhoan.ID_TaiKhoan.ToString());
             HttpContext.Session.SetString("Username", taiKhoan.Uername);
             HttpContext.Session.SetString("RoleName", taiKhoan.Roles.Ten_Roles);
 
+            // 👉 Nếu là nhân viên thì lưu thêm tên nhân viên
+            if (taiKhoan.Roles.Ten_Roles == "nhanvien")
+            {
+                var nv = taiKhoan.NhanViens.FirstOrDefault();
+                if (nv != null)
+                    HttpContext.Session.SetString("StaffName", nv.Ten_NhanVien);
+            }
+
             return RedirectBasedOnRole(taiKhoan.Roles.Ten_Roles);
         }
+
+
 
         // GET: /TaiKhoan/Logout
         public async Task<IActionResult> Logout()

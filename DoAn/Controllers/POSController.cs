@@ -41,19 +41,65 @@ namespace DoAn.Controllers
             var danhSachBienThe = await _context.SanPhamChiTiets
                 .Include(ct => ct.TheTich)
                 .Include(ct => ct.SanPham)
+                .Include(ct => ct.ChiTietKhuyenMais)
+                    .ThenInclude(ctkm => ctkm.KhuyenMai)
                 .Where(ct => ct.ID_SanPham == idSanPham && ct.TrangThai == 1 && ct.SoLuong > 0)
-                .Select(ct => new {
+                .ToListAsync();
+
+            var now = DateTime.UtcNow.AddHours(7); // UTC+7
+            var result = danhSachBienThe.Select(ct => {
+                decimal giaGoc = ct.GiaBan;
+                decimal giaHienThi = giaGoc;
+                int giamPhanTram = 0;
+
+                // Áp dụng khuyến mãi tự động
+                if (ct.ChiTietKhuyenMais != null)
+                {
+                    foreach (var ctkm in ct.ChiTietKhuyenMais)
+                    {
+                        var km = ctkm.KhuyenMai;
+                        if (km == null) continue;
+                        if (km.TrangThai != 1 || now < km.NgayBatDau || now > km.NgayHetHan) continue;
+
+                        decimal discount = 0M;
+                        var kieu = (km.KieuGiamGia ?? "").Trim().ToLowerInvariant();
+
+                        if (kieu == "percent")
+                        {
+                            var pct = Math.Clamp(km.GiaTriGiam, 0, 100);
+                            discount = giaGoc * (pct / 100m);
+                            if (km.GiaTriToiDa > 0 && discount > km.GiaTriToiDa) discount = km.GiaTriToiDa;
+                        }
+                        else if (kieu == "fixed")
+                        {
+                            discount = Math.Min(giaGoc, Math.Max(0, km.GiaTriGiam));
+                        }
+
+                        var price = Math.Max(0, giaGoc - discount);
+                        if (price < giaHienThi) giaHienThi = price; // chọn giá tốt nhất
+                    }
+
+                    if (giaHienThi < giaGoc)
+                    {
+                        giamPhanTram = (int)Math.Clamp(Math.Round((1 - (giaHienThi / giaGoc)) * 100M), 0, 100);
+                    }
+                }
+
+                return new
+                {
                     id_SanPhamChiTiet = ct.ID_SanPhamChiTiet,
                     TenSanPham = ct.SanPham.Ten_SanPham,
                     TheTich = ct.TheTich.GiaTri.ToString("0.#") + ct.TheTich.DonVi,
-                    ct.GiaBan,
+                    GiaBan = giaHienThi, // Sử dụng giá đã áp dụng khuyến mãi
+                    GiaGoc = giaGoc, // Giá gốc để hiển thị
+                    GiamPhanTram = giamPhanTram, // Phần trăm giảm giá
                     ct.SoLuong,
                     MaBienThe = ct.MaSanPhamChiTiet,
                     HinhAnhBienThe = ct.HinhAnh
-                })
-                .ToListAsync();
+                };
+            }).ToList();
 
-            return Json(danhSachBienThe);
+            return Json(result);
         }
 
 
@@ -79,7 +125,7 @@ namespace DoAn.Controllers
                 return Json(new { success = false, message = "Mã giảm giá đã hết lượt sử dụng" });
 
             if (tongTienHang < voucher.GiaTriToiThieu)
-                return Json(new { success = false, message = $"Đơn hàng chưa đạt tối thiểu {voucher.GiaTriToiThieu:N0} đ để áp dụng mã." });
+                return Json(new { success = false, message = $"Đơn hàng chưa đạt tối thiểu {voucher.GiaTriToiThieu:N0}đ để áp dụng mã" });
 
             // Tính số tiền giảm
             decimal giamGia = 0;
@@ -100,6 +146,7 @@ namespace DoAn.Controllers
                 return Json(new { success = false, message = "Kiểu giảm giá không hợp lệ" });
             }
             giamGia = Math.Min(giamGia, tongTienHang);
+
             return Json(new { success = true, giamGia = giamGia, idVoucher = voucher.ID_Voucher });
         }
 
@@ -110,7 +157,7 @@ namespace DoAn.Controllers
             string datePart = DateTime.Now.ToString("yyyyMMdd");
             int countToday = _context.HoaDons.Count(h => h.NgayTao.Date == DateTime.Today);
             int nextNumber = countToday + 1;
-            string numberPart = nextNumber.ToString("D5"); // VD: 00001, 00002
+            string numberPart = nextNumber.ToString("D3"); // VD: 00001, 00002
             return $"{prefix}{datePart}-{numberPart}";
         }
 
@@ -143,19 +190,65 @@ namespace DoAn.Controllers
             var dsChiTiet = await _context.HoaDonChiTiets
                 .Include(ct => ct.SanPhamChiTiet).ThenInclude(spct => spct.SanPham)
                 .Include(ct => ct.SanPhamChiTiet).ThenInclude(spct => spct.TheTich)
+                .Include(ct => ct.SanPhamChiTiet).ThenInclude(spct => spct.ChiTietKhuyenMais)
+                    .ThenInclude(ctkm => ctkm.KhuyenMai)
                 .Where(ct => ct.ID_HoaDon == idHoaDon)
-                .Select(ct => new {
-                    TenSanPham = ct.SanPhamChiTiet.SanPham.Ten_SanPham,
-                    TheTich = ct.SanPhamChiTiet.TheTich.GiaTri.ToString("0.#") + ct.SanPhamChiTiet.TheTich.DonVi,
-                    DonGia = ct.DonGia,
-                    SoLuong = ct.SoLuong,
-                    ThanhTien = ct.SoLuong * ct.DonGia,
-                    ID_SanPhamChiTiet = ct.ID_SanPhamChiTiet,
-                    ID_HoaDonChiTiet = ct.ID_HoaDonChiTiet
-                })
                 .ToListAsync();
 
-            return Json(dsChiTiet);
+            var now = DateTime.UtcNow.AddHours(7); // UTC+7
+            var result = dsChiTiet.Select(ct => {
+                decimal giaGoc = ct.SanPhamChiTiet.GiaBan;
+                decimal giaHienThi = giaGoc;
+                int giamPhanTram = 0;
+
+                // Áp dụng khuyến mãi tự động
+                if (ct.SanPhamChiTiet.ChiTietKhuyenMais != null)
+                {
+                    foreach (var ctkm in ct.SanPhamChiTiet.ChiTietKhuyenMais)
+                    {
+                        var km = ctkm.KhuyenMai;
+                        if (km == null) continue;
+                        if (km.TrangThai != 1 || now < km.NgayBatDau || now > km.NgayHetHan) continue;
+
+                        decimal discount = 0M;
+                        var kieu = (km.KieuGiamGia ?? "").Trim().ToLowerInvariant();
+
+                        if (kieu == "percent")
+                        {
+                            var pct = Math.Clamp(km.GiaTriGiam, 0, 100);
+                            discount = giaGoc * (pct / 100m);
+                            if (km.GiaTriToiDa > 0 && discount > km.GiaTriToiDa) discount = km.GiaTriToiDa;
+                        }
+                        else if (kieu == "fixed")
+                        {
+                            discount = Math.Min(giaGoc, Math.Max(0, km.GiaTriGiam));
+                        }
+
+                        var price = Math.Max(0, giaGoc - discount);
+                        if (price < giaHienThi) giaHienThi = price; // chọn giá tốt nhất
+                    }
+
+                    if (giaHienThi < giaGoc)
+                    {
+                        giamPhanTram = (int)Math.Clamp(Math.Round((1 - (giaHienThi / giaGoc)) * 100M), 0, 100);
+                    }
+                }
+
+                return new
+                {
+                    TenSanPham = ct.SanPhamChiTiet.SanPham.Ten_SanPham,
+                    TheTich = ct.SanPhamChiTiet.TheTich.GiaTri.ToString("0.#") + ct.SanPhamChiTiet.TheTich.DonVi,
+                    DonGia = giaHienThi, // Sử dụng giá đã áp dụng khuyến mãi
+                    GiaGoc = giaGoc, // Giá gốc để hiển thị
+                    GiamPhanTram = giamPhanTram, // Phần trăm giảm giá
+                    SoLuong = ct.SoLuong,
+                    ThanhTien = ct.SoLuong * giaHienThi, // Tính lại thành tiền với giá đã giảm
+                    ID_SanPhamChiTiet = ct.ID_SanPhamChiTiet,
+                    ID_HoaDonChiTiet = ct.ID_HoaDonChiTiet
+                };
+            }).ToList();
+
+            return Json(result);
         }
 
 
@@ -207,10 +300,46 @@ namespace DoAn.Controllers
             if (hoaDon == null)
                 return Json(new { success = false, message = "Không tìm thấy hóa đơn chờ" });
 
-            // Lấy tồn kho thực tế của biến thể
-            var spct = await _context.SanPhamChiTiets.FirstOrDefaultAsync(x => x.ID_SanPhamChiTiet == model.ID_SanPhamChiTiet);
+            // Lấy tồn kho thực tế của biến thể và khuyến mãi
+            var spct = await _context.SanPhamChiTiets
+                .Include(x => x.ChiTietKhuyenMais)
+                    .ThenInclude(ctkm => ctkm.KhuyenMai)
+                .FirstOrDefaultAsync(x => x.ID_SanPhamChiTiet == model.ID_SanPhamChiTiet);
+
             if (spct == null || spct.TrangThai != 1)
                 return Json(new { success = false, message = "Biến thể không hợp lệ hoặc đã ngừng kinh doanh" });
+
+            // Tính giá đã áp dụng khuyến mãi
+            decimal giaGoc = spct.GiaBan;
+            decimal giaHienThi = giaGoc;
+            var now = DateTime.UtcNow.AddHours(7); // UTC+7
+
+            if (spct.ChiTietKhuyenMais != null)
+            {
+                foreach (var ctkm in spct.ChiTietKhuyenMais)
+                {
+                    var km = ctkm.KhuyenMai;
+                    if (km == null) continue;
+                    if (km.TrangThai != 1 || now < km.NgayBatDau || now > km.NgayHetHan) continue;
+
+                    decimal discount = 0M;
+                    var kieu = (km.KieuGiamGia ?? "").Trim().ToLowerInvariant();
+
+                    if (kieu == "percent")
+                    {
+                        var pct = Math.Clamp(km.GiaTriGiam, 0, 100);
+                        discount = giaGoc * (pct / 100m);
+                        if (km.GiaTriToiDa > 0 && discount > km.GiaTriToiDa) discount = km.GiaTriToiDa;
+                    }
+                    else if (kieu == "fixed")
+                    {
+                        discount = Math.Min(giaGoc, Math.Max(0, km.GiaTriGiam));
+                    }
+
+                    var price = Math.Max(0, giaGoc - discount);
+                    if (price < giaHienThi) giaHienThi = price; // chọn giá tốt nhất
+                }
+            }
 
             // Kiểm tra tổng số lượng đã có trong hóa đơn
             var chiTiet = hoaDon.HoaDonChiTiets.FirstOrDefault(ct => ct.ID_SanPhamChiTiet == model.ID_SanPhamChiTiet);
@@ -223,6 +352,7 @@ namespace DoAn.Controllers
             if (chiTiet != null)
             {
                 chiTiet.SoLuong = soLuongMoi;
+                chiTiet.DonGia = giaHienThi; // Cập nhật giá đã áp dụng khuyến mãi
                 _context.HoaDonChiTiets.Update(chiTiet);
             }
             else
@@ -233,7 +363,7 @@ namespace DoAn.Controllers
                     ID_HoaDon = hoaDon.ID_HoaDon,
                     ID_SanPhamChiTiet = model.ID_SanPhamChiTiet,
                     SoLuong = model.SoLuong,
-                    DonGia = spct.GiaBan
+                    DonGia = giaHienThi // Sử dụng giá đã áp dụng khuyến mãi
                 };
                 _context.HoaDonChiTiets.Add(chiTiet);
             }
@@ -325,15 +455,15 @@ namespace DoAn.Controllers
         {
             try
             {
-                //var userIdString = HttpContext.Session.GetString("UserID");
-                //if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var idTaiKhoan))
-                //	return Json(new { success = false, message = "Không xác định được tài khoản nhân viên!" });
+                var userIdString = HttpContext.Session.GetString("UserID");
+                if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var idTaiKhoan))
+                    return Json(new { success = false, message = "Không xác định được tài khoản nhân viên!" });
 
-                //var nhanVien = await _context.NhanViens.FirstOrDefaultAsync(nv => nv.ID_TaiKhoan == idTaiKhoan);
-                //if (nhanVien == null)
-                //	return Json(new { success = false, message = "Không xác định được nhân viên bán hàng!" });
+                var nhanVien = await _context.NhanViens.FirstOrDefaultAsync(nv => nv.ID_TaiKhoan == idTaiKhoan);
+                if (nhanVien == null)
+                    return Json(new { success = false, message = "Không xác định được nhân viên bán hàng!" });
 
-                //var idNhanVien = nhanVien.ID_NhanVien;
+                var idNhanVien = nhanVien.ID_NhanVien;
 
                 if (model == null || model.HoaDonChiTiets == null || !model.HoaDonChiTiets.Any())
                     return Json(new { success = false, message = "Hóa đơn không được để trống!" });
@@ -353,7 +483,7 @@ namespace DoAn.Controllers
                 if (model.PhuThu.HasValue && model.PhuThu.Value <= 0)
                     return Json(new { success = false, message = "Phụ thu phải lớn hơn 0" });
 
-                // Mặc định phương thức nhận hàng là “Nhận tại quầy”
+                // Mặc định phương thức nhận hàng là "Nhận tại quầy"
                 string phuongThucNhanHang = "Nhận tại quầy";
 
                 // Validate và xử lý Mã giảm giá (cho phép null)
@@ -394,14 +524,64 @@ namespace DoAn.Controllers
                     }
                 }
 
-                // Kiểm tra tồn kho sản phẩm
+                // Kiểm tra tồn kho sản phẩm và tính giá khuyến mãi
+                var now = DateTime.UtcNow.AddHours(7); // UTC+7
                 foreach (var item in model.HoaDonChiTiets)
                 {
-                    var spct = await _context.SanPhamChiTiets.FindAsync(item.ID_SanPhamChiTiet);
+                    var spct = await _context.SanPhamChiTiets
+                        .Include(x => x.ChiTietKhuyenMais)
+                            .ThenInclude(ctkm => ctkm.KhuyenMai)
+                        .FirstOrDefaultAsync(x => x.ID_SanPhamChiTiet == item.ID_SanPhamChiTiet);
+
                     if (spct == null || spct.TrangThai == 0)
-                        return Json(new { success = false, message = "Có sản phẩm trong hóa đơn không đủ số lượng tồn kho!" });
+                        return Json(new { success = false, message = "Có sản phẩm trong hóa đơn không tồn tại hoặc đã ngừng kinh doanh!" });
+
                     if (item.SoLuong > spct.SoLuong)
-                        return Json(new { success = false, message = "Có sản phẩm trong hóa đơn không đủ số lượng tồn kho!" });
+                        return Json(new { success = false, message = $"Sản phẩm {spct.SanPham?.Ten_SanPham} không đủ số lượng tồn kho!" });
+
+                    // Tính giá khuyến mãi để verify với client
+                    decimal giaGoc = spct.GiaBan;
+                    decimal giaKhuyenMai = giaGoc;
+
+                    if (spct.ChiTietKhuyenMais != null)
+                    {
+                        foreach (var ctkm in spct.ChiTietKhuyenMais)
+                        {
+                            var km = ctkm.KhuyenMai;
+                            if (km == null) continue;
+                            if (km.TrangThai != 1 || now < km.NgayBatDau || now > km.NgayHetHan) continue;
+
+                            decimal discount = 0M;
+                            var kieu = (km.KieuGiamGia ?? "").Trim().ToLowerInvariant();
+
+                            if (kieu == "percent")
+                            {
+                                var pct = Math.Clamp(km.GiaTriGiam, 0, 100);
+                                discount = giaGoc * (pct / 100m);
+                                if (km.GiaTriToiDa > 0 && discount > km.GiaTriToiDa)
+                                    discount = km.GiaTriToiDa;
+                            }
+                            else if (kieu == "fixed")
+                            {
+                                discount = Math.Min(giaGoc, Math.Max(0, km.GiaTriGiam));
+                            }
+
+                            var price = Math.Max(0, giaGoc - discount);
+                            if (price < giaKhuyenMai)
+                                giaKhuyenMai = price; // chọn giá tốt nhất
+                        }
+                    }
+
+                    // Verify giá từ client với giá server tính được
+                    decimal chechLechChoPhep = giaGoc * 0.01m; // Cho phép sai số 1%
+                    if (Math.Abs(item.DonGia - giaKhuyenMai) > chechLechChoPhep)
+                    {
+                        return Json(new
+                        {
+                            success = false,
+                            message = $"Giá sản phẩm {spct.SanPham?.Ten_SanPham} không hợp lệ. Giá tính được: {giaKhuyenMai:N0}đ"
+                        });
+                    }
                 }
 
                 HoaDon hoaDon;
@@ -428,14 +608,21 @@ namespace DoAn.Controllers
                     hoaDon.ID_Voucher = voucher?.ID_Voucher;
                     hoaDon.TongTienTruocGiam = model.TongTienTruocGiam;
                     hoaDon.TongTienSauGiam = model.TongTienTruocGiam - giamGia + (model.PhuThu ?? 0);
-                    hoaDon.TrangThai = 4; // Đã thanh toán
+                    hoaDon.TrangThai = 1; // Đã thanh toán
                     hoaDon.NgayCapNhat = DateTime.Now;
                     hoaDon.PhuongThucNhanHang = phuongThucNhanHang;
-                    //hoaDon.ID_NhanVien = idNhanVien; // Gán nhân viên thanh toán
+                    hoaDon.ID_NhanVien = idNhanVien; // Gán nhân viên thanh toán
 
-                    // Trừ tồn kho sản phẩm
+                    // Cập nhật lại DonGia theo giá khuyến mãi mới nhất cho các chi tiết hóa đơn
                     foreach (var item in model.HoaDonChiTiets)
                     {
+                        var chiTietHoaDon = hoaDon.HoaDonChiTiets.FirstOrDefault(ct => ct.ID_SanPhamChiTiet == item.ID_SanPhamChiTiet);
+                        if (chiTietHoaDon != null)
+                        {
+                            chiTietHoaDon.DonGia = item.DonGia; // Sử dụng giá khuyến mãi
+                        }
+
+                        // Trừ tồn kho
                         var spct = await _context.SanPhamChiTiets.FindAsync(item.ID_SanPhamChiTiet);
                         spct.SoLuong -= item.SoLuong;
                         if (spct.SoLuong <= 0)
@@ -466,8 +653,8 @@ namespace DoAn.Controllers
                         ID_Voucher = voucher?.ID_Voucher,
                         LoaiHoaDon = "Offline",
                         NgayTao = DateTime.Now,
-                        TrangThai = 4,
-                        //ID_NhanVien = idNhanVien,
+                        TrangThai = 1,
+                        ID_NhanVien = idNhanVien,
                     };
 
                     // Tạo chi tiết hóa đơn + trừ tồn kho
@@ -475,6 +662,8 @@ namespace DoAn.Controllers
                     foreach (var item in model.HoaDonChiTiets)
                     {
                         var spct = await _context.SanPhamChiTiets.FindAsync(item.ID_SanPhamChiTiet);
+
+                        // Trừ tồn kho
                         spct.SoLuong -= item.SoLuong;
                         if (spct.SoLuong <= 0)
                         {
@@ -483,13 +672,14 @@ namespace DoAn.Controllers
                         }
                         _context.SanPhamChiTiets.Update(spct);
 
+                        // Sử dụng giá khuyến mãi làm DonGia
                         hoaDon.HoaDonChiTiets.Add(new HoaDonChiTiet
                         {
                             ID_HoaDonChiTiet = Guid.NewGuid(),
                             ID_HoaDon = hoaDon.ID_HoaDon,
                             ID_SanPhamChiTiet = item.ID_SanPhamChiTiet,
                             SoLuong = item.SoLuong,
-                            DonGia = item.DonGia
+                            DonGia = item.DonGia // Sử dụng giá khuyến mãi từ client (đã được verify)
                         });
                     }
 
@@ -504,17 +694,19 @@ namespace DoAn.Controllers
                 }
 
                 await _context.SaveChangesAsync();
+
                 var hoaDonDayDu = await _context.HoaDons
                     .Include(hd => hd.HoaDonChiTiets)
-                    .ThenInclude(ct => ct.SanPhamChiTiet)
-                    .ThenInclude(spct => spct.SanPham)
+                        .ThenInclude(ct => ct.SanPhamChiTiet)
+                        .ThenInclude(spct => spct.SanPham)
                     .Include(hd => hd.HoaDonChiTiets)
-                    .ThenInclude(ct => ct.SanPhamChiTiet)
-                    .ThenInclude(spct => spct.TheTich)
+                        .ThenInclude(ct => ct.SanPhamChiTiet)
+                        .ThenInclude(spct => spct.TheTich)
                     .Include(hd => hd.NhanVien)
+                    .Include(hd => hd.Voucher)
                     .FirstOrDefaultAsync(hd => hd.ID_HoaDon == hoaDon.ID_HoaDon);
 
-                var fileName = XuatHoaDonPdf(hoaDonDayDu, model.TienKhachDua ?? 0, model.TienThua ?? 0); // hoaDon là object đã thanh toán
+                var fileName = XuatHoaDonPdf(hoaDonDayDu, model.TienKhachDua ?? 0, model.TienThua ?? 0);
                 var fileUrl = Url.Content($"~/hoadon/{fileName}");
 
                 // Trả kết quả thành công kèm mã hóa đơn
@@ -524,9 +716,8 @@ namespace DoAn.Controllers
                     message = "Thanh toán thành công!",
                     maHoaDon = hoaDon.Ma_HoaDon,
                     fileName = fileName,
-                    fileUrl = fileUrl // đường dẫn truy cập từ web
+                    fileUrl = fileUrl
                 });
-
             }
             catch (Exception ex)
             {
@@ -606,11 +797,11 @@ namespace DoAn.Controllers
                                     txt.Span("Ngày tạo: ").SemiBold();
                                     txt.Span($"{hoaDon.NgayTao:dd/MM/yyyy HH:mm}");
                                 });
-                                //stack.Item().Text(txt =>
-                                //{
-                                //	txt.Span("Mã nhân viên: ").SemiBold();
-                                //	txt.Span($"{hoaDon.NhanVien?.Ma_NhanVien ?? ""}");
-                                //});
+                                stack.Item().Text(txt =>
+                                {
+                                    txt.Span("Mã nhân viên: ").SemiBold();
+                                    txt.Span($"{hoaDon.NhanVien?.Ma_NhanVien ?? ""}");
+                                });
                                 stack.Item().Text(txt =>
                                 {
                                     txt.Span("Phương thức thanh toán: ").SemiBold();

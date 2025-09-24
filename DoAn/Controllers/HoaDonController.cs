@@ -18,7 +18,28 @@ namespace DoAn.Controllers
         private readonly IHoaDonService _hoaDonService;
         public HoaDonController(DoAnDbContext context) => _context = context;
 
+        // ===================== Helper lấy nhân viên =====================
+        private NhanVien? GetCurrentNhanVien()
+        {
+            var userIdStr = HttpContext.Session.GetString("UserID");
+            if (!string.IsNullOrEmpty(userIdStr) && Guid.TryParse(userIdStr, out var idTaiKhoan))
+                return _context.NhanViens.FirstOrDefault(nv => nv.ID_TaiKhoan == idTaiKhoan);
 
+            var username = User?.Identity?.Name;
+            if (!string.IsNullOrEmpty(username))
+                return _context.NhanViens.Include(nv => nv.TaiKhoan)
+                    .FirstOrDefault(nv => nv.TaiKhoan.Uername == username);
+
+            return null;
+        }
+
+        private string GetCurrentNhanVienName()
+        {
+            var nv = GetCurrentNhanVien();
+            return nv?.Ten_NhanVien ?? (User?.Identity?.Name ?? "system");
+        }
+
+        // ===================== DANH SÁCH =====================
         public IActionResult Index(string? loaiHoaDon, int? trangThai, int page = 1, int pageSize = 10)
         {
             var query = _context.HoaDons
@@ -35,10 +56,8 @@ namespace DoAn.Controllers
             if (trangThai.HasValue)
                 query = query.Where(h => h.TrangThai == trangThai.Value);
 
-            // ---- Tổng số hóa đơn (để phân trang)
             int totalItems = query.Count();
 
-            // ---- Phân trang
             var data = query
                 .OrderByDescending(h => h.NgayTao)
                 .Skip((page - 1) * pageSize)
@@ -51,10 +70,8 @@ namespace DoAn.Controllers
                     .OrderByDescending(t => t.NgayChuyen)
                     .FirstOrDefault()?.NhanVienDoi;
 
-                var isOffline = string.Equals(h.LoaiHoaDon?.Trim(), "offline", StringComparison.OrdinalIgnoreCase);
-                var nhanVienTen = isOffline
-                    ? (h.NhanVien?.Ten_NhanVien ?? (!string.IsNullOrWhiteSpace(lastActor) ? lastActor : "Không có"))
-                    : (!string.IsNullOrWhiteSpace(lastActor) ? lastActor : (h.NhanVien?.Ten_NhanVien ?? "Không có"));
+                var nhanVienTen = h.NhanVien?.Ten_NhanVien
+                   ?? (!string.IsNullOrWhiteSpace(lastActor) ? lastActor : "Không có");
 
                 var hasReturnDone = h.TraHangs?.Any(p => p.TrangThai == 3) ?? false;
                 var hasReturnApproved = h.TraHangs?.Any(p => p.TrangThai == 1) ?? false;
@@ -93,7 +110,6 @@ namespace DoAn.Controllers
                 };
             }).ToList();
 
-            // ---- Truyền dữ liệu phân trang xuống View
             ViewBag.LoaiHoaDon = loaiHoaDon;
             ViewBag.TrangThai = trangThai;
             ViewBag.Page = page;
@@ -104,39 +120,7 @@ namespace DoAn.Controllers
             return View(list);
         }
 
-
-
-        // Helper đọc giá gốc theo nhiều tên thuộc tính
-        private static decimal? ReadPrice(object? obj, params string[] candidates)
-        {
-            if (obj == null) return null;
-            var t = obj.GetType();
-            foreach (var name in candidates)
-            {
-                var p = t.GetProperty(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-                if (p == null) continue;
-                var v = p.GetValue(obj);
-                if (v == null) continue;
-                if (v is decimal d) return d;
-                if (decimal.TryParse(v.ToString(), out var parsed)) return parsed;
-            }
-            return null;
-        }
-
-
-        private string GetTrangThaiText(int trangThai) =>
-                trangThai switch
-                {
-                    0 => "Chờ xác nhận",
-                    1 => "Đã xác nhận",
-                    2 => "Đang vận chuyển",
-                    3 => "Đã thanh toán",
-                    4 => "Thành công",
-                    5 => "Đã hủy",
-                    _ => "Không rõ"
-                };
-
-        // ===================== JSON TRẠNG THÁI CHO KHÁCH HÀNG =====================
+        // ===================== TRẠNG THÁI JSON =====================
         [HttpGet]
         [AllowAnonymous]
         public IActionResult Status(Guid id)
@@ -201,32 +185,34 @@ namespace DoAn.Controllers
             if (hoaDon == null) return NotFound();
 
             var old = hoaDon.TrangThai;
+            var nvName = GetCurrentNhanVienName();
 
-            // 🔹 Nếu là OFFLINE -> chuyển thẳng sang Thành công
+            // OFFLINE -> thành công
             if (hoaDon.LoaiHoaDon.Equals("Offline", StringComparison.OrdinalIgnoreCase))
             {
-                hoaDon.TrangThai = 4; // Thành công
+                hoaDon.TrangThai = 4;
                 hoaDon.NgayCapNhat = DateTime.Now;
+                hoaDon.ID_NhanVien = GetCurrentNhanVien()?.ID_NhanVien;
 
                 _context.TrangThaiDonHangs.Add(new TrangThaiDonHang
                 {
                     ID_TrangThaiDonHang = Guid.NewGuid(),
                     ID_HoaDon = idHoaDon,
-                    TrangThai = hoaDon.TrangThai,
+                    TrangThai = 4,
                     NgayChuyen = DateTime.Now,
-                    NhanVienDoi = User?.Identity?.Name ?? "system",
+                    NhanVienDoi = nvName,
                     NoiDungDoi = "Đơn Offline -> Thanh toán trực tiếp -> Thành công"
                 });
 
                 _context.SaveChanges();
-                TempData["Success"] = "Đơn Offline đã được chuyển sang trạng thái Thành công.";
+                TempData["Success"] = "Đơn Offline đã thành công.";
                 return RedirectToAction("Details", new { id = idHoaDon });
             }
 
-            // 🔹 Nếu là ONLINE -> xử lý bình thường
+            // ONLINE
             if (hoaDon.TrangThai == 0)
             {
-                // Kiểm tra tồn kho
+                // check kho
                 var thieu = new List<string>();
                 foreach (var ct in hoaDon.HoaDonChiTiets)
                 {
@@ -241,40 +227,35 @@ namespace DoAn.Controllers
                         thieu.Add($"{ten} (cần {ct.SoLuong}, còn {con})");
                     }
                 }
-
                 if (thieu.Any())
                 {
-                    TempData["Error"] = "Một số sản phẩm không đủ tồn kho: "
-                        + string.Join(", ", thieu)
-                        + ". Vui lòng nhập thêm hàng hoặc điều chỉnh số lượng.";
+                    TempData["Error"] = "Không đủ hàng: " + string.Join(", ", thieu);
                     return RedirectToAction("Details", new { id = idHoaDon });
                 }
 
-                // Đủ hàng -> trừ kho + cập nhật trạng thái
                 foreach (var ct in hoaDon.HoaDonChiTiets)
                 {
                     var spct = ct.SanPhamChiTiet
                                ?? _context.SanPhamChiTiets.FirstOrDefault(x => x.ID_SanPhamChiTiet == ct.ID_SanPhamChiTiet);
-                    if (spct == null) continue;
-
-                    DecreaseTonKho(spct, ct.SoLuong);
+                    if (spct != null) DecreaseTonKho(spct, ct.SoLuong);
                 }
 
-                hoaDon.TrangThai = 1; // Đã xác nhận
+                hoaDon.TrangThai = 1;
                 hoaDon.NgayCapNhat = DateTime.Now;
+                hoaDon.ID_NhanVien = GetCurrentNhanVien()?.ID_NhanVien;
 
                 _context.TrangThaiDonHangs.Add(new TrangThaiDonHang
                 {
                     ID_TrangThaiDonHang = Guid.NewGuid(),
                     ID_HoaDon = idHoaDon,
-                    TrangThai = hoaDon.TrangThai,
+                    TrangThai = 1,
                     NgayChuyen = DateTime.Now,
-                    NhanVienDoi = User?.Identity?.Name ?? "system",
-                    NoiDungDoi = $"Cập nhật: {GetTrangThaiText(old)} -> {GetTrangThaiText(hoaDon.TrangThai)} (đã trừ kho giữ hàng)"
+                    NhanVienDoi = nvName,
+                    NoiDungDoi = $"Cập nhật: {GetTrangThaiText(old)} -> {GetTrangThaiText(1)}"
                 });
 
                 _context.SaveChanges();
-                TempData["Success"] = "Đã xác nhận đơn và trừ kho giữ hàng.";
+                TempData["Success"] = "Đã xác nhận đơn.";
                 return RedirectToAction("Details", new { id = idHoaDon });
             }
 
@@ -282,6 +263,7 @@ namespace DoAn.Controllers
             {
                 hoaDon.TrangThai += 1;
                 hoaDon.NgayCapNhat = DateTime.Now;
+                hoaDon.ID_NhanVien = GetCurrentNhanVien()?.ID_NhanVien;
 
                 _context.TrangThaiDonHangs.Add(new TrangThaiDonHang
                 {
@@ -289,7 +271,7 @@ namespace DoAn.Controllers
                     ID_HoaDon = idHoaDon,
                     TrangThai = hoaDon.TrangThai,
                     NgayChuyen = DateTime.Now,
-                    NhanVienDoi = User?.Identity?.Name ?? "system",
+                    NhanVienDoi = nvName,
                     NoiDungDoi = $"Cập nhật: {GetTrangThaiText(old)} -> {GetTrangThaiText(hoaDon.TrangThai)}"
                 });
 
@@ -299,14 +281,65 @@ namespace DoAn.Controllers
             return RedirectToAction("Details", new { id = idHoaDon });
         }
 
+        // ===================== GIAO HÀNG KHÔNG THÀNH CÔNG =====================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult GiaoKhongThanhCong(Guid idHoaDon, string lyDo)
+        {
+            if (string.IsNullOrWhiteSpace(lyDo))
+            {
+                TempData["Error"] = "Nhập lý do không giao được.";
+                return RedirectToAction("Details", new { id = idHoaDon });
+            }
 
+            var hoaDon = _context.HoaDons
+                .Include(h => h.HoaDonChiTiets)
+                    .ThenInclude(ct => ct.SanPhamChiTiet)
+                .FirstOrDefault(h => h.ID_HoaDon == idHoaDon);
+
+            if (hoaDon == null) return NotFound();
+
+            // Chỉ áp dụng cho đơn đang vận chuyển (trạng thái 2)
+            if (hoaDon.TrangThai != 2)
+            {
+                TempData["Error"] = "Chỉ thực hiện khi đơn đang vận chuyển.";
+                return RedirectToAction("Details", new { id = idHoaDon });
+            }
+
+            // Cập nhật trạng thái riêng cho giao không thành công
+            hoaDon.TrangThai = 10;
+            hoaDon.NgayCapNhat = DateTime.Now;
+            hoaDon.ID_NhanVien = GetCurrentNhanVien()?.ID_NhanVien;
+
+            var nvName = GetCurrentNhanVienName();
+            _context.TrangThaiDonHangs.Add(new TrangThaiDonHang
+            {
+                ID_TrangThaiDonHang = Guid.NewGuid(),
+                ID_HoaDon = idHoaDon,
+                TrangThai = 10,
+                NgayChuyen = DateTime.Now,
+                NhanVienDoi = nvName,
+                NoiDungDoi = $"Giao hàng không thành công. Lý do: {lyDo.Trim()}"
+            });
+
+            foreach (var ct in hoaDon.HoaDonChiTiets)
+            {
+                var spct = ct.SanPhamChiTiet;
+                if (spct != null) WriteTonKho(spct, ReadTonKho(spct) + ct.SoLuong);
+            }
+            _context.SaveChanges();
+            TempData["Success"] = "Đã đánh dấu giao hàng không thành công!";
+            return RedirectToAction("Details", new { id = idHoaDon });
+        }
+
+        // ===================== HỦY ĐƠN =====================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult HuyDon(Guid id, string lyDo)
         {
             if (string.IsNullOrWhiteSpace(lyDo))
             {
-                TempData["Error"] = "Vui lòng nhập lý do hủy.";
+                TempData["Error"] = "Nhập lý do hủy.";
                 return RedirectToAction("Details", new { id });
             }
 
@@ -316,103 +349,83 @@ namespace DoAn.Controllers
                 .FirstOrDefault(h => h.ID_HoaDon == id);
 
             if (hd == null) return NotFound();
-
-            // CHỈ cho hủy ở 0 (chờ xác nhận) hoặc 1 (đã xác nhận)
             if (hd.TrangThai != 0 && hd.TrangThai != 1)
             {
-                TempData["Error"] = "Chỉ hủy đơn ở trạng thái Chờ xác nhận hoặc Đã xác nhận.";
+                TempData["Error"] = "Chỉ hủy ở trạng thái Chờ xác nhận hoặc Đã xác nhận.";
                 return RedirectToAction("Details", new { id });
             }
 
-            // Nếu hủy ở bước 1: HOÀN KHO lại (vì đã từng trừ khi xác nhận)
             if (hd.TrangThai == 1)
             {
                 foreach (var ct in hd.HoaDonChiTiets)
                 {
                     var spct = ct.SanPhamChiTiet;
-                    if (spct == null) continue;
-
-                    var t = spct.GetType();
-                    var p = t.GetProperty("SoLuongTon")
-                          ?? t.GetProperty("SoLuong")
-                          ?? t.GetProperty("TonKho")
-                          ?? t.GetProperty("SoLuong_TonKho");
-                    if (p == null) continue;
-
-                    var cur = Convert.ToInt32(p.GetValue(spct) ?? 0);
-                    p.SetValue(spct, cur + ct.SoLuong);
+                    if (spct != null) WriteTonKho(spct, ReadTonKho(spct) + ct.SoLuong);
                 }
             }
-            // Nếu hủy ở bước 0: KHÔNG cộng kho (vì chưa trừ kho)
 
-            // Ghi log
+            var nvName = GetCurrentNhanVienName();
+            hd.TrangThai = 5;
+            hd.NgayCapNhat = DateTime.Now;
+            hd.ID_NhanVien = GetCurrentNhanVien()?.ID_NhanVien;
+
             _context.TrangThaiDonHangs.Add(new TrangThaiDonHang
             {
                 ID_TrangThaiDonHang = Guid.NewGuid(),
                 ID_HoaDon = id,
-                TrangThai = 5, // Đã hủy
+                TrangThai = 5,
                 NgayChuyen = DateTime.Now,
-                NhanVienDoi = User?.Identity?.Name ?? "system",
-                NoiDungDoi = $"Hủy đơn ở bước {(hd.TrangThai == 0 ? "Chờ xác nhận" : "Đã xác nhận")}. Lý do: {lyDo.Trim()}"
+                NhanVienDoi = nvName,
+                NoiDungDoi = $"Hủy đơn. Lý do: {lyDo.Trim()}"
             });
 
-            // Đổi trạng thái đơn
-            hd.TrangThai = 5;
-            hd.NgayCapNhat = DateTime.Now;
-
             _context.SaveChanges();
-
-            TempData["Success"] = "Đã hủy đơn hàng.";
+            TempData["Success"] = "Đã hủy đơn.";
             return RedirectToAction("Details", new { id });
         }
 
+        // ===================== TẠO OFFLINE =====================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult CreateOffline(HoaDon model)
         {
             if (model == null)
             {
-                TempData["Error"] = "Dữ liệu hóa đơn không hợp lệ.";
+                TempData["Error"] = "Dữ liệu không hợp lệ.";
                 return RedirectToAction("Index");
             }
 
-            // Gán mã hóa đơn tự sinh
             model.ID_HoaDon = Guid.NewGuid();
             model.Ma_HoaDon = GenerateMaHoaDon();
             model.NgayTao = DateTime.Now;
             model.NgayCapNhat = DateTime.Now;
+            model.ID_NhanVien = GetCurrentNhanVien()?.ID_NhanVien;
 
-            // Nếu là offline thì auto thành công
             if (model.LoaiHoaDon.Equals("Offline", StringComparison.OrdinalIgnoreCase))
             {
-                model.TrangThai = 4; // Thành công
-
+                model.TrangThai = 4;
                 _context.TrangThaiDonHangs.Add(new TrangThaiDonHang
                 {
                     ID_TrangThaiDonHang = Guid.NewGuid(),
                     ID_HoaDon = model.ID_HoaDon,
                     TrangThai = 4,
                     NgayChuyen = DateTime.Now,
-                    NhanVienDoi = User?.Identity?.Name ?? "system",
-                    NoiDungDoi = "Tạo đơn Offline -> Thanh toán trực tiếp -> Thành công"
+                    NhanVienDoi = GetCurrentNhanVienName(),
+                    NoiDungDoi = "Tạo đơn Offline -> Thành công"
                 });
             }
             else
             {
-                // Online mặc định để trạng thái chờ xác nhận
                 model.TrangThai = 0;
             }
 
             _context.HoaDons.Add(model);
             _context.SaveChanges();
-
             TempData["Success"] = "Tạo hóa đơn thành công.";
             return RedirectToAction("Details", new { id = model.ID_HoaDon });
         }
 
-
-
-        // ===================== Helpers tồn kho (reflection) =====================
+        // ===================== Helpers =====================
         private static PropertyInfo? QtyProp(Type t) =>
             t.GetProperty("SoLuongTon")
             ?? t.GetProperty("SoLuong")
@@ -436,23 +449,28 @@ namespace DoAn.Controllers
             var cur = ReadTonKho(spct);
             WriteTonKho(spct, Math.Max(0, cur - qty));
         }
+
         private string GenerateMaHoaDon()
         {
-            string prefix = "HD"; // tiền tố
-            string datePart = DateTime.Now.ToString("yyyyMMdd"); // 20250917
-
-            // Đếm số hóa đơn trong ngày
-            int countToday = _context.HoaDons
-                .Count(h => h.NgayTao.Date == DateTime.Today);
-
-            // Tăng thêm 1 cho mã mới
-            int nextNumber = countToday + 1;
-
-            // Format thành 3 chữ số: 001, 002, ...
-            string numberPart = nextNumber.ToString("D3");
-
+            string prefix = "HD";
+            string datePart = DateTime.Now.ToString("yyyyMMdd");
+            int countToday = _context.HoaDons.Count(h => h.NgayTao.Date == DateTime.Today);
+            string numberPart = (countToday + 1).ToString("D3");
             return $"{prefix}{datePart}-{numberPart}";
         }
-    }
 
+        private string GetTrangThaiText(int trangThai) =>
+            trangThai switch
+            {
+                0 => "Chờ xác nhận",
+                1 => "Đã xác nhận",
+                2 => "Đang vận chuyển",
+                3 => "Đã thanh toán",
+                4 => "Thành công",
+                5 => "Đã hủy",
+
+                10=> "Giao hàng không thành công",
+                _ => "Không rõ"
+            };
+    }
 }

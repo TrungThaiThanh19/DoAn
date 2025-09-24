@@ -1,15 +1,23 @@
 ﻿<nav class="navbar navbar-expand bg-light navbar-light sticky-top px-4 py-0">
-    <a href="#" class="sidebar-toggler flex-shrink-0">
-        <i class="fa fa-bars"></i>
-    </a>
+    
     <div class="navbar-nav align-items-center ms-auto">
         <div class="nav-item dropdown">
             <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
                 <img class="rounded-circle me-lg-2" src="~/img/user.jpg" style="width: 40px; height: 40px;" />
                 <span class="d-none d-lg-inline-flex">
                     @{
+                        var role = Context.Session.GetString("RoleName");
                         var username = Context.Session.GetString("Username");
-                        @Html.Raw(string.IsNullOrEmpty(username) ? "Người dùng" : username)
+                        var staffName = Context.Session.GetString("StaffName");
+
+                        if (role == "nhanvien")
+                        {
+                            @Html.Raw(string.IsNullOrEmpty(staffName) ? "Nhân viên" : staffName)
+                        }
+                        else
+                        {
+                            @Html.Raw(string.IsNullOrEmpty(username) ? "Người dùng" : username)
+                        }
                     }
                 </span>
             </a>
