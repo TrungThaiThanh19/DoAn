@@ -1,0 +1,74 @@
+@model DoAn.Models.KhuyenMai
+@{
+    ViewData["Title"] = "Chi tiết khuyến mãi";
+    string Currency(decimal v) => string.Format("{0:N0} đ", v);
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2 class="mb-3">Chi tiết khuyến mãi</h2>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Mã</dt>
+            <dd class="col-sm-9">@Model.Ma_KhuyenMai</dd>
+
+            <dt class="col-sm-3">Tên</dt>
+            <dd class="col-sm-9">@Model.Ten_KhuyenMai</dd>
+
+            <dt class="col-sm-3">Kiểu giảm</dt>
+            <dd class="col-sm-9">@Model.KieuGiamGia</dd>
+
+            <dt class="col-sm-3">Giá trị giảm</dt>
+            <dd class="col-sm-9">@Model.GiaTriGiam</dd>
+
+            <dt class="col-sm-3">Giảm tối đa</dt>
+            <dd class="col-sm-9">@(Model.GiaTriToiDa == 0 ? "-" : Currency(Model.GiaTriToiDa))</dd>
+
+            <dt class="col-sm-3">Thời gian</dt>
+            <dd class="col-sm-9">@Model.NgayBatDau:g → @Model.NgayHetHan:g</dd>
+
+            <dt class="col-sm-3">Trạng thái</dt>
+            <dd class="col-sm-9">@(Model.TrangThai == 1 ? "Bật" : "Tắt")</dd>
+        </dl>
+    </div>
+ </div>
+
+<h5 class="mb-2">Sản phẩm chi tiết áp dụng</h5>
+<div class="table-responsive">
+    <table class="table table-bordered table-striped align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Tên sản phẩm</th>
+                <th>Thể tích</th>
+                <th class="text-end">Giá bán</th>
+                <th class="text-center">Tồn kho</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.ChiTietKhuyenMais == null || !Model.ChiTietKhuyenMais.Any())
+            {
+                <tr>
+                    <td colspan="4" class="text-center text-muted">Chưa gắn sản phẩm chi tiết</td>
+                </tr>
+            }
+            else
+            {
+                foreach (var c in Model.ChiTietKhuyenMais.OrderByDescending(x => x.SanPhamChiTiet.NgayTao))
+                {
+                    var ct = c.SanPhamChiTiet;
+                    <tr>
+                        <td>@ct?.SanPham?.Ten_SanPham</td>
+                        <td>@(ct?.TheTich == null ? "" : ($"{ct.TheTich.GiaTri} {ct.TheTich.DonVi}"))</td>
+                        <td class="text-end">@string.Format("{0:N0} đ", ct?.GiaBan ?? 0)</td>
+                        <td class="text-center">@((ct?.SoLuong ?? 0))</td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+<a asp-action="Index" class="btn btn-secondary">← Quay lại</a>
+<a asp-action="Edit" asp-route-id="@Model.ID_KhuyenMai" class="btn btn-primary">Sửa</a>
+
