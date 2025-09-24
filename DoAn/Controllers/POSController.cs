@@ -42,7 +42,7 @@ namespace DoAn.Controllers
 				.Include(ct => ct.TheTich)
 				.Include(ct => ct.SanPham)
 				.Include(ct => ct.ChiTietKhuyenMais)
-				.ThenInclude(ctkm => ctkm.KhuyenMai)
+					.ThenInclude(ctkm => ctkm.KhuyenMai)
 				.Where(ct => ct.ID_SanPham == idSanPham && ct.TrangThai == 1 && ct.SoLuong > 0)
 				.ToListAsync();
 
@@ -125,7 +125,7 @@ namespace DoAn.Controllers
 				return Json(new { success = false, message = "Mã giảm giá đã hết lượt sử dụng" });
 
 			if (tongTienHang < voucher.GiaTriToiThieu)
-				return Json(new { success = false, message = $"Đơn hàng chưa đạt tối thiểu {voucher.GiaTriToiThieu:N0} đ để áp dụng mã." });
+				return Json(new { success = false, message = $"Đơn hàng chưa đạt tối thiểu {voucher.GiaTriToiThieu:N0}đ để áp dụng mã" });
 
 			// Tính số tiền giảm
 			decimal giamGia = 0;
@@ -146,6 +146,7 @@ namespace DoAn.Controllers
 				return Json(new { success = false, message = "Kiểu giảm giá không hợp lệ" });
 			}
 			giamGia = Math.Min(giamGia, tongTienHang);
+
 			return Json(new { success = true, giamGia = giamGia, idVoucher = voucher.ID_Voucher });
 		}
 
@@ -371,15 +372,15 @@ namespace DoAn.Controllers
 		{
 			try
 			{
-				//var userIdString = HttpContext.Session.GetString("UserID");
-				//if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var idTaiKhoan))
-				//	return Json(new { success = false, message = "Không xác định được tài khoản nhân viên!" });
+				var userIdString = HttpContext.Session.GetString("UserID");
+				if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var idTaiKhoan))
+					return Json(new { success = false, message = "Không xác định được tài khoản nhân viên!" });
 
-				//var nhanVien = await _context.NhanViens.FirstOrDefaultAsync(nv => nv.ID_TaiKhoan == idTaiKhoan);
-				//if (nhanVien == null)
-				//	return Json(new { success = false, message = "Không xác định được nhân viên bán hàng!" });
+				var nhanVien = await _context.NhanViens.FirstOrDefaultAsync(nv => nv.ID_TaiKhoan == idTaiKhoan);
+				if (nhanVien == null)
+					return Json(new { success = false, message = "Không xác định được nhân viên bán hàng!" });
 
-				//var idNhanVien = nhanVien.ID_NhanVien;
+				var idNhanVien = nhanVien.ID_NhanVien;
 
 				if (model == null || model.HoaDonChiTiets == null || !model.HoaDonChiTiets.Any())
 					return Json(new { success = false, message = "Hóa đơn không được để trống!" });
@@ -477,7 +478,7 @@ namespace DoAn.Controllers
 					hoaDon.TrangThai = 1; // Đã thanh toán
 					hoaDon.NgayCapNhat = DateTime.Now;
 					hoaDon.PhuongThucNhanHang = phuongThucNhanHang;
-					//hoaDon.ID_NhanVien = idNhanVien; // Gán nhân viên thanh toán
+					hoaDon.ID_NhanVien = idNhanVien; // Gán nhân viên thanh toán
 
 					// Trừ tồn kho sản phẩm
 					foreach (var item in model.HoaDonChiTiets)
@@ -513,7 +514,7 @@ namespace DoAn.Controllers
 						LoaiHoaDon = "Offline",
 						NgayTao = DateTime.Now,
 						TrangThai = 1,
-						//ID_NhanVien = idNhanVien,
+						ID_NhanVien = idNhanVien,
 					};
 
 					// Tạo chi tiết hóa đơn + trừ tồn kho
@@ -652,11 +653,11 @@ namespace DoAn.Controllers
 									txt.Span("Ngày tạo: ").SemiBold();
 									txt.Span($"{hoaDon.NgayTao:dd/MM/yyyy HH:mm}");
 								});
-								//stack.Item().Text(txt =>
-								//{
-								//	txt.Span("Mã nhân viên: ").SemiBold();
-								//	txt.Span($"{hoaDon.NhanVien?.Ma_NhanVien ?? ""}");
-								//});
+								stack.Item().Text(txt =>
+								{
+									txt.Span("Mã nhân viên: ").SemiBold();
+									txt.Span($"{hoaDon.NhanVien?.Ma_NhanVien ?? ""}");
+								});
 								stack.Item().Text(txt =>
 								{
 									txt.Span("Phương thức thanh toán: ").SemiBold();

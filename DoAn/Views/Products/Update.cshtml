@@ -143,3 +143,21 @@ else
 {
     <p class="text-muted">Sản phẩm chưa có biến thể nào.</p>
 }
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.querySelector('form[method="post"]').addEventListener('submit', function(e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Xác nhận cập nhật sản phẩm',
+            text: 'Bạn có chắc chắn muốn cập nhật sản phẩm này không?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Cập nhật',
+            cancelButtonText: 'Huỷ'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                e.target.submit();
+            }
+        });
+    });
+</script>
