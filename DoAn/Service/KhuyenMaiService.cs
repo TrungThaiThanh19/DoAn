@@ -29,6 +29,11 @@ namespace DoAn.Service
         public async Task AddAsync(KhuyenMai km, IEnumerable<Guid> spctIds)
         {
             km.ID_KhuyenMai = Guid.NewGuid();
+
+            // ✅ Sinh mã khuyến mãi tự động
+            km.Ma_KhuyenMai = await GenerateMaKhuyenMaiAsync();
+
+            // Nếu có SPCT được chọn thì gắn mapping
             if (spctIds?.Any() == true)
             {
                 km.ChiTietKhuyenMais = spctIds.Select(id => new ChiTietKhuyenMai
@@ -38,11 +43,12 @@ namespace DoAn.Service
                     ID_SanPhamChiTiet = id
                 }).ToList();
             }
+
             _db.KhuyenMais.Add(km);
             await _db.SaveChangesAsync();
         }
 
-        public async Task UpdateAsync(KhuyenMai km, IEnumerable<Guid> spctIds)
+        public async Task UpdateAsync(KhuyenMai km, IEnumerable<Guid>? spctIds)
         {
             var exist = await _db.KhuyenMais
                 .Include(x => x.ChiTietKhuyenMais)
@@ -50,8 +56,7 @@ namespace DoAn.Service
 
             if (exist == null) return;
 
-            // update props
-            exist.Ma_KhuyenMai = km.Ma_KhuyenMai;
+            // update props (không chạm Ma_KhuyenMai)
             exist.Ten_KhuyenMai = km.Ten_KhuyenMai;
             exist.KieuGiamGia = km.KieuGiamGia;
             exist.GiaTriGiam = km.GiaTriGiam;
@@ -61,23 +66,29 @@ namespace DoAn.Service
             exist.NgayHetHan = km.NgayHetHan;
             exist.TrangThai = km.TrangThai;
 
-            // update SPCT mapping
-            var currentIds = exist.ChiTietKhuyenMais.Select(c => c.ID_SanPhamChiTiet).ToList();
-            var incoming = spctIds?.ToList() ?? new List<Guid>();
+            // chỉ cập nhật SPCT khi có truyền vào
+            if (spctIds != null)
+            {
+                var currentIds = exist.ChiTietKhuyenMais.Select(c => c.ID_SanPhamChiTiet).ToList();
+                var incoming = spctIds.ToList();
 
-            // remove
-            var toRemove = exist.ChiTietKhuyenMais.Where(c => !incoming.Contains(c.ID_SanPhamChiTiet)).ToList();
-            _db.ChiTietKhuyenMais.RemoveRange(toRemove);
+                // remove
+                var toRemove = exist.ChiTietKhuyenMais
+                    .Where(c => !incoming.Contains(c.ID_SanPhamChiTiet))
+                    .ToList();
+                _db.ChiTietKhuyenMais.RemoveRange(toRemove);
 
-            // add
-            var toAdd = incoming.Where(id => !currentIds.Contains(id))
-                                .Select(id => new ChiTietKhuyenMai
-                                {
-                                    ID_ChiTietKhuyenMai = Guid.NewGuid(),
-                                    ID_KhuyenMai = exist.ID_KhuyenMai,
-                                    ID_SanPhamChiTiet = id
-                                });
-            _db.ChiTietKhuyenMais.AddRange(toAdd);
+                // add
+                var toAdd = incoming
+                    .Where(id => !currentIds.Contains(id))
+                    .Select(id => new ChiTietKhuyenMai
+                    {
+                        ID_ChiTietKhuyenMai = Guid.NewGuid(),
+                        ID_KhuyenMai = exist.ID_KhuyenMai,
+                        ID_SanPhamChiTiet = id
+                    });
+                _db.ChiTietKhuyenMais.AddRange(toAdd);
+            }
 
             await _db.SaveChangesAsync();
         }
@@ -134,6 +145,19 @@ namespace DoAn.Service
             }
 
             return (best, bestKm, bestDiscount);
+        }
+        private async Task<string> GenerateMaKhuyenMaiAsync()
+        {
+            var lastCode = await _db.KhuyenMais
+                .OrderByDescending(km => km.Ma_KhuyenMai)
+                .Select(km => km.Ma_KhuyenMai)
+                .FirstOrDefaultAsync();
+
+            int lastNumber = 0;
+            if (!string.IsNullOrEmpty(lastCode) && lastCode.Length > 2)
+                int.TryParse(lastCode.Substring(2), out lastNumber);
+
+            return $"KM{(lastNumber + 1):D3}";
         }
     }
 }

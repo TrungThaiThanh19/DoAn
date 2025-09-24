@@ -94,7 +94,6 @@ namespace DoAn.Controllers
             }
             else if (m.SanPhamChiTietIds == null || !m.SanPhamChiTietIds.Any())
             {
-                // Nếu không chọn thương hiệu thì phải có ít nhất 1 SPCT
                 ModelState.AddModelError(nameof(m.SanPhamChiTietIds),
                     "Hãy chọn thương hiệu hoặc chọn ít nhất một SPCT.");
             }
@@ -112,11 +111,10 @@ namespace DoAn.Controllers
                 ? await GetSpctIdsByBrandAsync(m.ThuongHieuId.Value) // nếu chọn thương hiệu => lấy toàn bộ SPCT thuộc brand đó
                 : new HashSet<Guid>(m.SanPhamChiTietIds ?? Enumerable.Empty<Guid>());
 
-            // Tạo entity mới
+            // Tạo entity mới (❌ bỏ Ma_KhuyenMai, sẽ gen trong service)
             var km = new KhuyenMai
             {
                 ID_KhuyenMai = m.ID_KhuyenMai ?? Guid.NewGuid(),
-                Ma_KhuyenMai = m.Ma_KhuyenMai.Trim(),
                 Ten_KhuyenMai = m.Ten_KhuyenMai,
                 KieuGiamGia = m.KieuGiamGia,
                 GiaTriGiam = m.GiaTriGiam,
@@ -133,6 +131,7 @@ namespace DoAn.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+
         // ===== EDIT =====
         // GET: form sửa khuyến mãi
         public async Task<IActionResult> Edit(Guid id)
@@ -140,7 +139,6 @@ namespace DoAn.Controllers
             var km = await _kmService.GetByIdAsync(id);
             if (km == null) return NotFound();
 
-            // Đổ dữ liệu ra form VM
             var vm = new KhuyenMaiFormVM
             {
                 ID_KhuyenMai = km.ID_KhuyenMai,
@@ -153,12 +151,10 @@ namespace DoAn.Controllers
                 NgayBatDau = km.NgayBatDau,
                 NgayHetHan = km.NgayHetHan,
                 TrangThai = km.TrangThai,
-                SanPhamChiTietIds = km.ChiTietKhuyenMais?.Select(c => c.ID_SanPhamChiTiet).ToList() ?? new(),
-                ThuongHieuId = null
+                // load sẵn biến thể đã chọn
+                SanPhamChiTietIds = km.ChiTietKhuyenMais.Select(c => c.ID_SanPhamChiTiet).ToList()
             };
 
-            await LoadSPCTListAsync(vm.SanPhamChiTietIds);
-            await LoadBrandListAsync(vm.ThuongHieuId);
             return View(vm);
         }
 
@@ -190,7 +186,7 @@ namespace DoAn.Controllers
             if (exist == null) return NotFound();
 
             // cập nhật entity
-            exist.Ma_KhuyenMai = m.Ma_KhuyenMai.Trim();
+            //exist.Ma_KhuyenMai = m.Ma_KhuyenMai.Trim();
             exist.Ten_KhuyenMai = m.Ten_KhuyenMai;
             exist.KieuGiamGia = m.KieuGiamGia;
             exist.GiaTriGiam = m.GiaTriGiam;

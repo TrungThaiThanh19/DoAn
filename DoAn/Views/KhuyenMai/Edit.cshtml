@@ -5,16 +5,17 @@
 }
 
 <h2 class="mb-3">Sửa khuyến mãi</h2>
- 
-<form method="post">
+
+<form asp-action="Edit" method="post">
     @Html.HiddenFor(m => m.ID_KhuyenMai)
 
     <div class="row g-3">
+        <!-- MÃ KM readonly -->
         <div class="col-md-3">
-            <label class="form-label">Mã</label>
-            <input asp-for="Ma_KhuyenMai" class="form-control" />
-            <span asp-validation-for="Ma_KhuyenMai" class="text-danger"></span>
+            <label class="form-label">Mã KM</label>
+            <input asp-for="Ma_KhuyenMai" class="form-control" readonly />
         </div>
+
         <div class="col-md-6">
             <label class="form-label">Tên</label>
             <input asp-for="Ten_KhuyenMai" class="form-control" />
@@ -101,7 +102,7 @@
         (function () {
             const brand = document.getElementById('brandSelect');
             const spct  = document.getElementById('spctSelect');
-            const help  = document.getElementById('spctHelp'); // nếu có
+            const help  = document.getElementById('spctHelp');
             const urlSpct = '@Url.Action("SpctByBrand", "KhuyenMai")';
 
             async function reloadSpctOptions(brandId) {
@@ -109,27 +110,29 @@
                 const res = await fetch(url);
                 const data = await res.json();
 
+                // Lưu lại selection cũ
+                const selected = new Set([...spct.selectedOptions].map(o => o.value));
+
                 spct.innerHTML = '';
                 for (const it of data) {
                     const opt = document.createElement('option');
                     opt.value = it.id;
                     opt.textContent = it.text;
+                    if (selected.has(it.id)) opt.selected = true; // giữ lại tick
                     spct.appendChild(opt);
                 }
             }
 
             async function sync() {
                 const hasBrand = !!brand.value;
-                await reloadSpctOptions(brand.value);  // nạp đúng danh sách theo thương hiệu
+                await reloadSpctOptions(brand.value);
 
-                // Nếu giữ logic “chọn thương hiệu ⇒ áp dụng cho toàn bộ SPCT của thương hiệu”
-                // thì nên khóa SPCT (chỉ hiển thị cho biết):
                 spct.disabled = hasBrand;
-                if (hasBrand) for (const o of spct.options) o.selected = false;
+                if (hasBrand) for (const o of spct.options) o.selected = true; // chọn tất cả SPCT thương hiệu
 
                 if (help) {
                     help.textContent = hasBrand
-                      ? "Đã chọn thương hiệu ⇒ KM áp dụng cho toàn bộ SPCT của thương hiệu; ô dưới chỉ hiển thị danh sách."
+                      ? "Đã chọn thương hiệu ⇒ KM áp dụng cho toàn bộ SPCT của thương hiệu; ô dưới chỉ hiển thị."
                       : "Bạn có thể chọn nhiều SPCT khi KHÔNG chọn thương hiệu.";
                 }
             }

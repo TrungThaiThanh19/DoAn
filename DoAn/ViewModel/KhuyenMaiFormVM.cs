@@ -7,8 +7,8 @@ namespace DoAn.ViewModels.KhuyenMaiVM
     {
         public Guid? ID_KhuyenMai { get; set; }
 
-        [Required, StringLength(50)]
-        public string Ma_KhuyenMai { get; set; }
+        [StringLength(50)]
+        public string? Ma_KhuyenMai { get; set; }
 
         [Required, StringLength(200)]
         public string Ten_KhuyenMai { get; set; }
