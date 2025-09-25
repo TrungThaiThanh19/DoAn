@@ -608,7 +608,7 @@ namespace DoAn.Controllers
                     hoaDon.ID_Voucher = voucher?.ID_Voucher;
                     hoaDon.TongTienTruocGiam = model.TongTienTruocGiam;
                     hoaDon.TongTienSauGiam = model.TongTienTruocGiam - giamGia + (model.PhuThu ?? 0);
-                    hoaDon.TrangThai = 1; // Đã thanh toán
+                    hoaDon.TrangThai = 4; // Đã thanh toán
                     hoaDon.NgayCapNhat = DateTime.Now;
                     hoaDon.PhuongThucNhanHang = phuongThucNhanHang;
                     hoaDon.ID_NhanVien = idNhanVien; // Gán nhân viên thanh toán
@@ -653,7 +653,7 @@ namespace DoAn.Controllers
                         ID_Voucher = voucher?.ID_Voucher,
                         LoaiHoaDon = "Offline",
                         NgayTao = DateTime.Now,
-                        TrangThai = 1,
+                        TrangThai = 4,
                         ID_NhanVien = idNhanVien,
                     };
 

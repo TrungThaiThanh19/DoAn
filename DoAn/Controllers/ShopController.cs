@@ -27,13 +27,25 @@ namespace DoAn.Controllers
                         .ThenInclude(ctkm => ctkm.KhuyenMai)
                 .AsQueryable();
 
+            // ======= Tìm kiếm =======
             if (!string.IsNullOrWhiteSpace(search))
-                query = query.Where(sp => sp.Ten_SanPham.Contains(search));
+            {
+                string kw = search.ToLower();
+                query = query.Where(sp =>
+                    sp.Ten_SanPham.ToLower().Contains(kw) ||
+                    sp.ThuongHieu.Ten_ThuongHieu.ToLower().Contains(kw)
+                );
+            }
+
+            // ======= Lọc theo thương hiệu =======
             if (thuongHieuId.HasValue)
                 query = query.Where(sp => sp.ID_ThuongHieu == thuongHieuId);
+
+            // ======= Lọc theo giới tính =======
             if (gioiTinhId.HasValue)
                 query = query.Where(sp => sp.ID_GioiTinh == gioiTinhId);
 
+            // ======= Sắp xếp =======
             query = query
                 .OrderByDescending(sp => sp.SanPhamChiTiets.Any(ct => ct.SoLuong > 0))
                 .ThenByDescending(sp => sp.NgayTao);
@@ -41,11 +53,13 @@ namespace DoAn.Controllers
             var total = await query.CountAsync();
             var items = await query.Skip((page - 1) * PageSize).Take(PageSize).ToListAsync();
 
+            // ======= Dropdown filter =======
             ViewBag.ThuongHieuList = new SelectList(await _context.ThuongHieus.AsNoTracking().ToListAsync(),
                 "ID_ThuongHieu", "Ten_ThuongHieu", thuongHieuId);
             ViewBag.GioiTinhList = new SelectList(await _context.GioiTinhs.AsNoTracking().ToListAsync(),
                 "ID_GioiTinh", "Ten_GioiTinh", gioiTinhId);
 
+            // ======= ViewBag giữ lại giá trị tìm kiếm =======
             ViewBag.Search = search;
             ViewBag.ThuongHieuId = thuongHieuId;
             ViewBag.GioiTinhId = gioiTinhId;

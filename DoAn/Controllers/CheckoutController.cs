@@ -62,8 +62,6 @@ namespace DoAn.Controllers
                 return 15000;
             return 20000; // mặc định
         }
-
-        // ===== B1: CHỌN ĐỊA CHỈ =====
         public async Task<IActionResult> Address(string? lines)
         {
             var khId = await GetKhachHangIdAsync();
@@ -84,6 +82,8 @@ namespace DoAn.Controllers
                     Quan_Huyen = a.Quan_Huyen,
                     Tinh_ThanhPho = a.Tinh_ThanhPho,
                     DiaChiMacDinh = a.DiaChiMacDinh,
+
+                    // fallback: nếu chưa nhập thì dùng tên/sđt KH
                     HoTen = string.IsNullOrWhiteSpace(a.HoTen) ? kh.Ten_KhachHang : a.HoTen,
                     SoDienThoai = string.IsNullOrWhiteSpace(a.SoDienThoai) ? kh.SoDienThoai : a.SoDienThoai
                 }).ToList(),
@@ -107,6 +107,36 @@ namespace DoAn.Controllers
             var khId = await GetKhachHangIdAsync();
             var kh = await _db.KhachHangs.FirstAsync(x => x.ID_KhachHang == khId);
 
+            // Nếu có lỗi validation → quay lại view
+            if (!ModelState.IsValid)
+            {
+                var list = await _db.DiaChiKhachHangs
+                    .Where(x => x.ID_KhachHang == khId)
+                    .OrderByDescending(x => x.DiaChiMacDinh)
+                    .ToListAsync();
+
+                var vm = new CheckoutAddressVM
+                {
+                    Addresses = list.Select(a => new CheckoutAddressVM.AddressVM
+                    {
+                        ID_DiaChiKhachHang = a.ID_DiaChiKhachHang,
+                        SoNha = a.SoNha,
+                        Xa_Phuong = a.Xa_Phuong,
+                        Quan_Huyen = a.Quan_Huyen,
+                        Tinh_ThanhPho = a.Tinh_ThanhPho,
+                        DiaChiMacDinh = a.DiaChiMacDinh,
+                        HoTen = string.IsNullOrWhiteSpace(a.HoTen) ? kh.Ten_KhachHang : a.HoTen,
+                        SoDienThoai = string.IsNullOrWhiteSpace(a.SoDienThoai) ? kh.SoDienThoai : a.SoDienThoai
+                    }).ToList(),
+                    SelectedAddressId = list.FirstOrDefault(x => x.DiaChiMacDinh)?.ID_DiaChiKhachHang
+                                        ?? list.FirstOrDefault()?.ID_DiaChiKhachHang
+                };
+
+                ViewBag.Lines = lines;
+                return View("Address", vm);
+            }
+
+            // Gán ID và FK
             model.ID_DiaChiKhachHang = Guid.NewGuid();
             model.ID_KhachHang = khId;
 

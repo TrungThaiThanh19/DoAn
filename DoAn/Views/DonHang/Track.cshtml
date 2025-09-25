@@ -1,4 +1,4 @@
-﻿﻿@model DoAn.Models.HoaDon
+﻿@model DoAn.Models.HoaDon
 @using System
 
 @{
@@ -6,6 +6,7 @@
 
     bool isCanceled = Model.TrangThai == 5;
     bool isReturnDone = Model.TrangThai == 7;
+    bool isDeliveryFailed = Model.TrangThai == 10;   // 👈 thêm
 
     var cancelLog = Model.TrangThaiDonHangs?
         .Where(x => x.TrangThai == 5)
@@ -14,6 +15,11 @@
 
     var returnDoneLog = Model.TrangThaiDonHangs?
         .Where(x => x.TrangThai == 7)
+        .OrderByDescending(x => x.NgayChuyen)
+        .FirstOrDefault();
+
+    var deliveryFailLog = Model.TrangThaiDonHangs?   // 👈 thêm
+        .Where(x => x.TrangThai == 10)
         .OrderByDescending(x => x.NgayChuyen)
         .FirstOrDefault();
 
@@ -172,7 +178,26 @@
     </div>
 }
 
-@if (!(isCanceled || isReturnDone))
+@if (isDeliveryFailed && deliveryFailLog != null)   // 👈 thêm block hiển thị
+{
+    <div class="alert alert-warning d-flex align-items-start">
+        <i class="fa fa-truck-ramp-box me-2 mt-1"></i>
+        <div>
+            <div><strong>Giao hàng không thành công</strong>.</div>
+            <div class="text-muted">Thời gian: @deliveryFailLog.NgayChuyen.ToString("dd/MM/yyyy HH:mm")</div>
+            @if (!string.IsNullOrWhiteSpace(deliveryFailLog.NoiDungDoi))
+            {
+                <div><span class="text-muted">Lý do:</span> @deliveryFailLog.NoiDungDoi</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(deliveryFailLog.NhanVienDoi))
+            {
+                <div><span class="text-muted">Người xác nhận:</span> @deliveryFailLog.NhanVienDoi</div>
+            }
+        </div>
+    </div>
+}
+
+@if (!(isCanceled || isReturnDone || isDeliveryFailed))
 {
     <div class="order-head mb-4">
         <div class="stepper">

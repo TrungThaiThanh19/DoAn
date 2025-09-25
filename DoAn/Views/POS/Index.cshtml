@@ -39,23 +39,54 @@
 
     <div class="col-md-12">
         <div class="card shadow-sm rounded-4">
-            <div class="card-header bg-success text-white fw-bold">🧾 Hóa đơn</div>
-            <div class="card-body p-2">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover text-center align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Tên sản phẩm</th>
-                                <th>Thể tích</th>
-                                <th>Đơn giá</th>
-                                <th>Số lượng</th>
-                                <th>Thành tiền</th>
-                                <th>Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody id="danhSachHoaDon">
-                        </tbody>
-                    </table>
+            <div class="card-header bg-info text-white fw-bold">📋 Thông tin khách hàng</div>
+            <div class="card-body row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Tên khách hàng</label>
+                    <input class="form-control" name="tenKhachHang" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Số điện thoại</label>
+                    <input class="form-control" name="sdt" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input class="form-control" name="email" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Địa chỉ</label>
+                    <input class="form-control" name="diaChi" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Phương thức thanh toán</label>
+                    <select class="form-select" name="phuongThucThanhToan">
+                        <option value="">-- Chọn --</option>
+                        <option>Tiền mặt</option>
+                        <option>Chuyển khoản</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Phương thức nhận hàng</label>
+                    <select class="form-select" name="phuongThucNhanFake" disabled>
+                        <option>Nhận tại quầy</option>
+                    </select>
+                    <input type="hidden" name="phuongThucNhan" value="Nhận tại quầy" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Mã giảm giá</label>
+                    <div class="d-flex gap-2">
+                        <input class="form-control" style="flex: 3;" name="maGiamGia" id="maGiamGia" />
+                        <button class="btn btn-outline-primary" type="button" style="flex: 1;" onclick="apDungMaGiamGia()">Áp dụng</button>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Phụ thu</label>
+                    <input class="form-control" name="phuThu" id="phuThuInput" />
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">Ghi chú</label>
+                    <textarea class="form-control" rows="2" name="ghiChu"></textarea>
                 </div>
             </div>
         </div>
@@ -128,56 +159,26 @@
         </div>
     </div>
 
+
     <div class="col-md-12">
         <div class="card shadow-sm rounded-4">
-            <div class="card-header bg-info text-white fw-bold">📋 Thông tin khách hàng</div>
-            <div class="card-body row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">Tên khách hàng</label>
-                    <input class="form-control" name="tenKhachHang" />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Số điện thoại</label>
-                    <input class="form-control" name="sdt" />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Email</label>
-                    <input class="form-control" name="email" />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Địa chỉ</label>
-                    <input class="form-control" name="diaChi" />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Phương thức thanh toán</label>
-                    <select class="form-select" name="phuongThucThanhToan">
-                        <option value="">-- Chọn --</option>
-                        <option>Tiền mặt</option>
-                        <option>Chuyển khoản</option>
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Phương thức nhận hàng</label>
-                    <select class="form-select" name="phuongThucNhanFake" disabled>
-                        <option>Nhận tại quầy</option>
-                    </select>
-                    <input type="hidden" name="phuongThucNhan" value="Nhận tại quầy" />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Mã giảm giá</label>
-                    <div class="d-flex gap-2">
-                        <input class="form-control" style="flex: 3;" name="maGiamGia" id="maGiamGia" />
-                        <button class="btn btn-outline-primary" type="button" style="flex: 1;" onclick="apDungMaGiamGia()">Áp dụng</button>
-                    </div>
-                </div>
-
-                <div class="col-md-6">
-                    <label class="form-label">Phụ thu</label>
-                    <input class="form-control" name="phuThu" id="phuThuInput" />
-                </div>
-                <div class="col-md-12">
-                    <label class="form-label">Ghi chú</label>
-                    <textarea class="form-control" rows="2" name="ghiChu"></textarea>
+            <div class="card-header bg-success text-white fw-bold">🧾 Hóa đơn</div>
+            <div class="card-body p-2">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover text-center align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tên sản phẩm</th>
+                                <th>Thể tích</th>
+                                <th>Đơn giá</th>
+                                <th>Số lượng</th>
+                                <th>Thành tiền</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="danhSachHoaDon">
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

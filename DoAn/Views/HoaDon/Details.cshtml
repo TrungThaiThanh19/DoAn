@@ -147,6 +147,39 @@
         font-weight: 700;
         display: inline-block
     }
+
+    #failDeliveryModal .modal-content {
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
+    #failDeliveryModal .modal-header h5 {
+        font-size: 18px;
+        font-weight: 600;
+        text-transform: none; /* bỏ viết HOA */
+        letter-spacing: normal; /* bỏ giãn chữ */
+        margin: 0;
+    }
+
+    #failDeliveryModal .modal-header .alert {
+        background-color: #fff3cd; /* vàng nhạt */
+        color: #856404;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+    }
+
+    #failDeliveryModal .modal-body label {
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    #failDeliveryModal .modal-body textarea {
+        font-size: 14px;
+    }
+
+    #failDeliveryModal .modal-footer button {
+        font-size: 14px;
+    }
 </style>
 
 <div class="container py-3">
@@ -565,7 +598,10 @@
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="idHoaDon" value="@Model.ID_HoaDon" />
                     <div class="modal-header">
-                        <h5 class="alert alert-warning mb-4"><i class="fa fa-truck-fast me-2">Giao hàng không thành công</h5>
+                        <h5 class="alert alert-warning mb-0">
+                            <i class="fa fa-truck-fast me-2"></i>
+                            Giao hàng không thành công
+                        </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -585,7 +621,10 @@
             </div>
         </div>
     </div>
+
+
 }
+
 
 @* Modal HỦY ĐƠN (0 hoặc 1) *@
 @if (Model.TrangThai == 0 || Model.TrangThai == 1)

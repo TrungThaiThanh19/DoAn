@@ -343,9 +343,11 @@
                 <img src="~/img/z7002361398537_7bd4b0666545b71eb43c49a2bf5e87ce.jpg" alt="Logo" />
                 <span>ShopPerfume</span>
             </a>
-            <form asp-controller="Shop" asp-action="Index" method="get" class="flex-grow-1 shp-search">
-                <input name="search" class="form-control" placeholder="Tìm kiếm sản phẩm..." value="@ViewBag.Search" />
-                <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+            <form asp-controller="Shop" asp-action="Index" method="get" class="flex-grow-1 shp-search d-flex gap-2">
+                <input name="search" class="form-control" placeholder="Nhập tên hoặc thương hiệu sản phẩm..." value="@ViewBag.Search" />
+                <button type="submit" class="btn btn-light px-4 rounded-pill">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
             </form>
             <div class="shp-icons d-flex align-items-center">
                 <a href="/GioHang/Index" class="position-relative" title="Giỏ hàng">

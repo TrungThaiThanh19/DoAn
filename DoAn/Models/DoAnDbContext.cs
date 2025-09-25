@@ -157,6 +157,10 @@ namespace DoAn.Models
                 .HasIndex(g => g.ID_KhachHang)
                 .IsUnique();
 
+            modelBuilder.Entity<Voucher>()
+    .Property(v => v.GiaTriToiThieu)
+    .HasPrecision(18, 2);
+
             // ======================= SEED DATA ========================
             var khachhangRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000001");
             var nhanvienRoleId = Guid.Parse("A0000000-0000-0000-0000-000000000002");
@@ -178,25 +182,6 @@ namespace DoAn.Models
                     Uername = "admin",
                     Password = "admin", // ⚠ Bạn nên mã hóa trong thực tế
                     ID_Roles = adminRoleId,
-                }
-            );
-
-            // Nhân viên cho admin (liên kết với tài khoản trên)
-            var adminNhanVienId = Guid.Parse("C0000000-0000-0000-0000-000000000001");
-
-            modelBuilder.Entity<NhanVien>().HasData(
-                new NhanVien
-                {
-                    ID_NhanVien = adminNhanVienId,
-                    ID_TaiKhoan = adminAccountId,
-                    Ten_NhanVien = "Admin",
-                    NgaySinh = new DateTime(1990, 1, 1),
-                    SoDienThoai = "0345667892",
-                    DiaChiLienHe = "Hệ thống",
-                     Email = "admin@gamil.com",
-                     GioiTinh = "Khác",
-                    Ma_NhanVien = "NV001",
-                    TrangThai = 1
                 }
             );
 

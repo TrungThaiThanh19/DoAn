@@ -40,7 +40,20 @@
                 <td>@i.Ma_KhuyenMai</td>
                 <td>@i.Ten_KhuyenMai</td>
                 <td>@i.KieuGiamGia</td>
-                <td>@i.GiaTriGiam</td>
+                <td>
+                    @if (string.Equals(i.KieuGiamGia, "percent", StringComparison.OrdinalIgnoreCase))
+                    {
+                        @($"{i.GiaTriGiam:N0}%")
+                    }
+                    else if (string.Equals(i.KieuGiamGia, "fixed", StringComparison.OrdinalIgnoreCase))
+                    {
+                        @($"{i.GiaTriGiam:N0} VND")
+                    }
+                    else
+                    {
+                        @i.GiaTriGiam
+                    }
+                </td>
                 <td>@(i.GiaTriToiDa == 0 ? "-" : Currency(i.GiaTriToiDa))</td>
                 <td>@i.NgayBatDau:g</td>
                 <td>@i.NgayHetHan:g</td>
@@ -64,10 +77,7 @@
                     <form asp-action="Toggle" asp-route-id="@i.ID_KhuyenMai" method="post" class="d-inline">
                         <button class="btn btn-sm btn-outline-dark">@((i.TrangThai == 1) ? "Tắt" : "Bật")</button>
                     </form>
-                    <form asp-action="Delete" asp-route-id="@i.ID_KhuyenMai" method="post" class="d-inline"
-                          onsubmit="return confirm('Xóa khuyến mãi này?')">
-                        <button class="btn btn-sm btn-outline-danger">Xóa</button>
-                    </form>
+                    <a asp-action="Details" asp-route-id="@i.ID_KhuyenMai" class="btn btn-sm btn-info">Chi tiết</a>
                 </td>
             </tr>
         }

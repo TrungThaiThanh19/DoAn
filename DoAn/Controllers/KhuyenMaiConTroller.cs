@@ -172,7 +172,6 @@ namespace DoAn.Controllers
         {
             await ValidateFormAsync(m);
 
-            // Điều kiện tối thiểu giống Create
             if (m.ThuongHieuId.HasValue)
             {
                 ModelState.Remove(nameof(m.SanPhamChiTietIds));
@@ -193,8 +192,9 @@ namespace DoAn.Controllers
             var exist = await _kmService.GetByIdAsync(m.ID_KhuyenMai!.Value);
             if (exist == null) return NotFound();
 
-            // cập nhật entity
-            exist.Ma_KhuyenMai = m.Ma_KhuyenMai.Trim();
+            // ⚡ Không cho đổi mã
+            // exist.Ma_KhuyenMai giữ nguyên
+
             exist.Ten_KhuyenMai = m.Ten_KhuyenMai;
             exist.KieuGiamGia = m.KieuGiamGia;
             exist.GiaTriGiam = m.GiaTriGiam;
@@ -204,7 +204,6 @@ namespace DoAn.Controllers
             exist.NgayHetHan = m.NgayHetHan;
             exist.TrangThai = m.TrangThai;
 
-            // Xác định lại phạm vi SPCT
             HashSet<Guid> targetIds = m.ThuongHieuId.HasValue
                 ? await GetSpctIdsByBrandAsync(m.ThuongHieuId.Value)
                 : new HashSet<Guid>(m.SanPhamChiTietIds ?? Enumerable.Empty<Guid>());
@@ -214,6 +213,7 @@ namespace DoAn.Controllers
             TempData["Success"] = "Cập nhật khuyến mãi thành công.";
             return RedirectToAction(nameof(Index));
         }
+
 
         // ======= AJAX API: Lọc SPCT theo thương hiệu (dùng cho View để load SPCT động) =======
         [HttpGet]
@@ -250,15 +250,38 @@ namespace DoAn.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // ===== DELETE =====
-        // Xóa khuyến mãi
-        [HttpPost]
-        public async Task<IActionResult> Delete(Guid id)
+       // ===== DETAILS =====
+// Xem chi tiết khuyến mãi
+        public async Task<IActionResult> Details(Guid id)
         {
-            await _kmService.DeleteAsync(id);
-            TempData["Success"] = "Đã xóa khuyến mãi.";
-            return RedirectToAction(nameof(Index));
+            var km = await _kmService.GetByIdAsync(id);
+            if (km == null) return NotFound();
+
+            var vm = new KhuyenMaiFormVM
+            {
+                ID_KhuyenMai = km.ID_KhuyenMai,
+                Ma_KhuyenMai = km.Ma_KhuyenMai,
+                Ten_KhuyenMai = km.Ten_KhuyenMai,
+                KieuGiamGia = km.KieuGiamGia,
+                GiaTriGiam = km.GiaTriGiam,
+                GiaTriToiDa = km.GiaTriToiDa,
+                MoTa = km.MoTa,
+                NgayBatDau = km.NgayBatDau,
+                NgayHetHan = km.NgayHetHan,
+                TrangThai = km.TrangThai,
+                SanPhamChiTietIds = km.ChiTietKhuyenMais?
+                    .Select(c => c.ID_SanPhamChiTiet)
+                    .ToList() ?? new(),
+                ThuongHieuId = km.ChiTietKhuyenMais?
+                    .Select(c => c.SanPhamChiTiet.SanPham.ID_ThuongHieu)
+                    .FirstOrDefault()
+            };
+
+            await LoadSPCTListAsync(vm.SanPhamChiTietIds);
+            await LoadBrandListAsync(vm.ThuongHieuId);
+            return View(vm);
         }
+
 
         // ================= Helpers =================
 

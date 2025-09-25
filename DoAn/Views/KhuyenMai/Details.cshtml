@@ -1,0 +1,58 @@
+﻿@model DoAn.ViewModels.KhuyenMaiVM.KhuyenMaiFormVM
+@{
+    ViewData["Title"] = "Chi tiết khuyến mãi";
+    string Currency(decimal v) => string.Format("{0:N0} đ", v);
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2 class="mb-3">Chi tiết khuyến mãi</h2>
+
+<div class="card">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Mã khuyến mãi</dt>
+            <dd class="col-sm-9">@Model.Ma_KhuyenMai</dd>
+
+            <dt class="col-sm-3">Tên khuyến mãi</dt>
+            <dd class="col-sm-9">@Model.Ten_KhuyenMai</dd>
+
+            <dt class="col-sm-3">Kiểu giảm giá</dt>
+            <dd class="col-sm-9">@Model.KieuGiamGia</dd>
+
+            <dt class="col-sm-3">Giá trị giảm</dt>
+            <dd class="col-sm-9">
+                @if (string.Equals(Model.KieuGiamGia, "percent", StringComparison.OrdinalIgnoreCase))
+                {
+                    @($"{Model.GiaTriGiam:N0}%")
+                }
+                else if (string.Equals(Model.KieuGiamGia, "fixed", StringComparison.OrdinalIgnoreCase))
+                {
+                    @($"{Model.GiaTriGiam:N0} VND")
+                }
+                else
+                {
+                    @Model.GiaTriGiam
+                }
+            </dd>
+
+            
+
+            <dt class="col-sm-3">Ngày bắt đầu</dt>
+            <dd class="col-sm-9">@Model.NgayBatDau:g</dd>
+
+            <dt class="col-sm-3">Ngày hết hạn</dt>
+            <dd class="col-sm-9">@Model.NgayHetHan:g</dd>
+
+            <dt class="col-sm-3">Trạng thái</dt>
+            <dd class="col-sm-9">@((Model.TrangThai == 1) ? "Bật" : "Tắt")</dd>
+
+            <dt class="col-sm-3">Mô tả</dt>
+            <dd class="col-sm-9">@Model.MoTa</dd>
+        </dl>
+
+        <div class="mt-3">
+            <a asp-action="Index" class="btn btn-secondary">← Quay lại</a>
+            <a asp-action="Edit" asp-route-id="@Model.ID_KhuyenMai" class="btn btn-primary">Sửa</a>
+        </div>
+    </div>
+</div>

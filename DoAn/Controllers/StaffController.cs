@@ -28,8 +28,10 @@ namespace DoAn.Controllers
             new { Value = "0", Text = "Không hoạt động" }
             }, "Value", "Text");
 
-            var query = _context.NhanViens.AsQueryable();
-
+            var adminAccountId = Guid.Parse("B0000000-0000-0000-0000-000000000001");
+            var query = _context.NhanViens
+                .Where(nv => nv.ID_TaiKhoan != adminAccountId) // Lọc admin account ra
+                .AsQueryable();
             // Kiểm tra nếu từ khóa tìm kiếm không rỗng
             if (!string.IsNullOrWhiteSpace(keyword))
             {
@@ -76,7 +78,9 @@ namespace DoAn.Controllers
         [HttpGet]
         public async Task<IActionResult> Details(Guid id)
         {
-            var nhanVien = await _context.NhanViens.FirstOrDefaultAsync(nv => nv.ID_NhanVien == id);
+            var nhanVien = await _context.NhanViens
+                .Include(nv => nv.TaiKhoan)
+                .FirstOrDefaultAsync(nv => nv.ID_NhanVien == id);
             if (nhanVien == null)
             {
                 return NotFound();
@@ -120,6 +124,20 @@ namespace DoAn.Controllers
                 ModelState.AddModelError("Ngay_Sinh", "Ngày sinh không được để trống");
             else if (ngaySinh >= DateTime.Now.Date)
                 ModelState.AddModelError("Ngay_Sinh", "Ngày sinh phải nhỏ hơn ngày hiện tại");
+            else
+            {
+                var today = DateTime.Today; // Lấy ngày tháng năm hiện tại
+                int age = today.Year - ngaySinh.Year; // Tính chênh lệch năm hiện tại và năm sinh
+
+                if (ngaySinh.Date > today.AddYears(-age)) // Nếu chưa đến sinh nhật trong năm nay, giảm tuổi đi 1
+                    age--;
+
+                if (age < 18)
+                {
+                    ModelState.AddModelError("Ngay_Sinh", "Nhân viên phải đủ 18 tuổi");
+                }
+            }
+
 
             if (string.IsNullOrWhiteSpace(email))
                 ModelState.AddModelError("Email", "Email không được để trống");

@@ -22,9 +22,11 @@ namespace DoAn.Service
         }
 
         public async Task<KhuyenMai?> GetByIdAsync(Guid id) =>
-            await _db.KhuyenMais
-                .Include(k => k.ChiTietKhuyenMais)
-                .FirstOrDefaultAsync(k => k.ID_KhuyenMai == id);
+           await _db.KhuyenMais
+        .Include(k => k.ChiTietKhuyenMais)
+            .ThenInclude(ct => ct.SanPhamChiTiet)
+                .ThenInclude(spct => spct.SanPham)
+        .FirstOrDefaultAsync(k => k.ID_KhuyenMai == id);
 
         public async Task AddAsync(KhuyenMai km, IEnumerable<Guid> spctIds)
         {
