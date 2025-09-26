@@ -108,21 +108,27 @@ namespace DoAn.Service
             var km = await _db.KhuyenMais.FindAsync(id);
             if (km == null) return;
             km.TrangThai = km.TrangThai == 1 ? 0 : 1;
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync();    
         }
 
+        // ✅ Đổi tên cho đúng interface
         public (decimal finalPrice, KhuyenMai? applied, decimal discount) ApplyBestDiscount(SanPhamChiTiet spct)
         {
             var now = DateTime.UtcNow.AddHours(7);
-            decimal best = spct.GiaBan;
-            KhuyenMai? bestKm = null;
-            decimal bestDiscount = 0;
 
-            foreach (var ctkm in spct.ChiTietKhuyenMais.Where(c => c.KhuyenMai != null))
+            // ✅ Ưu tiên KM có ngày bắt đầu sớm nhất
+            // Nếu cùng ngày thì so sánh đến tận phút giây (DateTime đã có sẵn)
+            // Cuối cùng fallback theo ID để ổn định
+            var orderedKm = spct.ChiTietKhuyenMais
+    .Where(c => c.KhuyenMai != null)
+    .Select(c => c.KhuyenMai)
+    .Where(km => km.TrangThai == 1 && now >= km.NgayBatDau && now <= km.NgayHetHan)
+    .OrderBy(km => km.NgayBatDau)   // Ưu tiên ngày bắt đầu sớm
+    .ThenBy(km => km.ID_KhuyenMai)  // Nếu cùng ngày/giờ thì ưu tiên cái tạo trước
+    .ToList();
+
+            foreach (var km in orderedKm)
             {
-                var km = ctkm.KhuyenMai;
-                if (km.TrangThai != 1 || now < km.NgayBatDau || now > km.NgayHetHan) continue;
-
                 decimal discount = 0;
                 if (km.KieuGiamGia == "percent")
                 {
@@ -136,16 +142,13 @@ namespace DoAn.Service
                 }
 
                 var final = spct.GiaBan - discount;
-                if (final < best)
-                {
-                    best = final;
-                    bestKm = km;
-                    bestDiscount = discount;
-                }
+                return (final, km, discount); // ✅ lấy KM đầu tiên hợp lệ
             }
 
-            return (best, bestKm, bestDiscount);
+            // Không có khuyến mãi
+            return (spct.GiaBan, null, 0);
         }
+
         private async Task<string> GenerateMaKhuyenMaiAsync()
         {
             var lastCode = await _db.KhuyenMais

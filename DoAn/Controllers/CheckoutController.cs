@@ -230,12 +230,13 @@ namespace DoAn.Controllers
                 var lineSubtotal = item.SoLuong * item.DonGia;
                 decimal lineTotalAfterDiscount = lineSubtotal;
 
-                // Tìm khuyến mãi còn hiệu lực
+                // Tìm khuyến mãi còn hiệu lực và chọn khuyến mãi tạo sớm nhất theo mã
                 var km = spct.ChiTietKhuyenMais
                     .Where(ctkm => ctkm.KhuyenMai.NgayBatDau <= DateTime.Now
                                 && ctkm.KhuyenMai.NgayHetHan >= DateTime.Now
                                 && ctkm.KhuyenMai.TrangThai == 1)
                     .Select(ctkm => ctkm.KhuyenMai)
+                    .OrderBy(k => k.Ma_KhuyenMai)
                     .FirstOrDefault();
 
                 if (km != null)

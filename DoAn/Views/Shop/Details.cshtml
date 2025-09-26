@@ -266,29 +266,31 @@
 
                                 if (ct.ChiTietKhuyenMais != null)
                                 {
-                                    foreach (var ctkm in ct.ChiTietKhuyenMais)
-                                    {
-                                        var km = ctkm.KhuyenMai; if (km == null) continue;
-                                        if (km.TrangThai != 1 || now < km.NgayBatDau || now > km.NgayHetHan) continue;
+                                    var chosenKm = ct.ChiTietKhuyenMais
+                                        .Select(x => x.KhuyenMai)
+                                        .Where(km => km != null && km.TrangThai == 1 && now >= km.NgayBatDau && now <= km.NgayHetHan)
+                                        .OrderBy(km => km!.Ma_KhuyenMai)
+                                        .FirstOrDefault();
 
+                                    if (chosenKm != null)
+                                    {
                                         decimal discount = 0M;
-                                        var kieu = (km.KieuGiamGia ?? "").Trim().ToLowerInvariant();
+                                        var kieu = (chosenKm.KieuGiamGia ?? "").Trim().ToLowerInvariant();
                                         if (kieu == "percent")
                                         {
-                                            var pct = Math.Clamp(km.GiaTriGiam, 0, 100);
+                                            var pct = Math.Clamp(chosenKm.GiaTriGiam, 0, 100);
                                             discount = giaGoc * (pct / 100m);
-                                            if (km.GiaTriToiDa > 0 && discount > km.GiaTriToiDa) discount = km.GiaTriToiDa;
+                                            if (chosenKm.GiaTriToiDa > 0 && discount > chosenKm.GiaTriToiDa) discount = chosenKm.GiaTriToiDa;
                                         }
                                         else if (kieu == "fixed")
                                         {
-                                            discount = Math.Min(giaGoc, Math.Max(0, km.GiaTriGiam));
+                                            discount = Math.Min(giaGoc, Math.Max(0, chosenKm.GiaTriGiam));
                                         }
-                                        var price = Math.Max(0, giaGoc - discount);
-                                        if (price < giaHienThi) giaHienThi = price;
-                                    }
-                                    if (giaHienThi < giaGoc)
-                                    {
-                                        giamPhanTram = (int)Math.Clamp(Math.Round((1 - (giaHienThi / giaGoc)) * 100M), 0, 100);
+                                        giaHienThi = Math.Max(0, giaGoc - discount);
+                                        if (giaHienThi < giaGoc)
+                                        {
+                                            giamPhanTram = (int)Math.Clamp(Math.Round((1 - (giaHienThi / giaGoc)) * 100M), 0, 100);
+                                        }
                                     }
                                 }
 

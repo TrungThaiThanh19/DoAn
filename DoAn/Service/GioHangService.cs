@@ -59,32 +59,35 @@ namespace DoAn.Service
 
                 if (validKM != null && validKM.Any())
                 {
-                    foreach (var kmct in validKM)
+                    // Chọn khuyến mãi tạo sớm nhất theo mã (KM001 < KM010 < KM100)
+                    var chosen = validKM
+                        .OrderBy(ct => ct.KhuyenMai!.Ma_KhuyenMai)
+                        .Select(ct => ct.KhuyenMai!)
+                        .FirstOrDefault();
+
+                    if (chosen != null)
                     {
-                        var km = kmct.KhuyenMai!;
                         decimal discount = 0;
-                        var kieu = (km.KieuGiamGia ?? "").Trim().ToLowerInvariant();
+                        var kieu = (chosen.KieuGiamGia ?? "").Trim().ToLowerInvariant();
 
                         if (kieu == "percent")
                         {
-                            var pct = Math.Clamp(km.GiaTriGiam, 0, 100);
+                            var pct = Math.Clamp(chosen.GiaTriGiam, 0, 100);
                             discount = giaGoc * (pct / 100m);
-                            if (km.GiaTriToiDa > 0 && discount > km.GiaTriToiDa) discount = km.GiaTriToiDa;
+                            if (chosen.GiaTriToiDa > 0 && discount > chosen.GiaTriToiDa) discount = chosen.GiaTriToiDa;
                         }
                         else if (kieu == "fixed")
                         {
-                            discount = Math.Min(giaGoc, Math.Max(0, km.GiaTriGiam));
+                            discount = Math.Min(giaGoc, Math.Max(0, chosen.GiaTriGiam));
                         }
 
-                        var price = Math.Max(0, giaGoc - discount);
-                        if (price < giaHienThi) giaHienThi = price;
-                    }
-
-                    if (giaHienThi < giaGoc)
-                    {
-                        giamPhanTram = (int)Math.Clamp(
-                            Math.Round((1 - (giaHienThi / giaGoc)) * 100M),
-                            0, 100);
+                        giaHienThi = Math.Max(0, giaGoc - discount);
+                        if (giaHienThi < giaGoc)
+                        {
+                            giamPhanTram = (int)Math.Clamp(
+                                Math.Round((1 - (giaHienThi / giaGoc)) * 100M),
+                                0, 100);
+                        }
                     }
                 }
 
