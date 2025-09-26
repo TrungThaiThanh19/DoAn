@@ -207,7 +207,7 @@ namespace DoAn.Controllers
 			}
 			else if (!int.TryParse(thoiGianLuuHuong, out thoiGianLuuHuongParse))
 			{
-				ModelState.AddModelError("ThoiGianLuuHuong", "Thời gian lưu hương phải là số nguyên");
+				ModelState.AddModelError("ThoiGianLuuHuong", "Thời gian lưu hương phải là số nguyên dương");
 			}
 			else if (thoiGianLuuHuongParse < 1)
 			{
@@ -532,7 +532,6 @@ namespace DoAn.Controllers
 		{
 			int thoiGianLuuHuongParse = 0, soLuongParse = 0;
 			decimal giaNhapParse = 0, giaBanParse = 0;
-			//ClearModelErrors("TenSanPham", "MaSanPham", "MoTa", "ThoiGianLuuHuong", "SoLuong", "HuongDau", "HuongGiua", "HuongCuoi", "GiaBan", "GiaNhap", "HinhAnh");
 			ModelState.Clear();
 			string maSanPham = await GenerateMaSanPham();
 			string maBienThe = await GenerateMaSanPhamChiTiet();
@@ -545,7 +544,7 @@ namespace DoAn.Controllers
 			// Chuyển đổi giá trị từ form sang int, nếu không chuyển được thì báo lỗi
 			else if (!int.TryParse(thoiGianLuuHuong, out thoiGianLuuHuongParse))
 			{
-				ModelState.AddModelError("ThoiGianLuuHuong", "Thời gian lưu hương phải là số nguyên");
+				ModelState.AddModelError("ThoiGianLuuHuong", "Thời gian lưu hương phải là số nguyên dương");
 			}
 			else if (thoiGianLuuHuongParse < 1)
 			{
@@ -676,8 +675,6 @@ namespace DoAn.Controllers
 			// Nếu đã tồn tại, kiểm tra các thông tin chung, nếu khác thì báo lỗi
 			if (sanPham != null)
 			{
-				if (sanPham.Ma_SanPham != maSanPham)
-					ModelState.AddModelError("MaSanPham", $"Sản phẩm đã tồn tại với mã khác: {sanPham.Ma_SanPham}");
 				if (sanPham.ID_ThuongHieu != idThuongHieu)
 					ModelState.AddModelError("ID_ThuongHieu", $"Sản phẩm đã tồn tại với thông tin thương hiệu khác:{sanPham.ThuongHieu.Ten_ThuongHieu}");
 
