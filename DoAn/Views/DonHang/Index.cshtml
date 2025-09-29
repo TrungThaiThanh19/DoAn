@@ -34,6 +34,69 @@
         _ => "badge bg-dark"
     };
 }
+<style>
+    :root {
+        --brand: #ee4d2d;
+        --ink: #1f2937;
+        --line: #e5e7eb;
+    }
+
+    .page-head {
+        background: linear-gradient(180deg,#ff7043,#ff5a3c 45%,#ff4d2e);
+        color: #fff;
+    }
+
+    .wrap {
+        max-width: 980px;
+        margin: 16px auto 40px;
+    }
+
+    .badge-def {
+        display: inline-block;
+        background: #f1f5f9;
+        color: #0f172a;
+        border-radius: 6px;
+        padding: 2px 8px;
+        margin-left: 6px;
+        font-weight: 700
+    }
+
+    .addr-card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px;
+        transition: box-shadow .2s
+    }
+
+        .addr-card:hover {
+            box-shadow: 0 10px 24px rgba(0,0,0,.06)
+        }
+
+    .btn-brand {
+        background: linear-gradient(135deg,#ff6a3d,var(--brand));
+        color: #fff;
+        border: 0;
+        font-weight: 800
+    }
+
+    .section-title {
+        font-weight: 900;
+        color: #111827;
+        margin: 8px 0 12px
+    }
+
+    .smallmuted {
+        color: #64748b;
+        font-size: .95rem
+    }
+</style>
+
+<header class="page-head">
+    <div class="container py-3 d-flex align-items-center gap-3">
+        <a href="~/img/z7002361398537_7bd4b0666545b71eb43c49a2bf5e87ce.jpg" class="text-white text-decoration-none fw-bold fs-4"><i class="fa-solid fa-bag-shopping me-2"></i>ShopPerfume</a>
+        <div class="ms-auto"><a href="/GioHang/Index" class="text-white text-decoration-none"><i class="fa-solid fa-cart-shopping me-1"></i>Giỏ hàng</a></div>
+    </div>
+</header>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
 

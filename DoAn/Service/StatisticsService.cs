@@ -109,6 +109,7 @@ namespace DoAn.Service
                 {
                     ID_SanPhamChiTiet = g.Key,
                     TenSanPham = g.First().Sp.Ten_SanPham,
+                    MaSanPham = g.First().Sp.Ma_SanPham,
                     TheTich = $"{g.First().TheTichGiaTri:0.##} {g.First().TheTichDonVi}",
                     SoLuong = g.Sum(x => x.Ct.SoLuong),
                     DoanhThu = g.Sum(x => x.DoanhThuDong)
@@ -141,23 +142,7 @@ namespace DoAn.Service
                 .OrderByDescending(x => x.DoanhThu)
                 .ToList();
 
-            // ====== Sales theo Nhân viên ======
-            vm.SalesByStaff = hoaDons
-                .GroupBy(h => h.NhanVien != null ? h.NhanVien.Ten_NhanVien : "(Chưa gán)")
-                .Select(g => new StaffPerformanceVM
-                {
-                    TenNhanVien = g.Key,
-                    SoDon = g.Count(),
-                    DoanhThu = g.Sum(h =>
-                        ((decimal?)h.TongTienSauGiam ?? 0m)
-                        + ((decimal?)h.PhuThu ?? 0m)
-                        - h.TraHangs.Sum(tr =>
-                            tr.ChiTietTraHangs.Sum(r => ((decimal?)r.TienHoan ?? 0m))
-                          )
-                    )
-                })
-                .OrderByDescending(x => x.DoanhThu)
-                .ToList();
+            
 
             // ===== Doanh thu theo NGÀY =====
             var fromDate = (from?.Date) ?? DateTime.Today;

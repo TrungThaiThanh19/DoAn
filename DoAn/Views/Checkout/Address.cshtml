@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
+
 <style>
     :root {
         --brand: #ee4d2d;
@@ -67,7 +68,7 @@
 
 <header class="page-head">
     <div class="container py-3 d-flex align-items-center gap-3">
-        <a href="~/" class="text-white text-decoration-none fw-bold fs-4"><i class="fa-solid fa-bag-shopping me-2"></i>ShopPerfume</a>
+        <a href="~/img/z7002361398537_7bd4b0666545b71eb43c49a2bf5e87ce.jpg" class="text-white text-decoration-none fw-bold fs-4"><i class="fa-solid fa-bag-shopping me-2"></i>ShopPerfume</a>
         <div class="ms-auto"><a href="/GioHang/Index" class="text-white text-decoration-none"><i class="fa-solid fa-cart-shopping me-1"></i>Giỏ hàng</a></div>
     </div>
 </header>
@@ -167,82 +168,82 @@
 </div>
 
 <script>
-        // Kích hoạt Select2 cho các dropdown
-        $(document).ready(function () {
-            $('#TinhThanhPho, #QuanHuyen, #XaPhuong').select2({
-                placeholder: "-- Chọn --",
-                allowClear: true,
-                width: "100%"
+    // Kích hoạt Select2 cho các dropdown
+    $(document).ready(function () {
+        $('#TinhThanhPho, #QuanHuyen, #XaPhuong').select2({
+            placeholder: "-- Chọn --",
+            allowClear: true,
+            width: "100%"
+        });
+    });
+
+    // Load tỉnh/thành
+    fetch("https://provinces.open-api.vn/api/?depth=1")
+        .then(res => res.json())
+        .then(data => {
+            let tinhSelect = document.getElementById("TinhThanhPho");
+            data.forEach(item => {
+                let opt = document.createElement("option");
+                opt.value = item.name;
+                opt.dataset.code = item.code;
+                opt.textContent = item.name;
+                tinhSelect.appendChild(opt);
             });
         });
 
-        // Load tỉnh/thành
-        fetch("https://provinces.open-api.vn/api/?depth=1")
+    // Khi chọn Tỉnh => load Quận/Huyện
+    document.getElementById("TinhThanhPho").addEventListener("change", function () {
+        let code = this.selectedOptions[0]?.dataset.code;
+        let qhSelect = document.getElementById("QuanHuyen");
+        qhSelect.innerHTML = "<option value=''>-- Chọn Quận/Huyện --</option>";
+        document.getElementById("XaPhuong").innerHTML = "<option value=''>-- Chọn Xã/Phường --</option>";
+        document.getElementById("QuanHuyen").disabled = true;
+        document.getElementById("XaPhuong").disabled = true;
+        document.getElementById("SoNha").disabled = true;
+
+        if (!code) return;
+
+        fetch(`https://provinces.open-api.vn/api/p/${code}?depth=2`)
             .then(res => res.json())
             .then(data => {
-                let tinhSelect = document.getElementById("TinhThanhPho");
-                data.forEach(item => {
+                data.districts.forEach(d => {
                     let opt = document.createElement("option");
-                    opt.value = item.name;
-                    opt.dataset.code = item.code;
-                    opt.textContent = item.name;
-                    tinhSelect.appendChild(opt);
+                    opt.value = d.name;
+                    opt.dataset.code = d.code;
+                    opt.textContent = d.name;
+                    qhSelect.appendChild(opt);
                 });
+                qhSelect.disabled = false;
+                $('#QuanHuyen').val(null).trigger('change'); // reset select2
             });
+    });
 
-        // Khi chọn Tỉnh => load Quận/Huyện
-        document.getElementById("TinhThanhPho").addEventListener("change", function () {
-            let code = this.selectedOptions[0]?.dataset.code;
-            let qhSelect = document.getElementById("QuanHuyen");
-            qhSelect.innerHTML = "<option value=''>-- Chọn Quận/Huyện --</option>";
-            document.getElementById("XaPhuong").innerHTML = "<option value=''>-- Chọn Xã/Phường --</option>";
-            document.getElementById("QuanHuyen").disabled = true;
-            document.getElementById("XaPhuong").disabled = true;
-            document.getElementById("SoNha").disabled = true;
+    // Khi chọn Quận/Huyện => load Xã/Phường
+    document.getElementById("QuanHuyen").addEventListener("change", function () {
+        let code = this.selectedOptions[0]?.dataset.code;
+        let xpSelect = document.getElementById("XaPhuong");
+        xpSelect.innerHTML = "<option value=''>-- Chọn Xã/Phường --</option>";
+        document.getElementById("XaPhuong").disabled = true;
+        document.getElementById("SoNha").disabled = true;
 
-            if (!code) return;
+        if (!code) return;
 
-            fetch(`https://provinces.open-api.vn/api/p/${code}?depth=2`)
-                .then(res => res.json())
-                .then(data => {
-                    data.districts.forEach(d => {
-                        let opt = document.createElement("option");
-                        opt.value = d.name;
-                        opt.dataset.code = d.code;
-                        opt.textContent = d.name;
-                        qhSelect.appendChild(opt);
-                    });
-                    qhSelect.disabled = false;
-                    $('#QuanHuyen').val(null).trigger('change');
+        fetch(`https://provinces.open-api.vn/api/d/${code}?depth=2`)
+            .then(res => res.json())
+            .then(data => {
+                data.wards.forEach(w => {
+                    let opt = document.createElement("option");
+                    opt.value = w.name;
+                    opt.textContent = w.name;
+                    xpSelect.appendChild(opt);
                 });
-        });
+                xpSelect.disabled = false;
+                $('#XaPhuong').val(null).trigger('change');
+            });
+    });
 
-        // Khi chọn Quận/Huyện => load Xã/Phường
-        document.getElementById("QuanHuyen").addEventListener("change", function () {
-            let code = this.selectedOptions[0]?.dataset.code;
-            let xpSelect = document.getElementById("XaPhuong");
-            xpSelect.innerHTML = "<option value=''>-- Chọn Xã/Phường --</option>";
-            document.getElementById("XaPhuong").disabled = true;
-            document.getElementById("SoNha").disabled = true;
-
-            if (!code) return;
-
-            fetch(`https://provinces.open-api.vn/api/d/${code}?depth=2`)
-                .then(res => res.json())
-                .then(data => {
-    data.wards.forEach(w => {
-                        let opt = document.createElement("option");
-                        opt.value = w.name;
-                        opt.textContent = w.name;
-                        xpSelect.appendChild(opt);
-                    });
-                    xpSelect.disabled = false;
-                    $('#XaPhuong').val(null).trigger('change');
-                });
-        });
-
-        // Khi chọn xã/phường => bật ô số nhà
-        document.getElementById("XaPhuong").addEventListener("change", function () {
-            document.getElementById("SoNha").disabled = !this.value;
-        });
+    // Khi chọn xã/phường => bật ô số nhà
+    document.getElementById("XaPhuong").addEventListener("change", function () {
+        document.getElementById("SoNha").disabled = !this.value;
+    });
 </script>

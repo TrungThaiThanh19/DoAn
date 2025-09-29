@@ -13,8 +13,8 @@ namespace DoAn.Controllers
 {
     public class KhuyenMaiController : Controller
     {
-        private readonly IKhuyenMaiService _kmService;
-        private readonly DoAnDbContext _db;
+        private readonly IKhuyenMaiService _kmService; // Service quản lý khuyến mãi (CRUD)
+        private readonly DoAnDbContext _db;            // DbContext để truy vấn dữ liệu
 
         public KhuyenMaiController(IKhuyenMaiService kmService, DoAnDbContext db)
         {
@@ -22,26 +22,91 @@ namespace DoAn.Controllers
             _db = db;
         }
 
-        // Hàm tiện ích: trả về thời gian hiện tại theo giờ VN (UTC+7)
+        // ================= Helpers =================
+
+        // Trả về thời gian hiện tại theo giờ VN (UTC+7)
         private static DateTime Now() => DateTime.UtcNow.AddHours(7);
 
-        // Hàm tiện ích: kiểm tra kiểu giảm giá có phải % không
+        // Kiểm tra kiểu giảm giá có phải % không
         private static bool IsPercent(string kieu) =>
             string.Equals(kieu?.Trim(), "percent", StringComparison.OrdinalIgnoreCase);
 
-        // Hàm tiện ích: kiểm tra kiểu giảm giá có phải số tiền cố định không
+        // Kiểm tra kiểu giảm giá có phải số tiền cố định không
         private static bool IsFixed(string kieu) =>
             string.Equals(kieu?.Trim(), "fixed", StringComparison.OrdinalIgnoreCase);
 
-        // ===== LIST =====
-        // Trang danh sách khuyến mãi
-        public async Task<IActionResult> Index(string? q)
+        // Lấy danh sách ID SPCT theo thương hiệu
+        private async Task<HashSet<Guid>> GetSpctIdsByBrandAsync(Guid thuongHieuId)
+        {
+            var ids = await _db.SanPhamChiTiets
+                .AsNoTracking()
+                .Where(spct => spct.SanPham.ID_ThuongHieu == thuongHieuId)
+                .Select(spct => spct.ID_SanPhamChiTiet)
+                .ToListAsync();
+
+            return new HashSet<Guid>(ids);
+        }
+
+        // ================= Validate form =================
+        private async Task ValidateFormAsync(KhuyenMaiFormVM m)
+        {
+            // 1. Check mã khuyến mãi trùng
+            var trungMa = await _db.KhuyenMais
+                .AnyAsync(x => x.Ma_KhuyenMai == m.Ma_KhuyenMai && x.ID_KhuyenMai != m.ID_KhuyenMai);
+            if (trungMa)
+                ModelState.AddModelError(nameof(m.Ma_KhuyenMai), "Mã khuyến mãi đã tồn tại.");
+
+            // 2. Check ngày bắt đầu < ngày hết hạn
+            if (m.NgayHetHan <= m.NgayBatDau)
+                ModelState.AddModelError(nameof(m.NgayHetHan), "Ngày hết hạn phải sau ngày bắt đầu.");
+
+            // 3. Check giá trị giảm hợp lệ
+            if (IsPercent(m.KieuGiamGia))
+            {
+                // % chỉ cho phép (0..50]
+                if (m.GiaTriGiam <= 0 || m.GiaTriGiam > 50)
+                    ModelState.AddModelError(nameof(m.GiaTriGiam), "Giảm % phải trong (0..50].");
+            }
+            else if (IsFixed(m.KieuGiamGia))
+            {
+                // Tiền giảm phải > 0
+                if (m.GiaTriGiam <= 0)
+                    ModelState.AddModelError(nameof(m.GiaTriGiam), "Giảm tiền phải > 0.");
+            }
+
+            // 4. Nếu giảm theo tiền, không được lớn hơn giá nhập nhỏ nhất
+            if (ModelState.IsValid && IsFixed(m.KieuGiamGia))
+            {
+                // Xác định SPCT áp dụng: theo thương hiệu hoặc theo danh sách chọn
+                var targetIds = m.ThuongHieuId.HasValue
+                    ? await GetSpctIdsByBrandAsync(m.ThuongHieuId.Value)
+                    : new HashSet<Guid>(m.SanPhamChiTietIds ?? Enumerable.Empty<Guid>());
+
+                if (targetIds.Any())
+                {
+                    // Lấy giá nhập nhỏ nhất trong nhóm SPCT
+                    var minGiaNhap = await _db.SanPhamChiTiets
+                        .Where(spct => targetIds.Contains(spct.ID_SanPhamChiTiet))
+                        .MinAsync(spct => spct.GiaNhap);
+
+                    // Nếu giảm nhiều hơn giá nhập → báo lỗi
+                    if (m.GiaTriGiam > minGiaNhap)
+                    {
+                        ModelState.AddModelError(nameof(m.GiaTriGiam),
+                            $"Số tiền giảm ({m.GiaTriGiam:N0} đ) không được lớn hơn giá nhập thấp nhất ({minGiaNhap:N0} đ).");
+                    }
+                }
+            }
+        }
+
+        // ================= Action: Index =================
+        public async Task<IActionResult> Index(string? q, int page = 1, int pageSize = 10)
         {
             var now = Now();
             var list = await _kmService.GetAllAsync(q?.Trim());
 
-            // Ánh xạ dữ liệu từ model ra ViewModel để hiển thị danh sách
-            var model = list.Select(x => new KhuyenMaiIndexItemVM
+            // Map dữ liệu sang ViewModel cho view Index
+            var all = list.Select(x => new KhuyenMaiIndexItemVM
             {
                 ID_KhuyenMai = x.ID_KhuyenMai,
                 Ma_KhuyenMai = x.Ma_KhuyenMai,
@@ -52,28 +117,40 @@ namespace DoAn.Controllers
                 NgayBatDau = x.NgayBatDau,
                 NgayHetHan = x.NgayHetHan,
                 TrangThai = x.TrangThai,
-                SoSPCT = x.ChiTietKhuyenMais?.Count ?? 0, // số SPCT đang áp dụng
-                DangHoatDong = x.TrangThai == 1 && now >= x.NgayBatDau && now <= x.NgayHetHan // check còn hiệu lực
+                SoSPCT = x.ChiTietKhuyenMais?.Count ?? 0,
+                DangHoatDong = x.TrangThai == 1 && now >= x.NgayBatDau && now <= x.NgayHetHan
             })
             .OrderByDescending(i => i.NgayBatDau)
             .ToList();
 
+            // Xử lý phân trang
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+            var total = all.Count;
+            var totalPages = (int)Math.Ceiling(total / (double)pageSize);
+            if (page > totalPages && totalPages > 0) page = totalPages;
+
+            var model = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+            // Truyền dữ liệu qua ViewBag
             ViewBag.Query = q;
+            ViewBag.Page = page;
+            ViewBag.PageSize = pageSize;
+            ViewBag.Total = total;
+            ViewBag.TotalPages = totalPages;
             return View(model);
         }
 
-        // ===== CREATE =====
-        // GET: form tạo khuyến mãi
+        // ================= Action: Create =================
         public async Task<IActionResult> Create()
         {
-            var autoCode = await GenerateNewCodeAsync();
-            await LoadSPCTListAsync(); // load toàn bộ SPCT
-            await LoadBrandListAsync(); // load danh sách thương hiệu
+            // Load danh sách SPCT + thương hiệu cho dropdown
+            await LoadSPCTListAsync();
+            await LoadBrandListAsync();
 
-            // Trả về form với giá trị mặc định
+            // Trả về form Create với giá trị mặc định
             return View(new KhuyenMaiFormVM
             {
-                Ma_KhuyenMai = autoCode,
                 NgayBatDau = Now(),
                 NgayHetHan = Now().AddDays(7),
                 KieuGiamGia = "percent",
@@ -83,44 +160,40 @@ namespace DoAn.Controllers
             });
         }
 
-        // POST: tạo khuyến mãi
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(KhuyenMaiFormVM m)
         {
+            await ValidateFormAsync(m);
 
-
-            await ValidateFormAsync(m); // validate các rule cơ bản
-
-            // Nếu chọn thương hiệu => không bắt buộc chọn SPCT
+            // Nếu chọn thương hiệu → bỏ check SPCT
             if (m.ThuongHieuId.HasValue)
             {
                 ModelState.Remove(nameof(m.SanPhamChiTietIds));
             }
+            // Nếu không chọn thương hiệu → bắt buộc chọn SPCT
             else if (m.SanPhamChiTietIds == null || !m.SanPhamChiTietIds.Any())
             {
-                // Nếu không chọn thương hiệu thì phải có ít nhất 1 SPCT
                 ModelState.AddModelError(nameof(m.SanPhamChiTietIds),
                     "Hãy chọn thương hiệu hoặc chọn ít nhất một SPCT.");
             }
 
+            // Nếu lỗi → load lại dropdown + hiển thị form
             if (!ModelState.IsValid)
             {
-                // reload lại dữ liệu cho combobox khi form có lỗi
                 await LoadSPCTListAsync(m.SanPhamChiTietIds);
                 await LoadBrandListAsync(m.ThuongHieuId);
                 return View(m);
             }
 
-            // Xác định danh sách SPCT được áp dụng
+            // Xác định danh sách SPCT áp dụng
             HashSet<Guid> targetIds = m.ThuongHieuId.HasValue
-                ? await GetSpctIdsByBrandAsync(m.ThuongHieuId.Value) // nếu chọn thương hiệu => lấy toàn bộ SPCT thuộc brand đó
+                ? await GetSpctIdsByBrandAsync(m.ThuongHieuId.Value)
                 : new HashSet<Guid>(m.SanPhamChiTietIds ?? Enumerable.Empty<Guid>());
 
-            // Tạo entity mới
+            // Tạo entity KhuyenMai
             var km = new KhuyenMai
             {
                 ID_KhuyenMai = m.ID_KhuyenMai ?? Guid.NewGuid(),
-                Ma_KhuyenMai = m.Ma_KhuyenMai.Trim(),
                 Ten_KhuyenMai = m.Ten_KhuyenMai,
                 KieuGiamGia = m.KieuGiamGia,
                 GiaTriGiam = m.GiaTriGiam,
@@ -131,20 +204,20 @@ namespace DoAn.Controllers
                 TrangThai = m.TrangThai
             };
 
-            await _kmService.AddAsync(km, targetIds); // gọi service để thêm
+            // Gọi service để lưu DB
+            await _kmService.AddAsync(km, targetIds);
 
             TempData["Success"] = "Tạo khuyến mãi thành công.";
             return RedirectToAction(nameof(Index));
         }
 
-        // ===== EDIT =====
-        // GET: form sửa khuyến mãi
+        // ================= Action: Edit =================
         public async Task<IActionResult> Edit(Guid id)
         {
             var km = await _kmService.GetByIdAsync(id);
             if (km == null) return NotFound();
 
-            // Đổ dữ liệu ra form VM
+            // Map sang ViewModel để hiển thị trong form Edit
             var vm = new KhuyenMaiFormVM
             {
                 ID_KhuyenMai = km.ID_KhuyenMai,
@@ -157,16 +230,12 @@ namespace DoAn.Controllers
                 NgayBatDau = km.NgayBatDau,
                 NgayHetHan = km.NgayHetHan,
                 TrangThai = km.TrangThai,
-                SanPhamChiTietIds = km.ChiTietKhuyenMais?.Select(c => c.ID_SanPhamChiTiet).ToList() ?? new(),
-                ThuongHieuId = null
+                SanPhamChiTietIds = km.ChiTietKhuyenMais.Select(c => c.ID_SanPhamChiTiet).ToList()
             };
 
-            await LoadSPCTListAsync(vm.SanPhamChiTietIds);
-            await LoadBrandListAsync(vm.ThuongHieuId);
             return View(vm);
         }
 
-        // POST: cập nhật khuyến mãi
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(KhuyenMaiFormVM m)
         {
@@ -192,9 +261,7 @@ namespace DoAn.Controllers
             var exist = await _kmService.GetByIdAsync(m.ID_KhuyenMai!.Value);
             if (exist == null) return NotFound();
 
-            // ⚡ Không cho đổi mã
-            // exist.Ma_KhuyenMai giữ nguyên
-
+            // Cập nhật dữ liệu
             exist.Ten_KhuyenMai = m.Ten_KhuyenMai;
             exist.KieuGiamGia = m.KieuGiamGia;
             exist.GiaTriGiam = m.GiaTriGiam;
@@ -204,6 +271,7 @@ namespace DoAn.Controllers
             exist.NgayHetHan = m.NgayHetHan;
             exist.TrangThai = m.TrangThai;
 
+            // Xác định SPCT áp dụng
             HashSet<Guid> targetIds = m.ThuongHieuId.HasValue
                 ? await GetSpctIdsByBrandAsync(m.ThuongHieuId.Value)
                 : new HashSet<Guid>(m.SanPhamChiTietIds ?? Enumerable.Empty<Guid>());
@@ -214,8 +282,7 @@ namespace DoAn.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-
-        // ======= AJAX API: Lọc SPCT theo thương hiệu (dùng cho View để load SPCT động) =======
+        // ================= AJAX: Lọc SPCT theo thương hiệu =================
         [HttpGet]
         public async Task<IActionResult> SpctByBrand(Guid? brandId)
         {
@@ -225,9 +292,11 @@ namespace DoAn.Controllers
                 .Include(s => s.TheTich)
                 .AsQueryable();
 
+            // Nếu có chọn thương hiệu → filter theo thương hiệu
             if (brandId.HasValue)
                 q = q.Where(s => s.SanPham.ID_ThuongHieu == brandId.Value);
 
+            // Trả về danh sách SPCT dạng JSON
             var items = await q
                 .OrderByDescending(s => s.NgayTao)
                 .Select(s => new
@@ -238,66 +307,27 @@ namespace DoAn.Controllers
                 })
                 .ToListAsync();
 
-            return Json(items); // trả JSON để client-side JS nạp vào combobox SPCT
+            return Json(items);
         }
 
-        // ===== TOGGLE =====
-        // Bật / tắt trạng thái khuyến mãi
+        // ================= Action: Toggle =================
         [HttpPost]
         public async Task<IActionResult> Toggle(Guid id)
         {
-            await _kmService.ToggleAsync(id);
+            await _kmService.ToggleAsync(id); // Bật/tắt khuyến mãi
             return RedirectToAction(nameof(Index));
         }
 
-       // ===== DETAILS =====
-// Xem chi tiết khuyến mãi
-        public async Task<IActionResult> Details(Guid id)
+        // ================= Action: Delete =================
+        [HttpPost]
+        public async Task<IActionResult> Delete(Guid id)
         {
-            var km = await _kmService.GetByIdAsync(id);
-            if (km == null) return NotFound();
-
-            var vm = new KhuyenMaiFormVM
-            {
-                ID_KhuyenMai = km.ID_KhuyenMai,
-                Ma_KhuyenMai = km.Ma_KhuyenMai,
-                Ten_KhuyenMai = km.Ten_KhuyenMai,
-                KieuGiamGia = km.KieuGiamGia,
-                GiaTriGiam = km.GiaTriGiam,
-                GiaTriToiDa = km.GiaTriToiDa,
-                MoTa = km.MoTa,
-                NgayBatDau = km.NgayBatDau,
-                NgayHetHan = km.NgayHetHan,
-                TrangThai = km.TrangThai,
-                SanPhamChiTietIds = km.ChiTietKhuyenMais?
-                    .Select(c => c.ID_SanPhamChiTiet)
-                    .ToList() ?? new(),
-                ThuongHieuId = km.ChiTietKhuyenMais?
-                    .Select(c => c.SanPhamChiTiet.SanPham.ID_ThuongHieu)
-                    .FirstOrDefault()
-            };
-
-            await LoadSPCTListAsync(vm.SanPhamChiTietIds);
-            await LoadBrandListAsync(vm.ThuongHieuId);
-            return View(vm);
+            await _kmService.DeleteAsync(id); // Xóa khuyến mãi
+            TempData["Success"] = "Đã xóa khuyến mãi.";
+            return RedirectToAction(nameof(Index));
         }
 
-
-        // ================= Helpers =================
-
-        // Lấy toàn bộ SPCT của một thương hiệu (dùng khi chọn brand)
-        private async Task<HashSet<Guid>> GetSpctIdsByBrandAsync(Guid thuongHieuId)
-        {
-            var ids = await _db.SanPhamChiTiets
-                .AsNoTracking()
-                .Where(spct => spct.SanPham.ID_ThuongHieu == thuongHieuId)
-                .Select(spct => spct.ID_SanPhamChiTiet)
-                .ToListAsync();
-
-            return new HashSet<Guid>(ids);
-        }
-
-        // Load danh sách SPCT ra ViewBag để binding vào MultiSelectList
+        // ================= Load dropdown helpers =================
         private async Task LoadSPCTListAsync(IEnumerable<Guid>? selected = null)
         {
             var spcts = await _db.SanPhamChiTiets
@@ -314,6 +344,7 @@ namespace DoAn.Controllers
 
             var selectedIds = (selected ?? Enumerable.Empty<Guid>()).ToArray();
 
+            // Gán vào ViewBag để view dùng MultiSelectList
             ViewBag.SanPhamChiTietList = new MultiSelectList(
                 spcts,
                 "ID_SanPhamChiTiet",
@@ -322,7 +353,6 @@ namespace DoAn.Controllers
             );
         }
 
-        // Load danh sách thương hiệu ra combobox
         private async Task LoadBrandListAsync(Guid? selected = null)
         {
             var brands = await _db.ThuongHieus
@@ -334,43 +364,21 @@ namespace DoAn.Controllers
             ViewBag.BrandList = new SelectList(brands, "ID_ThuongHieu", "Ten_ThuongHieu", selected);
         }
 
-        // Validate dữ liệu nhập form khuyến mãi
-        private async Task ValidateFormAsync(KhuyenMaiFormVM m)
+        // ================= Action: Details =================
+        public async Task<IActionResult> Details(Guid id)
         {
-            // Check mã trùng
-            var trungMa = await _db.KhuyenMais
-                .AnyAsync(x => x.Ma_KhuyenMai == m.Ma_KhuyenMai && x.ID_KhuyenMai != m.ID_KhuyenMai);
-            if (trungMa)
-                ModelState.AddModelError(nameof(m.Ma_KhuyenMai), "Mã khuyến mãi đã tồn tại.");
+            var km = await _db.KhuyenMais
+                .Include(k => k.ChiTietKhuyenMais)
+                    .ThenInclude(ct => ct.SanPhamChiTiet)
+                        .ThenInclude(spct => spct.SanPham)
+                .Include(k => k.ChiTietKhuyenMais)
+                    .ThenInclude(ct => ct.SanPhamChiTiet)
+                        .ThenInclude(spct => spct.TheTich)
+                .FirstOrDefaultAsync(k => k.ID_KhuyenMai == id);
 
-            // Check ngày hợp lệ
-            if (m.NgayHetHan <= m.NgayBatDau)
-                ModelState.AddModelError(nameof(m.NgayHetHan), "Ngày hết hạn phải sau ngày bắt đầu.");
+            if (km == null) return NotFound();
 
-            // Check logic giảm giá
-            if (IsPercent(m.KieuGiamGia))
-            {
-                if (m.GiaTriGiam <= 0 || m.GiaTriGiam > 100)
-                    ModelState.AddModelError(nameof(m.GiaTriGiam), "Giảm % phải trong (0..100].");
-            }
-            else if (IsFixed(m.KieuGiamGia))
-            {
-                if (m.GiaTriGiam <= 0)
-                    ModelState.AddModelError(nameof(m.GiaTriGiam), "Giảm tiền phải > 0.");
-            }
-        }
-        private async Task<string> GenerateNewCodeAsync()
-        {
-            var prefix = "KM";
-            var datePart = DateTime.UtcNow.AddHours(7).ToString("yyyyMMdd");
-
-            // Đếm số KM tạo trong ngày để đánh số tăng dần
-            var countToday = await _db.KhuyenMais
-                .CountAsync(x => x.NgayBatDau.Date == DateTime.UtcNow.AddHours(7).Date);
-
-            var numberPart = (countToday + 1).ToString("D3"); // luôn 3 chữ số
-
-            return $"{prefix}{datePart}-{numberPart}";
+            return View(km); // Trả về view hiển thị chi tiết KM
         }
     }
 }

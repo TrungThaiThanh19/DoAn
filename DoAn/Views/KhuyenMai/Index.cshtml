@@ -12,10 +12,19 @@
     <div class="alert alert-success">@TempData["Success"]</div>
 }
 
-<form method="get" class="mb-3 d-flex gap-2">
+<form method="get" class="mb-3 d-flex gap-2 align-items-center">
     <input name="q" class="form-control" placeholder="Tìm mã hoặc tên..." value="@ViewBag.Query" />
+    <input type="hidden" name="page" value="1" />
     <button class="btn btn-primary">Tìm</button>
     <a asp-action="Create" class="btn btn-success">+ Tạo mới</a>
+    <div class="ms-auto d-flex align-items-center gap-2">
+        <label class="text-muted">Hiển thị</label>
+        <select name="pageSize" class="form-select form-select-sm" onchange="this.form.submit()" style="width:90px">
+            <option value="10" selected="@(ViewBag.PageSize==10)">10</option>
+            <option value="20" selected="@(ViewBag.PageSize==20)">20</option>
+            <option value="50" selected="@(ViewBag.PageSize==50)">50</option>
+        </select>
+    </div>
 </form>
 
 <table class="table table-bordered table-striped align-middle">
@@ -25,7 +34,6 @@
             <th>Tên</th>
             <th>Kiểu</th>
             <th>Giá trị</th>
-            <th>Cap</th>
             <th>Bắt đầu</th>
             <th>Hết hạn</th>
             <th>SPCT</th>
@@ -41,20 +49,17 @@
                 <td>@i.Ten_KhuyenMai</td>
                 <td>@i.KieuGiamGia</td>
                 <td>
-                    @if (string.Equals(i.KieuGiamGia, "percent", StringComparison.OrdinalIgnoreCase))
+                    @if (i.KieuGiamGia == "percent")
                     {
-                        @($"{i.GiaTriGiam:N0}%")
+                        @($"{i.GiaTriGiam:0} %")
                     }
-                    else if (string.Equals(i.KieuGiamGia, "fixed", StringComparison.OrdinalIgnoreCase))
+                    else if (i.KieuGiamGia == "fixed")
                     {
                         @($"{i.GiaTriGiam:N0} VND")
                     }
-                    else
-                    {
-                        @i.GiaTriGiam
-                    }
                 </td>
-                <td>@(i.GiaTriToiDa == 0 ? "-" : Currency(i.GiaTriToiDa))</td>
+
+             
                 <td>@i.NgayBatDau:g</td>
                 <td>@i.NgayHetHan:g</td>
                 <td>@i.SoSPCT</td>
@@ -77,9 +82,33 @@
                     <form asp-action="Toggle" asp-route-id="@i.ID_KhuyenMai" method="post" class="d-inline">
                         <button class="btn btn-sm btn-outline-dark">@((i.TrangThai == 1) ? "Tắt" : "Bật")</button>
                     </form>
-                    <a asp-action="Details" asp-route-id="@i.ID_KhuyenMai" class="btn btn-sm btn-info">Chi tiết</a>
+                    <a asp-action="Details" asp-route-id="@i.ID_KhuyenMai" class="btn btn-sm btn-outline-secondary">Xem chi tiết</a>
                 </td>
             </tr>
         }
     </tbody>
 </table>
+
+@{
+    int page = ViewBag.Page ?? 1;
+    int totalPages = ViewBag.TotalPages ?? 1;
+    string q = ViewBag.Query as string ?? "";
+    int pageSize = ViewBag.PageSize ?? 10;
+}
+
+<nav aria-label="Pagination">
+    <ul class="pagination">
+        <li class="page-item @(page<=1?"disabled":"")">
+            <a class="page-link" asp-action="Index" asp-route-q="@q" asp-route-page="@(page-1)" asp-route-pageSize="@pageSize">«</a>
+        </li>
+        @for (var p = 1; p <= totalPages; p++)
+        {
+            <li class="page-item @(p==page?"active":"")">
+                <a class="page-link" asp-action="Index" asp-route-q="@q" asp-route-page="@p" asp-route-pageSize="@pageSize">@p</a>
+            </li>
+        }
+        <li class="page-item @(page>=totalPages?"disabled":"")">
+            <a class="page-link" asp-action="Index" asp-route-q="@q" asp-route-page="@(page+1)" asp-route-pageSize="@pageSize">»</a>
+        </li>
+    </ul>
+</nav>

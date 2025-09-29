@@ -162,9 +162,8 @@
             <div class="card card-shadow h-100">
                 <div class="card-body">
                     <h5 class="card-title mb-1">Doanh thu theo ngày</h5>
-                    <div class="small text-secondary mb-2">Nguồn: GET /ThongKe/RevenueDaily</div>
                     <div class="mb-2"><span class="text-muted">Tổng:</span> <strong id="dailyTotal">—</strong></div>
-                    <div id="dailyEmpty" class="text-center text-secondary py-4 d-none">Không có dữ liệu.</div>
+                  
                     <div class="chart-wrapper"><canvas id="dailyChart"></canvas></div>
                 </div>
             </div>
@@ -174,9 +173,8 @@
             <div class="card card-shadow h-100">
                 <div class="card-body">
                     <h5 class="card-title mb-1">Doanh thu theo tháng</h5>
-                    <div class="small text-secondary mb-2">Nguồn: GET /ThongKe/RevenueMonthly</div>
                     <div class="mb-2"><span class="text-muted">Tổng:</span> <strong id="monthlyTotal">—</strong></div>
-                    <div id="monthlyEmpty" class="text-center text-secondary py-4 d-none">Không có dữ liệu.</div>
+                 
                     <div class="chart-wrapper"><canvas id="monthlyChart"></canvas></div>
                 </div>
             </div>
@@ -192,13 +190,22 @@
             </div>
             <div class="table-responsive">
                 <table class="table table-sm align-middle">
-                    <thead><tr><th>Sản phẩm</th><th>Thể tích</th><th class="text-end">Số lượng</th><th class="text-end">Doanh thu</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Mã sản phẩm</th>
+                            <th>Sản phẩm</th>
+                            <th>Thể tích</th>
+                            <th class="text-end">Số lượng</th>
+                            <th class="text-end">Doanh thu</th>
+                        </tr>
+                        </thead>
                     <tbody>
                         @if (Model.TopProducts?.Any() == true)
                         {
                             foreach (var p in Model.TopProducts)
                             {
                                 <tr>
+                                    <td>@p.MaSanPham</td>
                                     <td>@p.TenSanPham</td>
                                     <td>@p.TheTich</td>
                                     <td class="text-end">@p.SoLuong</td>
